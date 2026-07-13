@@ -6,3 +6,11 @@ node_modules/
 build/
 bin/
 frontend/dist/wailsjs/
+!apps/wails/frontend/dist/
+!apps/wails/frontend/dist/app.js
+!apps/wails/frontend/dist/index.html
+!apps/wails/frontend/dist/style.css
+!apps/tauri/frontend/dist/
+!apps/tauri/frontend/dist/app.js
+!apps/tauri/frontend/dist/index.html
+!apps/tauri/frontend/dist/style.css
