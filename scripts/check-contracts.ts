@@ -14,6 +14,17 @@ type Lock = {
 const root = join(import.meta.dir, "..");
 const lock = JSON.parse(await readFile(join(root, "bench.lock.json"), "utf8")) as Lock;
 
+function assertExactKeys(value: unknown, keys: string[], label: string): asserts value is Record<string, unknown> {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    throw new Error(`${label} must be an object`);
+  }
+  const actual = Object.keys(value).sort();
+  const expected = [...keys].sort();
+  if (JSON.stringify(actual) !== JSON.stringify(expected)) {
+    throw new Error(`${label} keys differ from the pinned Velox manifest v1 contract`);
+  }
+}
+
 if (lock.schemaVersion !== "velox-bench-lock/v2" || lock.runner !== "windows-2025") {
   throw new Error("unsupported benchmark lock contract");
 }
@@ -42,6 +53,21 @@ for (const [framework, values] of Object.entries(lock.frameworks)) {
       throw new Error(`${framework}.${name} is not an exact release version`);
     }
   }
+}
+
+const veloxManifest = JSON.parse(await readFile(join(root, "apps", "velox", "velox.json"), "utf8")) as unknown;
+assertExactKeys(veloxManifest, ["$schema", "schemaVersion", "app", "assets", "window", "security"], "Velox manifest");
+assertExactKeys(veloxManifest.app, ["id", "name", "version"], "Velox manifest app");
+assertExactKeys(veloxManifest.assets, ["root", "entry"], "Velox manifest assets");
+assertExactKeys(veloxManifest.window, ["width", "height"], "Velox manifest window");
+assertExactKeys(veloxManifest.security, ["permissions"], "Velox manifest security");
+if (
+  veloxManifest.schemaVersion !== 1 ||
+  veloxManifest.assets.root !== "web" ||
+  veloxManifest.assets.entry !== "index.html" ||
+  !Array.isArray(veloxManifest.security.permissions)
+) {
+  throw new Error("Velox adapter does not satisfy the pinned manifest v1 values");
 }
 
 const adapters = [

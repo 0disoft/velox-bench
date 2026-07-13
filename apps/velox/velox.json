@@ -7,19 +7,14 @@
     "version": "0.1.0"
   },
   "assets": {
-    "dir": "web",
+    "root": "web",
     "entry": "index.html"
   },
   "window": {
     "width": 960,
-    "height": 640,
-    "resizable": true,
-    "start": "center",
-    "background": "#ffffff"
+    "height": 640
   },
   "security": {
-    "permissions": [],
-    "devtools": false
+    "permissions": []
   }
 }
-
