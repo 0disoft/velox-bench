@@ -3,7 +3,6 @@
   "private": true,
   "version": "0.0.0",
   "scripts": {
-    "check": "bun scripts/check-contracts.ts"
+    "check": "bun build scripts/check-contracts.ts scripts/measure-zero-cache.ts scripts/start-clock.ts scripts/summarize.ts --target=bun --outdir=.bench/compiled && bun test && bun scripts/check-contracts.ts"
   }
 }
-

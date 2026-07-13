@@ -32,9 +32,9 @@
   },
   "cli": {
     "binaryName": "velox-bench-neutralino",
+    "binaryVersion": "6.8.0",
     "resourcesPath": "/resources/",
     "extensionsPath": "/extensions/",
     "clientLibrary": ""
   }
 }
-

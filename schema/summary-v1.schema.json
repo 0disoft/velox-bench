@@ -1,0 +1,61 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.velox.invalid/bench-summary/v1.json",
+  "title": "Velox cross-framework benchmark summary v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "suite", "expectedPerFramework", "fixtureSha256", "frameworkRevisions", "publishable", "rows"],
+  "properties": {
+    "schemaVersion": { "const": "velox.bench-summary/v1" },
+    "suite": { "const": "zero-cache" },
+    "expectedPerFramework": { "enum": [1, 10] },
+    "fixtureSha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "frameworkRevisions": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["velox", "wails", "neutralino", "tauri"],
+      "properties": {
+        "velox": { "type": "string", "pattern": "^[0-9a-f]{40}$" },
+        "wails": { "type": "string", "pattern": "^[0-9a-f]{40}$" },
+        "neutralino": { "type": "string", "pattern": "^[0-9a-f]{40}$" },
+        "tauri": { "type": "string", "pattern": "^[0-9a-f]{40}$" }
+      }
+    },
+    "publishable": { "type": "boolean" },
+    "rows": {
+      "type": "array",
+      "minItems": 4,
+      "maxItems": 4,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["framework", "expected", "observed", "missing", "successful", "failed", "timedOut", "endToEndMs"],
+        "properties": {
+          "framework": { "enum": ["velox", "wails", "neutralino", "tauri"] },
+          "expected": { "enum": [1, 10] },
+          "observed": { "type": "integer", "minimum": 0 },
+          "missing": { "type": "integer", "minimum": 0 },
+          "successful": { "type": "integer", "minimum": 0 },
+          "failed": { "type": "integer", "minimum": 0 },
+          "timedOut": { "type": "integer", "minimum": 0 },
+          "endToEndMs": {
+            "oneOf": [
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["min", "p50", "p95", "max"],
+                "properties": {
+                  "min": { "type": "number", "minimum": 0 },
+                  "p50": { "type": "number", "minimum": 0 },
+                  "p95": { "type": "number", "minimum": 0 },
+                  "max": { "type": "number", "minimum": 0 }
+                }
+              },
+              { "type": "null" }
+            ]
+          }
+        }
+      }
+    }
+  }
+}
