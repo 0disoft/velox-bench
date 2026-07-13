@@ -1,0 +1,8 @@
+.cache/
+.ci/
+dist/
+node_modules/
+build/
+bin/
+frontend/dist/wailsjs/
+

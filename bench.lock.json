@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "velox-bench-lock/v1",
+  "runner": "windows-2025",
+  "fixture": {
+    "name": "hello",
+    "files": ["index.html", "style.css", "app.js"]
+  },
+  "frameworks": {
+    "velox": {
+      "repository": "0disoft/velox",
+      "commit": "57e5e7bac7e6fe4a26d6dba563fad8dd66d60983"
+    },
+    "wails": {
+      "repository": "wailsapp/wails",
+      "version": "v2.13.0",
+      "commit": "474b677c9b9191d703607bea7d76143b1b2eeb0c"
+    },
+    "neutralino": {
+      "repository": "neutralinojs/neutralinojs",
+      "version": "v6.8.0",
+      "commit": "c30cbaeb5821785c24505ab7053d7ed76699d672",
+      "cliVersion": "v11.7.2",
+      "cliCommit": "387dca0aa4a100b3b69ef17774185fd6cb2c3da4"
+    }
+  }
+}
+

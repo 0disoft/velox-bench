@@ -1,0 +1,61 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.velox.invalid/bench-result/v1.json",
+  "title": "Velox cross-framework benchmark result v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "suite", "framework", "frameworkRevision", "fixtureSha256", "outcome", "environment", "measurement", "failure"],
+  "properties": {
+    "schemaVersion": { "const": "velox.bench-result/v1" },
+    "suite": { "enum": ["zero-cache", "recommended-cache"] },
+    "framework": { "enum": ["velox", "wails", "neutralino"] },
+    "frameworkRevision": { "type": "string", "minLength": 1 },
+    "fixtureSha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "outcome": { "enum": ["success", "failure", "timeout"] },
+    "environment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["runner", "runnerImageVersion", "os", "architecture"],
+      "properties": {
+        "runner": { "const": "windows-2025" },
+        "runnerImageVersion": { "type": "string", "minLength": 1 },
+        "os": { "const": "windows" },
+        "architecture": { "const": "amd64" }
+      }
+    },
+    "measurement": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["endToEndMs", "acquisitionBytes", "outputFiles", "outputBytes", "intermediateFiles", "intermediateBytes", "uploadedCacheBytes"],
+          "properties": {
+            "endToEndMs": { "type": "number", "minimum": 0 },
+            "acquisitionBytes": { "type": "integer", "minimum": 0 },
+            "outputFiles": { "type": "integer", "minimum": 1 },
+            "outputBytes": { "type": "integer", "minimum": 1 },
+            "intermediateFiles": { "type": "integer", "minimum": 0 },
+            "intermediateBytes": { "type": "integer", "minimum": 0 },
+            "uploadedCacheBytes": { "type": "integer", "minimum": 0 }
+          }
+        },
+        { "type": "null" }
+      ]
+    },
+    "failure": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["phase", "code"],
+          "properties": {
+            "phase": { "type": "string", "minLength": 1 },
+            "code": { "type": "string", "pattern": "^[A-Z0-9_]+$" }
+          }
+        },
+        { "type": "null" }
+      ]
+    }
+  }
+}
+
