@@ -61,6 +61,21 @@ test("normalizes legacy hardware fields out of environment series", () => {
   expect(history.series).toEqual([{ environmentKey: "runner|windows|webview", runIds: ["1000", "1001"] }]);
 });
 
+test("records a run once when legacy groups normalize to the same environment", () => {
+  const legacySummary = summary();
+  legacySummary.environmentGroups = [
+    { key: "runner|windows|webview|cpu-a|4|16000000000", samples: 1 },
+    { key: "runner|windows|webview|cpu-b|8|32000000000", samples: 1 },
+    { key: "runner|windows|webview|cpu-c|16|64000000000", samples: 1 },
+  ];
+
+  const history = buildStartupHistory([
+    candidate(0, { summary: legacySummary }),
+  ], [], "2026-07-20T00:00:00.000Z");
+
+  expect(history.series).toEqual([{ environmentKey: "runner|windows|webview", runIds: ["1000"] }]);
+});
+
 test("preserves collection issues as partial evidence", () => {
   const history = buildStartupHistory([candidate(0)], [{ runId: "999", code: "ARTIFACT_MISSING" }], "2026-07-20T00:00:00.000Z");
   expect(history.outcome).toBe("partial");

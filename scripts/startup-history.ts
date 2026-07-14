@@ -51,7 +51,7 @@ export function buildStartupHistory(candidates: StartupHistoryCandidate[], issue
     for (const group of point.summary.environmentGroups) {
       const environmentKey = normalizedEnvironmentKey(group.key);
       const runIds = seriesMap.get(environmentKey) ?? [];
-      runIds.push(point.runId);
+      if (!runIds.includes(point.runId)) runIds.push(point.runId);
       seriesMap.set(environmentKey, runIds);
     }
   }
