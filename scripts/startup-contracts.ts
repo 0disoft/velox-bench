@@ -66,6 +66,31 @@ export type StartupSummary = {
   warm: StartupStatistics | null;
 };
 
+export function validateStartupSummary(value: unknown): asserts value is StartupSummary {
+  if (!value || typeof value !== "object") throw new Error("startup summary must be an object");
+  const summary = value as Partial<StartupSummary>;
+  if (summary.schemaVersion !== startupSummarySchemaVersion || summary.suite !== startupSuite || summary.framework !== "velox") {
+    throw new Error("unsupported startup summary contract");
+  }
+  if (![1, 3, 10].includes(summary.expected ?? 0)) throw new Error("invalid expected startup samples");
+  for (const field of ["observed", "missing", "successful", "failed", "timedOut"] as const) {
+    if (!Number.isInteger(summary[field]) || (summary[field] ?? -1) < 0) throw new Error(`invalid startup summary ${field}`);
+  }
+  if (typeof summary.publishable !== "boolean" || !Array.isArray(summary.evidenceLevels) || summary.evidenceLevels.length < 1 ||
+      summary.evidenceLevels.some((level) => !["hosted-pinned-source", "local-unverified-release"].includes(level)) ||
+      !Array.isArray(summary.environmentGroups) || summary.environmentGroups.length < 1 ||
+      summary.environmentGroups.some((group) => !group.key || !Number.isInteger(group.samples) || group.samples < 1)) {
+    throw new Error("invalid startup summary metadata");
+  }
+  for (const statistics of [summary.fresh, summary.warm]) {
+    if (statistics === null) continue;
+    if (!statistics || !finiteNonNegative(statistics.minMs) || !finiteNonNegative(statistics.p50Ms) ||
+        !finiteNonNegative(statistics.p95Ms) || !finiteNonNegative(statistics.maxMs)) {
+      throw new Error("invalid startup summary statistics");
+    }
+  }
+}
+
 function finiteNonNegative(value: unknown): value is number {
   return typeof value === "number" && Number.isFinite(value) && value >= 0;
 }

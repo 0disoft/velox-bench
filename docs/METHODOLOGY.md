@@ -59,6 +59,19 @@ CPU, and memory environment group. Hosted jobs label evidence as
 `hosted-pinned-source` only after checking out the exact Velox revision. Local
 smoke results use `local-unverified-release` and are never publishable.
 
+## Startup History
+
+Every successful startup summary is followed by a history collection job. It
+uses GitHub Actions read-only access to download the current summary and up to
+eleven prior successful manual-run summaries. The history retains at most
+twelve points, keeps the newest attempt for a repeated run, and groups points
+by the exact environment key already recorded in each summary.
+
+An expired, missing, or invalid summary is a collection issue. It is not
+silently removed and changes the history outcome from `complete` to `partial`.
+History does not compare points across environment series and does not enforce
+a regression threshold.
+
 ## Cache and Acquisition Evidence
 
 The zero-cache workflow contains no `actions/cache` use. It disables Bun

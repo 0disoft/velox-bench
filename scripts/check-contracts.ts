@@ -152,6 +152,8 @@ for (const marker of [
   "'[0,1,2]'",
   "measure-velox-startup.ts",
   "summarize-startup.ts",
+  "collect-startup-history.ts",
+  "startup-history-",
   "VELOX_STARTUP_EVIDENCE_LEVEL: hosted-pinned-source",
   "no-cache: true",
   "cache: false",
@@ -161,7 +163,7 @@ for (const marker of [
 if (/^\s{2}(push|pull_request|schedule):/m.test(startupWorkflow)) {
   throw new Error("startup workflow must remain manual-only until its cost is measured");
 }
-for (const schema of ["startup-v1.schema.json", "startup-summary-v1.schema.json"]) {
+for (const schema of ["startup-v1.schema.json", "startup-summary-v1.schema.json", "startup-history-v1.schema.json"]) {
   JSON.parse(await readFile(join(root, "schema", schema), "utf8"));
 }
 

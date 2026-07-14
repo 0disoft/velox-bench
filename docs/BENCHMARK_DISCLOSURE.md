@@ -16,6 +16,9 @@
 - The current startup suite measures Velox only. It can detect Velox regressions
   and fresh-versus-settled-warm behavior, but it cannot support a claim that
   Velox starts faster than another framework.
+- Startup history retains bounded summary evidence and environment changes. It
+  does not turn one- or three-sample diagnostics into publishable performance
+  claims and does not automatically declare a regression.
 - Acquisition working-set bytes are not network-transfer bytes. GitHub setup
   actions do not provide a stable network-byte counter.
 - A one-sample workflow run proves only that the adapters and evidence pipeline

@@ -47,3 +47,8 @@ folder lock to clear between launches, so warm startup is not confused with an
 immediate relaunch handoff. One- and three-sample runs are diagnostic. Ten
 complete samples from one runner and WebView2 environment are required before
 the summary is publishable.
+
+After a successful summary, the workflow collects up to twelve recent startup
+summary artifacts into `velox.startup-history/v1`. Environment changes create
+separate series, and missing or invalid artifacts remain visible as collection
+issues. History is diagnostic evidence, not an automatic regression verdict.
