@@ -6,6 +6,7 @@ import { basename, dirname, isAbsolute, join, normalize, resolve, sep } from "no
 import { fixtureDigest, loadLock } from "./contracts";
 import {
   readyBoundary,
+  parseHostTimelineOutput,
   startupSchemaVersion,
   startupSuite,
   validateStartupResult,
@@ -197,6 +198,7 @@ async function runHost(host: string, config: string, profile: string): Promise<S
     const hostExitedAt = performance.now();
     const [stdout, stderr] = await Promise.all([new Response(child.stdout).text(), new Response(child.stderr).text()]);
     if (exitCode !== 0) throw new Error(`Velox host exited with ${exitCode}: ${(stderr || stdout).slice(-1000)}`);
+    const hostTimeline = parseHostTimelineOutput(stderr, readyMs);
     await waitForProcessExit(ready.browserProcessId);
     const browserExitedAt = performance.now();
     await waitForProfileRelease(profile);
@@ -207,6 +209,7 @@ async function runHost(host: string, config: string, profile: string): Promise<S
       browserExitAfterHostMs: milliseconds(browserExitedAt - hostExitedAt),
       profileReleaseAfterHostMs: milliseconds(profileReleasedAt - hostExitedAt),
       browserProcessId: ready.browserProcessId,
+      hostTimeline,
     };
   } catch (error) {
     child.kill();

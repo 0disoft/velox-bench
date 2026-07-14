@@ -46,7 +46,9 @@ waits for the reported WebView2 browser process to exit and for the user-data
 folder lock to clear between launches, so warm startup is not confused with an
 immediate relaunch handoff. One- and three-sample runs are diagnostic. Ten
 complete samples from one runner and WebView2 environment are required before
-the summary is publishable.
+the summary is publishable. Raw v2 results also retain the benchmark-only host
+timeline from host entry through WebView2 environment and controller creation,
+navigation dispatch, and the DOM-plus-two-animation-frame boundary.
 
 After a successful summary, the workflow collects up to twelve recent startup
 summary artifacts into `velox.startup-history/v1`. Environment changes create

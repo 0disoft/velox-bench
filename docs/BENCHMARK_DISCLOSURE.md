@@ -16,6 +16,11 @@
 - The current startup suite measures Velox only. It can detect Velox regressions
   and fresh-versus-settled-warm behavior, but it cannot support a claim that
   Velox starts faster than another framework.
+- Velox raw startup v2 includes host-internal phase timing for diagnosis. Other
+  adapters do not yet expose equivalent phases, so those values are not a
+  cross-framework comparison surface.
+- A ten-sample nearest-rank p95 equals the maximum observed sample. It preserves
+  outliers but must not be presented as a stable long-term p95 estimate.
 - Startup history retains bounded summary evidence and environment changes. It
   does not turn one- or three-sample diagnostics into publishable performance
   claims and does not automatically declare a regression.

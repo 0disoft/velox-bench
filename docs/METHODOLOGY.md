@@ -41,6 +41,18 @@ ready boundary starts immediately before creating the packaged host process and
 ends when the fixture reports `DOMContentLoaded` followed by two animation
 frames over Velox's benchmark-only named pipe.
 
+`velox.startup-benchmark/v2` also records a process-local monotonic host
+timeline. Successful launches must contain exactly this order:
+
+1. host entry and configuration load;
+2. runtime open and native window creation;
+3. WebView2 environment and controller creation;
+4. WebView creation and navigation dispatch;
+5. runtime open completion and the DOM-plus-two-animation-frame marker.
+
+The host timeline diagnoses where a process-to-ready outlier occurred. It does
+not replace the parent harness clock used for the headline ready duration.
+
 Each isolated sample records two profiles:
 
 - `fresh` uses a new WebView2 user-data folder;
@@ -59,6 +71,9 @@ WebView2 environment group. CPU and memory remain raw diagnostic metadata but
 do not split hosted-runner series. Hosted jobs label evidence as
 `hosted-pinned-source` only after checking out the exact Velox revision. Local
 smoke results use `local-unverified-release` and are never publishable.
+Statistics use nearest-rank percentiles. With exactly ten samples, p95 is the
+maximum observed value, so it is a disclosed tail observation rather than a
+stable estimate of the population p95.
 
 ## Startup History
 

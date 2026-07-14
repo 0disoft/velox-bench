@@ -163,7 +163,7 @@ for (const marker of [
 if (/^\s{2}(push|pull_request|schedule):/m.test(startupWorkflow)) {
   throw new Error("startup workflow must remain manual-only until its cost is measured");
 }
-for (const schema of ["startup-v1.schema.json", "startup-summary-v1.schema.json", "startup-history-v1.schema.json"]) {
+for (const schema of ["startup-v1.schema.json", "startup-v2.schema.json", "startup-summary-v1.schema.json", "startup-history-v1.schema.json"]) {
   JSON.parse(await readFile(join(root, "schema", schema), "utf8"));
 }
 

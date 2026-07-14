@@ -22,7 +22,7 @@
   "frameworks": {
     "velox": {
       "repository": "0disoft/velox",
-      "commit": "64ee93a26eef65e4216095f546f1ed74d5232ee9"
+      "commit": "f0ac7c42acea86c42c7b5c976791e5fd643fee87"
     },
     "wails": {
       "repository": "wailsapp/wails",

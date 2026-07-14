@@ -1,5 +1,16 @@
 import { expect, test } from "bun:test";
-import { buildStartupSummary, readyBoundary, startupSchemaVersion, startupSuite, validateStartupResult, warmupCount, type StartupResult } from "./startup-contracts";
+import { buildStartupSummary, hostTimelineClock, hostTimelinePrefix, hostTimelineSchemaVersion, parseHostTimelineOutput, readyBoundary, startupPhaseNames, startupSchemaVersion, startupSuite, validateStartupResult, warmupCount, type HostStartupTimeline, type StartupResult } from "./startup-contracts";
+
+function timeline(readyMs: number): HostStartupTimeline {
+  return {
+    schemaVersion: hostTimelineSchemaVersion,
+    clock: hostTimelineClock,
+    phases: startupPhaseNames.map((name, index) => ({
+      name,
+      elapsedMs: index === 0 ? 0 : Math.min(readyMs, index * 5),
+    })),
+  };
+}
 
 function result(sample: number, overrides: Partial<StartupResult> = {}): StartupResult {
   return {
@@ -29,8 +40,8 @@ function result(sample: number, overrides: Partial<StartupResult> = {}): Startup
     measurement: {
       readyBoundary,
       warmupCount,
-      fresh: { readyMs: 100 + sample, hostExitAfterReadyMs: 10, browserExitAfterHostMs: 20, profileReleaseAfterHostMs: 30, browserProcessId: 1000 + sample },
-      warm: { readyMs: 80 + sample, hostExitAfterReadyMs: 10, browserExitAfterHostMs: 20, profileReleaseAfterHostMs: 30, browserProcessId: 2000 + sample },
+      fresh: { readyMs: 100 + sample, hostExitAfterReadyMs: 10, browserExitAfterHostMs: 20, profileReleaseAfterHostMs: 30, browserProcessId: 1000 + sample, hostTimeline: timeline(100 + sample) },
+      warm: { readyMs: 80 + sample, hostExitAfterReadyMs: 10, browserExitAfterHostMs: 20, profileReleaseAfterHostMs: 30, browserProcessId: 2000 + sample, hostTimeline: timeline(80 + sample) },
     },
     failure: null,
     ...overrides,
@@ -39,6 +50,32 @@ function result(sample: number, overrides: Partial<StartupResult> = {}): Startup
 
 test("validates the process-to-two-frame startup contract", () => {
   expect(() => validateStartupResult(result(0))).not.toThrow();
+});
+
+test("parses exactly one ordered host startup timeline", () => {
+  const expected = timeline(100);
+  const stderr = `diagnostic\n${hostTimelinePrefix}${JSON.stringify(expected)}\n`;
+  expect(parseHostTimelineOutput(stderr, 100)).toEqual(expected);
+});
+
+test("rejects a missing or reordered host startup timeline", () => {
+  expect(() => parseHostTimelineOutput("", 100)).toThrow("found 0");
+  const reordered = timeline(100);
+  [reordered.phases[4], reordered.phases[5]] = [reordered.phases[5], reordered.phases[4]];
+  expect(() => parseHostTimelineOutput(`${hostTimelinePrefix}${JSON.stringify(reordered)}\n`, 100)).toThrow("environment-create-started");
+});
+
+test("rejects a host timeline that exceeds process-to-ready", () => {
+  const tooLong = timeline(100);
+  tooLong.phases[tooLong.phases.length - 1].elapsedMs = 101;
+  expect(() => validateStartupResult(result(0, {
+    measurement: {
+      readyBoundary,
+      warmupCount,
+      fresh: { ...result(0).measurement!.fresh, hostTimeline: tooLong },
+      warm: result(0).measurement!.warm,
+    },
+  }))).toThrow("successful startup result is incomplete");
 });
 
 test("three samples remain diagnostic", () => {

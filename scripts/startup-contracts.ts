@@ -1,8 +1,32 @@
-export const startupSchemaVersion = "velox.startup-benchmark/v1" as const;
+export const startupSchemaVersion = "velox.startup-benchmark/v2" as const;
 export const startupSummarySchemaVersion = "velox.startup-summary/v1" as const;
 export const startupSuite = "velox-startup" as const;
 export const readyBoundary = "process-start-to-domcontentloaded-plus-two-animation-frames" as const;
 export const warmupCount = 5 as const;
+export const hostTimelineSchemaVersion = "velox.host-startup-timeline/v1" as const;
+export const hostTimelineClock = "time-since-host-entry-monotonic" as const;
+export const hostTimelinePrefix = "velox-bench-timeline " as const;
+export const startupPhaseNames = [
+  "host-entry",
+  "config-loaded",
+  "runtime-open-started",
+  "window-create-started",
+  "environment-create-started",
+  "environment-created",
+  "controller-created",
+  "webview-created",
+  "navigation-dispatched",
+  "runtime-opened",
+  "dom-2raf",
+] as const;
+
+export type StartupPhaseName = typeof startupPhaseNames[number];
+
+export type HostStartupTimeline = {
+  schemaVersion: typeof hostTimelineSchemaVersion;
+  clock: typeof hostTimelineClock;
+  phases: Array<{ name: StartupPhaseName; elapsedMs: number }>;
+};
 
 export type StartupEnvironment = {
   runner: "windows-2025";
@@ -24,6 +48,7 @@ export type StartupLaunch = {
   browserExitAfterHostMs: number;
   profileReleaseAfterHostMs: number;
   browserProcessId: number;
+  hostTimeline: HostStartupTimeline;
 };
 
 export type StartupResult = {
@@ -95,12 +120,51 @@ function finiteNonNegative(value: unknown): value is number {
   return typeof value === "number" && Number.isFinite(value) && value >= 0;
 }
 
+export function validateHostTimeline(value: unknown, readyMs: number): asserts value is HostStartupTimeline {
+  if (!value || typeof value !== "object") throw new Error("host startup timeline must be an object");
+  const timeline = value as Partial<HostStartupTimeline>;
+  if (timeline.schemaVersion !== hostTimelineSchemaVersion || timeline.clock !== hostTimelineClock ||
+      !Array.isArray(timeline.phases) || timeline.phases.length !== startupPhaseNames.length) {
+    throw new Error("invalid host startup timeline metadata");
+  }
+  let previous = -1;
+  for (let index = 0; index < startupPhaseNames.length; index++) {
+    const phase = timeline.phases[index];
+    if (!phase || phase.name !== startupPhaseNames[index] || !finiteNonNegative(phase.elapsedMs) || phase.elapsedMs < previous) {
+      throw new Error(`invalid host startup phase ${startupPhaseNames[index]}`);
+    }
+    previous = phase.elapsedMs;
+  }
+  if (timeline.phases[0].elapsedMs !== 0 || previous > readyMs) {
+    throw new Error("host startup timeline exceeds process-to-ready measurement");
+  }
+}
+
+export function parseHostTimelineOutput(stderr: string, readyMs: number): HostStartupTimeline {
+  const lines = stderr.split(/\r?\n/).filter((line) => line.startsWith(hostTimelinePrefix));
+  if (lines.length !== 1) throw new Error(`expected one host startup timeline, found ${lines.length}`);
+  let value: unknown;
+  try {
+    value = JSON.parse(lines[0].slice(hostTimelinePrefix.length));
+  } catch (error) {
+    throw new Error("host startup timeline is not valid JSON", { cause: error });
+  }
+  validateHostTimeline(value, readyMs);
+  return value;
+}
+
 function validLaunch(value: unknown): value is StartupLaunch {
   if (!value || typeof value !== "object") return false;
   const launch = value as Partial<StartupLaunch>;
-  return finiteNonNegative(launch.readyMs) && finiteNonNegative(launch.hostExitAfterReadyMs) &&
+  if (!(finiteNonNegative(launch.readyMs) && finiteNonNegative(launch.hostExitAfterReadyMs) &&
     finiteNonNegative(launch.browserExitAfterHostMs) && finiteNonNegative(launch.profileReleaseAfterHostMs) &&
-    Number.isInteger(launch.browserProcessId) && (launch.browserProcessId ?? 0) > 0;
+    Number.isInteger(launch.browserProcessId) && (launch.browserProcessId ?? 0) > 0)) return false;
+  try {
+    validateHostTimeline(launch.hostTimeline, launch.readyMs);
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 export function validateStartupResult(value: unknown): asserts value is StartupResult {
