@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
+import { createTauriIcon } from "./tauri-icon";
 
 type Lock = {
   schemaVersion: string;
@@ -68,6 +69,11 @@ if (
   !Array.isArray(veloxManifest.security.permissions)
 ) {
   throw new Error("Velox adapter does not satisfy the pinned manifest v1 values");
+}
+
+const committedTauriIcon = await readFile(join(root, "apps", "tauri", "src-tauri", "icons", "icon.ico"));
+if (!committedTauriIcon.equals(createTauriIcon())) {
+  throw new Error("Tauri fixture icon differs from its deterministic source");
 }
 
 const adapters = [
