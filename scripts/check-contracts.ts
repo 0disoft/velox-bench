@@ -97,6 +97,9 @@ for (const file of lock.fixture.files) {
 }
 
 const workflow = await readFile(join(root, ".github", "workflows", "zero-cache.yml"), "utf8");
+if (!workflow.includes(`ref: ${lock.frameworks.velox.commit}`)) {
+  throw new Error("zero-cache workflow Velox ref differs from frameworks.velox.commit");
+}
 for (const [name, commit] of Object.entries(lock.actions)) {
   if (!workflow.includes(`@${commit}`)) {
     throw new Error(`zero-cache workflow does not use pinned actions.${name}`);
@@ -135,6 +138,9 @@ for (const marker of [
 }
 
 const startupWorkflow = await readFile(join(root, ".github", "workflows", "velox-startup.yml"), "utf8");
+if (!startupWorkflow.includes(`ref: ${lock.frameworks.velox.commit}`)) {
+  throw new Error("startup workflow Velox ref differs from frameworks.velox.commit");
+}
 for (const action of ["checkout", "setupBun", "setupGo", "uploadArtifact", "downloadArtifact"] as const) {
   if (!startupWorkflow.includes(`@${lock.actions[action]}`)) {
     throw new Error(`startup workflow does not use pinned actions.${action}`);
