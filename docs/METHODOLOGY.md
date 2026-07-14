@@ -54,8 +54,9 @@ profile while preserving browser-exit and profile-release durations as raw
 diagnostics.
 
 One and three samples validate the measurement path only. Publication requires
-ten successful isolated samples and one exact runner-image, Windows, WebView2,
-CPU, and memory environment group. Hosted jobs label evidence as
+ten successful isolated samples and one exact runner-image, Windows, and
+WebView2 environment group. CPU and memory remain raw diagnostic metadata but
+do not split hosted-runner series. Hosted jobs label evidence as
 `hosted-pinned-source` only after checking out the exact Velox revision. Local
 smoke results use `local-unverified-release` and are never publishable.
 
@@ -65,7 +66,9 @@ Every successful startup summary is followed by a history collection job. It
 uses GitHub Actions read-only access to download the current summary and up to
 eleven prior successful manual-run summaries. The history retains at most
 twelve points, keeps the newest attempt for a repeated run, and groups points
-by the exact environment key already recorded in each summary.
+by runner image version, Windows version, and WebView2 version. Legacy keys
+that also contain CPU and memory fields are normalized to those first three
+fields.
 
 An expired, missing, or invalid summary is a collection issue. It is not
 silently removed and changes the history outcome from `complete` to `partial`.

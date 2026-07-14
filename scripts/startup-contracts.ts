@@ -148,8 +148,7 @@ function statistics(values: number[]): StartupStatistics | null {
 
 function environmentKey(result: StartupResult): string {
   const environment = result.environment;
-  return [environment.runnerImageVersion, environment.windowsVersion, environment.webView2Version, environment.cpuModel,
-    environment.logicalProcessors, environment.memoryBytes].join("|");
+  return [environment.runnerImageVersion, environment.windowsVersion, environment.webView2Version].join("|");
 }
 
 export function buildStartupSummary(results: StartupResult[], expected: number): StartupSummary {

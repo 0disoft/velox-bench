@@ -53,6 +53,14 @@ test("separates history series by environment", () => {
   expect(history.series).toHaveLength(2);
 });
 
+test("normalizes legacy hardware fields out of environment series", () => {
+  const history = buildStartupHistory([
+    candidate(0),
+    candidate(1, { summary: summary("runner|windows|webview|different cpu|8|32000000000") }),
+  ], [], "2026-07-20T00:00:00.000Z");
+  expect(history.series).toEqual([{ environmentKey: "runner|windows|webview", runIds: ["1000", "1001"] }]);
+});
+
 test("preserves collection issues as partial evidence", () => {
   const history = buildStartupHistory([candidate(0)], [{ runId: "999", code: "ARTIFACT_MISSING" }], "2026-07-20T00:00:00.000Z");
   expect(history.outcome).toBe("partial");

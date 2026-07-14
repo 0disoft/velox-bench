@@ -63,6 +63,14 @@ test("mixed runner environments are not publishable", () => {
   expect(summary.environmentGroups).toHaveLength(2);
 });
 
+test("hosted hardware variation stays in one environment group", () => {
+  const results = Array.from({ length: 10 }, (_, sample) => result(sample));
+  results[9] = result(9, { environment: { ...results[9].environment, cpuModel: "different hosted cpu", memoryBytes: 32 * 1024 * 1024 * 1024 } });
+  const summary = buildStartupSummary(results, 10);
+  expect(summary.publishable).toBe(true);
+  expect(summary.environmentGroups).toHaveLength(1);
+});
+
 test("local release evidence is never publishable", () => {
   const results = Array.from({ length: 10 }, (_, sample) => result(sample, { evidenceLevel: "local-unverified-release" }));
   expect(buildStartupSummary(results, 10).publishable).toBe(false);

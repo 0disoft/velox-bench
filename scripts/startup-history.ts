@@ -26,6 +26,11 @@ export type StartupHistory = {
   collectionIssues: StartupHistoryIssue[];
 };
 
+function normalizedEnvironmentKey(key: string): string {
+  const fields = key.split("|");
+  return fields.length >= 3 ? fields.slice(0, 3).join("|") : key;
+}
+
 export function buildStartupHistory(candidates: StartupHistoryCandidate[], issues: StartupHistoryIssue[], generatedAtUtc: string): StartupHistory {
   if (!Number.isFinite(Date.parse(generatedAtUtc))) throw new Error("invalid history generation timestamp");
   const byRun = new Map<string, StartupHistoryCandidate>();
@@ -44,9 +49,10 @@ export function buildStartupHistory(candidates: StartupHistoryCandidate[], issue
   const seriesMap = new Map<string, string[]>();
   for (const point of points) {
     for (const group of point.summary.environmentGroups) {
-      const runIds = seriesMap.get(group.key) ?? [];
+      const environmentKey = normalizedEnvironmentKey(group.key);
+      const runIds = seriesMap.get(environmentKey) ?? [];
       runIds.push(point.runId);
-      seriesMap.set(group.key, runIds);
+      seriesMap.set(environmentKey, runIds);
     }
   }
   const series = [...seriesMap.entries()].sort(([left], [right]) => left.localeCompare(right))
