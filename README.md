@@ -31,6 +31,8 @@ canonical fixture byte for byte.
 ## Hosted Suites
 
 Pull requests and ordinary main pushes run contract checks only. A manual run
-defaults to one isolated sample per framework. Weekly and `benchmark-v*` tag
-runs execute ten isolated samples per framework. Raw results and the generated
-summary are uploaded even when an individual measurement reports failure.
+can target one framework or all four with one, three, or ten isolated samples.
+Targeted runs upload raw evidence only; all-framework runs also upload a
+summary. Weekly and `benchmark-v*` tag runs execute ten isolated samples per
+framework. Raw results remain available when an individual measurement reports
+failure.

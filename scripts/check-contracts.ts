@@ -123,5 +123,15 @@ for (const match of workflow.matchAll(/^\s*uses:\s*[^@\s]+@([^\s#]+)/gm)) {
 if (!workflow.includes("runs-on: windows-2025")) {
   throw new Error("zero-cache workflow does not use the pinned runner");
 }
+for (const marker of [
+  "inputs.framework != 'all'",
+  "inputs.framework == 'velox'",
+  "format('[\"{0}\"]', inputs.framework)",
+  "inputs.sample_count == '3'",
+  "'[0,1,2]'",
+  "inputs.framework == 'all'",
+]) {
+  if (!workflow.includes(marker)) throw new Error(`zero-cache diagnostic matrix is missing ${marker}`);
+}
 
 console.log(JSON.stringify({ ok: true, fixtureSha256: digest.digest("hex"), adapters: adapters.length }));

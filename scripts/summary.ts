@@ -2,7 +2,7 @@ import { frameworks, percentile, validateResult, type Framework, type Result } f
 
 export function buildSummary(results: Result[], expectedPerFramework: number) {
   if (results.length === 0) throw new Error("no raw benchmark results were found");
-  if (expectedPerFramework !== 1 && expectedPerFramework !== 10) throw new Error("expected sample count must be 1 or 10");
+  if (![1, 3, 10].includes(expectedPerFramework)) throw new Error("expected sample count must be 1, 3, or 10");
   const keys = new Set<string>();
   const fixtureDigests = new Set<string>();
   const revisions = {} as Record<Framework, string>;

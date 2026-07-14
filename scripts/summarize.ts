@@ -6,7 +6,7 @@ import { buildSummary } from "./summary";
 const input = resolve(process.argv[2] ?? "");
 const output = resolve(process.argv[3] ?? "");
 const expectedPerFramework = Number(process.argv[4]);
-if (!input || !output || (expectedPerFramework !== 1 && expectedPerFramework !== 10)) {
+if (!input || !output || ![1, 3, 10].includes(expectedPerFramework)) {
   throw new Error("usage: summarize.ts <raw-directory> <output> <expected-per-framework>");
 }
 

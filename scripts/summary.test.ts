@@ -25,6 +25,15 @@ test("one sample per framework is diagnostic, not publishable", () => {
   expect(summary.rows.every((row) => row.successful === 1)).toBe(true);
 });
 
+test("three samples per framework are a diagnostic pilot, not publishable", () => {
+  const results = (["velox", "wails", "neutralino", "tauri"] as Framework[]).flatMap((framework) =>
+    Array.from({ length: 3 }, (_, sample) => result(framework, sample)),
+  );
+  const summary = buildSummary(results, 3);
+  expect(summary.publishable).toBe(false);
+  expect(summary.rows.every((row) => row.successful === 3 && row.missing === 0)).toBe(true);
+});
+
 test("ten complete successful samples per framework are publishable", () => {
   const results = (["velox", "wails", "neutralino", "tauri"] as Framework[]).flatMap((framework) =>
     Array.from({ length: 10 }, (_, sample) => result(framework, sample)),

@@ -8,7 +8,7 @@
   "properties": {
     "schemaVersion": { "const": "velox.bench-summary/v1" },
     "suite": { "const": "zero-cache" },
-    "expectedPerFramework": { "enum": [1, 10] },
+    "expectedPerFramework": { "enum": [1, 3, 10] },
     "fixtureSha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
     "frameworkRevisions": {
       "type": "object",
@@ -32,7 +32,7 @@
         "required": ["framework", "expected", "observed", "missing", "successful", "failed", "timedOut", "endToEndMs"],
         "properties": {
           "framework": { "enum": ["velox", "wails", "neutralino", "tauri"] },
-          "expected": { "enum": [1, 10] },
+          "expected": { "enum": [1, 3, 10] },
           "observed": { "type": "integer", "minimum": 0 },
           "missing": { "type": "integer", "minimum": 0 },
           "successful": { "type": "integer", "minimum": 0 },

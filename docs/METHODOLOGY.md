@@ -28,7 +28,11 @@ those are shared measurement infrastructure.
 
 Pull requests validate contracts only. Scheduled and release-candidate runs
 use ten isolated jobs per framework. Frameworks never execute sequentially in
-one job. Manual runs default to one sample and are diagnostic only.
+one job. Manual runs can select all frameworks or one framework and can request
+one, three, or ten samples. One- and three-sample runs are diagnostic only.
+Targeted runs retain raw evidence without generating a misleading
+cross-framework summary. A non-Velox targeted run also skips the Velox producer
+job.
 
 ## Cache and Acquisition Evidence
 
