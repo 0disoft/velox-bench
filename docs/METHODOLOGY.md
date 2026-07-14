@@ -32,9 +32,10 @@ one job. Manual runs default to one sample and are diagnostic only.
 
 ## Cache and Acquisition Evidence
 
-The zero-cache workflow contains no `actions/cache` use and disables setup-go
-caching. Its uploaded cache value is therefore a workflow-source contract, not
-an estimate from local directories.
+The zero-cache workflow contains no `actions/cache` use. It disables Bun
+executable caching, setup-go module and build caching, and setup-node automatic
+package-manager caching. Its uploaded cache value is therefore a
+workflow-source contract, not an estimate from local directories.
 
 GitHub setup actions do not expose stable network-byte totals. Raw results do
 not pretend otherwise. `acquisitionWorkingSetBytes` records the resulting

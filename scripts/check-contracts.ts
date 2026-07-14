@@ -102,8 +102,18 @@ for (const [name, commit] of Object.entries(lock.actions)) {
     throw new Error(`zero-cache workflow does not use pinned actions.${name}`);
   }
 }
-if (/actions\/cache@/.test(workflow) || /cache:\s*true/.test(workflow)) {
+if (/actions\/cache@/.test(workflow) || /^\s*cache:\s*true\s*$/m.test(workflow)) {
   throw new Error("zero-cache workflow enables a GitHub Actions cache");
+}
+const setupBunCount = [...workflow.matchAll(/^\s*uses:\s*oven-sh\/setup-bun@/gm)].length;
+const disabledBunCacheCount = [...workflow.matchAll(/^\s*no-cache:\s*true\s*$/gm)].length;
+if (setupBunCount === 0 || disabledBunCacheCount !== setupBunCount) {
+  throw new Error("every setup-bun step must disable executable caching");
+}
+const setupNodeCount = [...workflow.matchAll(/^\s*uses:\s*actions\/setup-node@/gm)].length;
+const disabledNodeCacheCount = [...workflow.matchAll(/^\s*package-manager-cache:\s*false\s*$/gm)].length;
+if (disabledNodeCacheCount !== setupNodeCount) {
+  throw new Error("every setup-node step must disable automatic package-manager caching");
 }
 for (const match of workflow.matchAll(/^\s*uses:\s*[^@\s]+@([^\s#]+)/gm)) {
   if (!commitPattern.test(match[1])) {
