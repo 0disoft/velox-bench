@@ -36,3 +36,14 @@ Targeted runs upload raw evidence only; all-framework runs also upload a
 summary. Weekly and `benchmark-v*` tag runs execute ten isolated samples per
 framework. Raw results remain available when an individual measurement reports
 failure.
+
+## Velox Startup Suite
+
+The manual `Velox startup benchmark` workflow measures only Velox. Each
+isolated sample records process-to-ready startup with a new WebView2 user-data
+folder and again after five settled warmups on one reused folder. The harness
+waits for the reported WebView2 browser process to exit and for the user-data
+folder lock to clear between launches, so warm startup is not confused with an
+immediate relaunch handoff. One- and three-sample runs are diagnostic. Ten
+complete samples from one runner and WebView2 environment are required before
+the summary is publishable.

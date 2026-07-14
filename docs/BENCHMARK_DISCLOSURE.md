@@ -13,6 +13,9 @@
   access by the fixture are excluded.
 - Startup comparison remains separate from cold-build comparison until every
   adapter exposes the same ready boundary.
+- The current startup suite measures Velox only. It can detect Velox regressions
+  and fresh-versus-settled-warm behavior, but it cannot support a claim that
+  Velox starts faster than another framework.
 - Acquisition working-set bytes are not network-transfer bytes. GitHub setup
   actions do not provide a stable network-byte counter.
 - A one-sample workflow run proves only that the adapters and evidence pipeline

@@ -134,4 +134,35 @@ for (const marker of [
   if (!workflow.includes(marker)) throw new Error(`zero-cache diagnostic matrix is missing ${marker}`);
 }
 
+const startupWorkflow = await readFile(join(root, ".github", "workflows", "velox-startup.yml"), "utf8");
+for (const action of ["checkout", "setupBun", "setupGo", "uploadArtifact", "downloadArtifact"] as const) {
+  if (!startupWorkflow.includes(`@${lock.actions[action]}`)) {
+    throw new Error(`startup workflow does not use pinned actions.${action}`);
+  }
+}
+if (/actions\/cache@/.test(startupWorkflow) || /^\s*cache:\s*true\s*$/m.test(startupWorkflow)) {
+  throw new Error("startup workflow enables a GitHub Actions cache");
+}
+for (const match of startupWorkflow.matchAll(/^\s*uses:\s*[^@\s]+@([^\s#]+)/gm)) {
+  if (!commitPattern.test(match[1])) throw new Error(`startup workflow action is not pinned to a commit: ${match[0].trim()}`);
+}
+for (const marker of [
+  "workflow_dispatch:",
+  "inputs.sample_count == '3'",
+  "'[0,1,2]'",
+  "measure-velox-startup.ts",
+  "summarize-startup.ts",
+  "VELOX_STARTUP_EVIDENCE_LEVEL: hosted-pinned-source",
+  "no-cache: true",
+  "cache: false",
+]) {
+  if (!startupWorkflow.includes(marker)) throw new Error(`startup workflow is missing ${marker}`);
+}
+if (/^\s{2}(push|pull_request|schedule):/m.test(startupWorkflow)) {
+  throw new Error("startup workflow must remain manual-only until its cost is measured");
+}
+for (const schema of ["startup-v1.schema.json", "startup-summary-v1.schema.json"]) {
+  JSON.parse(await readFile(join(root, "schema", schema), "utf8"));
+}
+
 console.log(JSON.stringify({ ok: true, fixtureSha256: digest.digest("hex"), adapters: adapters.length }));

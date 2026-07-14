@@ -34,6 +34,31 @@ Targeted runs retain raw evidence without generating a misleading
 cross-framework summary. A non-Velox targeted run also skips the Velox producer
 job.
 
+## Velox Startup Measurement
+
+Startup is a separate manual suite and does not alter cold-build timing. The
+ready boundary starts immediately before creating the packaged host process and
+ends when the fixture reports `DOMContentLoaded` followed by two animation
+frames over Velox's benchmark-only named pipe.
+
+Each isolated sample records two profiles:
+
+- `fresh` uses a new WebView2 user-data folder;
+- `warm` reuses one folder after five unrecorded, settled warmups.
+
+After every launch, the harness waits for the browser process ID carried by the
+ready marker to exit. It then proves profile release by renaming the user-data
+folder away and back. The next launch does not begin until both checks pass.
+This excludes immediate same-profile relaunch contention from the settled warm
+profile while preserving browser-exit and profile-release durations as raw
+diagnostics.
+
+One and three samples validate the measurement path only. Publication requires
+ten successful isolated samples and one exact runner-image, Windows, WebView2,
+CPU, and memory environment group. Hosted jobs label evidence as
+`hosted-pinned-source` only after checking out the exact Velox revision. Local
+smoke results use `local-unverified-release` and are never publishable.
+
 ## Cache and Acquisition Evidence
 
 The zero-cache workflow contains no `actions/cache` use. It disables Bun
