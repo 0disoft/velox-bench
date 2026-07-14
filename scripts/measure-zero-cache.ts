@@ -133,12 +133,17 @@ async function measureTauri(): Promise<void> {
   const rustupHome = join(tooling, "rustup-home");
   const cliRoot = join(tooling, "tauri-cli");
   const target = join(work, "tauri-target");
-  const env = { CARGO_HOME: cargoHome, RUSTUP_HOME: rustupHome, CARGO_TARGET_DIR: target, PATH: `${join(cliRoot, "bin")};${process.env.PATH}` };
+  const env = {
+    CARGO_HOME: cargoHome,
+    RUSTUP_HOME: rustupHome,
+    RUSTUP_TOOLCHAIN: lock.toolchains.rust,
+    CARGO_TARGET_DIR: target,
+  };
   setupMs = await timed(async () => {
     await run(["rustup", "toolchain", "install", lock.toolchains.rust, "--profile", "minimal", "--no-self-update"], work, env);
     await run(["cargo", `+${lock.toolchains.rust}`, "install", "tauri-cli", "--version", lock.frameworks.tauri.version.slice(1), "--locked", "--root", cliRoot], work, env);
   });
-  buildMs = await timed(() => run(["cargo", `+${lock.toolchains.rust}`, "tauri", "build", "--no-bundle"], join(project, "src-tauri"), env));
+  buildMs = await timed(() => run([join(cliRoot, "bin", "cargo-tauri.exe"), "build", "--no-bundle"], join(project, "src-tauri"), env));
   const executable = join(target, "release", "velox-bench-tauri.exe");
   portable = join(work, "portable");
   await mkdir(portable, { recursive: true });
