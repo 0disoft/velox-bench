@@ -19,10 +19,17 @@
     "name": "hello",
     "files": ["index.html", "style.css", "app.js"]
   },
+  "controls": {
+    "webview2Binding": {
+      "repository": "jchv/go-webview2",
+      "version": "v0.0.0-20260205173254-56598839c808",
+      "commit": "56598839c808a2340edee99204db479f410e9bf4"
+    }
+  },
   "frameworks": {
     "velox": {
       "repository": "0disoft/velox",
-      "commit": "f0ac7c42acea86c42c7b5c976791e5fd643fee87"
+      "commit": "cf1230cbc31049aaba201a4d0ef5cc5f204a9a12"
     },
     "wails": {
       "repository": "wailsapp/wails",
@@ -34,7 +41,9 @@
       "version": "v6.8.0",
       "commit": "c30cbaeb5821785c24505ab7053d7ed76699d672",
       "cliVersion": "v11.7.2",
-      "cliCommit": "387dca0aa4a100b3b69ef17774185fd6cb2c3da4"
+      "cliCommit": "387dca0aa4a100b3b69ef17774185fd6cb2c3da4",
+      "clientVersion": "v6.8.0",
+      "clientCommit": "f1768b49c3f6e05c680ad8f64eeefbed92d4bc29"
     },
     "tauri": {
       "repository": "tauri-apps/tauri",

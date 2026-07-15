@@ -1,0 +1,248 @@
+name: Immediate relaunch controls
+
+on:
+  workflow_dispatch:
+    inputs:
+      framework:
+        description: Control hosts to measure
+        required: true
+        default: all
+        type: choice
+        options:
+          - all
+          - webview2-control
+          - wails
+          - neutralino
+      sample_count:
+        description: Isolated samples per host
+        required: true
+        default: "3"
+        type: choice
+        options:
+          - "1"
+          - "3"
+          - "10"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: relaunch-controls-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  contracts:
+    name: Validate relaunch contracts
+    runs-on: windows-2025
+    timeout-minutes: 5
+    steps:
+      - name: Check out benchmark
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version: 1.3.14
+          no-cache: true
+
+      - name: Check contracts
+        run: bun run check
+
+  build:
+    name: Build ${{ matrix.framework }} control
+    needs: contracts
+    strategy:
+      fail-fast: false
+      matrix:
+        framework: ${{ fromJSON(inputs.framework == 'all' && '["webview2-control","wails","neutralino"]' || format('["{0}"]', inputs.framework)) }}
+    runs-on: windows-2025
+    timeout-minutes: 20
+    steps:
+      - name: Check out benchmark
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+
+      - name: Set up Go
+        uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6.5.0
+        with:
+          go-version: 1.26.4
+          check-latest: false
+          cache: false
+
+      - name: Set up Node for Neutralinojs
+        if: matrix.framework == 'neutralino'
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        with:
+          node-version: 24.18.0
+          check-latest: false
+          package-manager-cache: false
+
+      - name: Build normalized control artifact
+        shell: pwsh
+        env:
+          FRAMEWORK: ${{ matrix.framework }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $output = Join-Path $env:GITHUB_WORKSPACE ".bench/built/$env:FRAMEWORK"
+          New-Item -ItemType Directory -Path $output -Force | Out-Null
+          $env:GOCACHE = Join-Path $env:RUNNER_TEMP "go-build-$env:FRAMEWORK"
+
+          Push-Location 'harness/relaunch'
+          go build -mod=readonly -trimpath -o (Join-Path $output 'relaunch-harness.exe') .
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          Pop-Location
+
+          if ($env:FRAMEWORK -eq 'webview2-control') {
+            Push-Location 'apps/webview2-control'
+            go build -mod=readonly -trimpath -o (Join-Path $output 'app.exe') .
+            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+            Pop-Location
+            Copy-Item -LiteralPath 'fixtures/hello' -Destination (Join-Path $output 'web') -Recurse
+          }
+          elseif ($env:FRAMEWORK -eq 'wails') {
+            $env:GOBIN = Join-Path $env:RUNNER_TEMP 'wails-bin'
+            New-Item -ItemType Directory -Path $env:GOBIN -Force | Out-Null
+            go install github.com/wailsapp/wails/v2/cmd/wails@v2.13.0
+            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+            Push-Location 'apps/wails'
+            & (Join-Path $env:GOBIN 'wails.exe') build -clean -platform windows/amd64
+            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+            Copy-Item -LiteralPath 'build/bin/velox-bench-wails.exe' -Destination (Join-Path $output 'app.exe')
+            Pop-Location
+          }
+          else {
+            $prefix = Join-Path $env:RUNNER_TEMP 'neutralino-cli'
+            $env:npm_config_cache = Join-Path $env:RUNNER_TEMP 'neutralino-npm'
+            npm.cmd install --prefix $prefix @neutralinojs/neu@11.7.2 --no-audit --no-fund
+            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+            $neu = Join-Path $prefix 'node_modules/.bin/neu.cmd'
+            Push-Location 'apps/neutralino'
+            & $neu update
+            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+            & $neu build --release
+            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+            $binary = Get-ChildItem -LiteralPath 'dist' -Recurse -File -Filter '*-win_x64.exe' | Select-Object -First 1
+            if (-not $binary) { throw 'Neutralinojs Windows x64 binary was not produced.' }
+            Copy-Item -Path (Join-Path $binary.Directory.FullName '*') -Destination $output -Recurse -Force
+            Move-Item -LiteralPath (Join-Path $output $binary.Name) -Destination (Join-Path $output 'app.exe')
+            Pop-Location
+          }
+
+      - name: Upload normalized control
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: relaunch-control-${{ matrix.framework }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: .bench/built/${{ matrix.framework }}
+          retention-days: 3
+          if-no-files-found: error
+
+  measure:
+    name: ${{ matrix.framework }} relaunch sample ${{ matrix.sample }}
+    needs: [contracts, build]
+    strategy:
+      fail-fast: false
+      matrix:
+        framework: ${{ fromJSON(inputs.framework == 'all' && '["webview2-control","wails","neutralino"]' || format('["{0}"]', inputs.framework)) }}
+        sample: ${{ fromJSON(inputs.sample_count == '1' && '[0]' || inputs.sample_count == '3' && '[0,1,2]' || '[0,1,2,3,4,5,6,7,8,9]') }}
+    runs-on: windows-2025
+    timeout-minutes: 5
+    steps:
+      - name: Check out benchmark
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+
+      - name: Download normalized control
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: relaunch-control-${{ matrix.framework }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: .bench/acquired/${{ matrix.framework }}
+
+      - name: Measure immediate relaunch
+        id: measure
+        continue-on-error: true
+        shell: pwsh
+        env:
+          FRAMEWORK: ${{ matrix.framework }}
+          SAMPLE: ${{ matrix.sample }}
+          FRAMEWORK_REVISION: ${{ matrix.framework == 'webview2-control' && '56598839c808a2340edee99204db479f410e9bf4' || matrix.framework == 'wails' && '474b677c9b9191d703607bea7d76143b1b2eeb0c' || 'c30cbaeb5821785c24505ab7053d7ed76699d672' }}
+          PROFILE_CONTROL: ${{ matrix.framework == 'neutralino' && 'framework-managed-app-directory' || 'explicit-udf' }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $root = Join-Path $env:GITHUB_WORKSPACE ".bench/acquired/$env:FRAMEWORK"
+          $result = Join-Path $env:GITHUB_WORKSPACE ".bench/raw/$env:FRAMEWORK-$env:SAMPLE.json"
+          $profile = Join-Path $env:GITHUB_WORKSPACE ".bench/profiles/$env:FRAMEWORK-$env:SAMPLE"
+          & (Join-Path $root 'relaunch-harness.exe') `
+            --framework $env:FRAMEWORK `
+            --revision $env:FRAMEWORK_REVISION `
+            --executable (Join-Path $root 'app.exe') `
+            --workdir $root `
+            --profile $profile `
+            --profile-control $env:PROFILE_CONTROL `
+            --output $result `
+            --sample ([int] $env:SAMPLE)
+          if (-not (Test-Path -LiteralPath $result -PathType Leaf)) { throw 'Relaunch result was not written.' }
+          $schema = Get-Content -LiteralPath 'schema/relaunch-control-v1.schema.json' -Raw
+          $raw = Get-Content -LiteralPath $result -Raw
+          if (-not ($raw | Test-Json -Schema $schema)) { throw 'Relaunch result failed JSON Schema validation.' }
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Upload raw relaunch result
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: relaunch-raw-${{ matrix.framework }}-${{ matrix.sample }}
+          path: .bench/raw/${{ matrix.framework }}-${{ matrix.sample }}.json
+          retention-days: 30
+          if-no-files-found: error
+
+      - name: Preserve measurement failure
+        if: steps.measure.outcome == 'failure'
+        run: exit 1
+
+  summary:
+    name: Summarize relaunch controls
+    if: always()
+    needs: [measure]
+    runs-on: windows-2025
+    timeout-minutes: 5
+    steps:
+      - name: Check out benchmark
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version: 1.3.14
+          no-cache: true
+
+      - name: Download raw relaunch results
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          pattern: relaunch-raw-*
+          path: .bench/downloaded-relaunch
+          merge-multiple: true
+
+      - name: Build relaunch summary
+        run: bun scripts/summarize-relaunch.ts .bench/downloaded-relaunch .bench/summary/relaunch.json ${{ inputs.sample_count }}
+
+      - name: Validate relaunch summary schema
+        shell: pwsh
+        run: |
+          $schema = Get-Content -LiteralPath 'schema/relaunch-control-summary-v1.schema.json' -Raw
+          $summary = Get-Content -LiteralPath '.bench/summary/relaunch.json' -Raw
+          if (-not ($summary | Test-Json -Schema $schema)) { throw 'Relaunch summary failed JSON Schema validation.' }
+
+      - name: Upload relaunch summary
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: relaunch-summary-${{ github.run_id }}-${{ github.run_attempt }}
+          path: .bench/summary/relaunch.json
+          retention-days: 90
+          if-no-files-found: error

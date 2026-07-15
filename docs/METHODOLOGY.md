@@ -90,6 +90,33 @@ silently removed and changes the history outcome from `complete` to `partial`.
 History does not compare points across environment series and does not enforce
 a regression threshold.
 
+## Immediate Relaunch Control Measurement
+
+Immediate relaunch is a separate cause-classification suite. It is not a
+startup winner table. The suite compares three hosts: the pinned upstream
+`go-webview2` binding with no Velox runtime or IPC policy, Wails, and
+Neutralinojs. Each isolated sample performs one first launch and one immediate
+relaunch. No browser-exit or UDF-release wait is inserted between them.
+
+The canonical fixture waits for `DOMContentLoaded` and two animation frames,
+then invokes a minimal host-specific bridge. The raw control uses a bound Go
+function, Wails uses one bound Go method, and Neutralinojs uses only the
+allowlisted `window.setTitle` API. Each bridge changes the native title to a
+fixed ready marker. The parent Windows harness detects that title by process
+ID, posts `WM_CLOSE`, waits for normal host exit, and launches the second
+process immediately.
+
+The raw control and Wails receive one explicit WebView2 UDF path. Neutralinojs
+does not expose an equivalent supported window-mode UDF override in this
+fixture, so the suite reuses one isolated application directory and labels its
+profile control `framework-managed-app-directory`. A difference involving
+Neutralinojs must be interpreted with that limitation.
+
+The generated summary marks a host as delayed only when its complete sample set
+has an immediate p50 at least twice first-launch p50 and at least 1000 ms
+slower. Three samples are diagnostic. Ten successful samples per host are
+required for a publishable summary. Local samples are contract smoke only.
+
 ## Cache and Acquisition Evidence
 
 The zero-cache workflow contains no `actions/cache` use. It disables Bun

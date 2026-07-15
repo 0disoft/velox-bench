@@ -7,13 +7,13 @@
   "documentRoot": "/resources/",
   "url": "/",
   "enableServer": true,
-  "enableNativeAPI": false,
+  "enableNativeAPI": true,
   "tokenSecurity": "one-time",
   "logging": {
     "enabled": false,
     "writeToLogFile": false
   },
-  "nativeAllowList": [],
+  "nativeAllowList": ["window.setTitle"],
   "modes": {
     "window": {
       "title": "Velox Bench",
@@ -27,14 +27,16 @@
       "maximize": false,
       "hidden": false,
       "resizable": true,
-      "exitProcessOnClose": true
+      "exitProcessOnClose": true,
+      "injectClientLibrary": true
     }
   },
   "cli": {
     "binaryName": "velox-bench-neutralino",
     "binaryVersion": "6.8.0",
+    "clientVersion": "6.8.0",
     "resourcesPath": "/resources/",
     "extensionsPath": "/extensions/",
-    "clientLibrary": ""
+    "clientLibrary": "/resources/neutralino.js"
   }
 }

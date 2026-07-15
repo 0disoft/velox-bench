@@ -9,11 +9,14 @@ type Lock = {
   toolchains: Record<string, string>;
   actions: Record<string, string>;
   fixture: { name: string; files: string[] };
+  controls: Record<string, Record<string, string>>;
   frameworks: Record<string, Record<string, string>>;
 };
 
 const root = join(import.meta.dir, "..");
 const lock = JSON.parse(await readFile(join(root, "bench.lock.json"), "utf8")) as Lock;
+const commitPattern = /^[0-9a-f]{40}$/;
+const exactVersionPattern = /^\d+\.\d+\.\d+$/;
 
 function assertExactKeys(value: unknown, keys: string[], label: string): asserts value is Record<string, unknown> {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
@@ -32,9 +35,10 @@ if (lock.schemaVersion !== "velox-bench-lock/v2" || lock.runner !== "windows-202
 if (JSON.stringify(Object.keys(lock.frameworks).sort()) !== JSON.stringify(["neutralino", "tauri", "velox", "wails"])) {
   throw new Error("framework lock must contain exactly neutralino, tauri, velox, and wails");
 }
+if (Object.keys(lock.controls).length !== 1 || !lock.controls.webview2Binding || !commitPattern.test(lock.controls.webview2Binding.commit)) {
+  throw new Error("WebView2 control binding must be pinned to one immutable revision");
+}
 
-const commitPattern = /^[0-9a-f]{40}$/;
-const exactVersionPattern = /^\d+\.\d+\.\d+$/;
 for (const [name, value] of Object.entries(lock.actions)) {
   if (!commitPattern.test(value)) {
     throw new Error(`actions.${name} is not an immutable commit`);
@@ -69,6 +73,18 @@ if (
   !Array.isArray(veloxManifest.security.permissions)
 ) {
   throw new Error("Velox adapter does not satisfy the pinned manifest v1 values");
+}
+
+const neutralinoConfig = JSON.parse(await readFile(join(root, "apps", "neutralino", "neutralino.config.json"), "utf8")) as {
+  cli?: { binaryVersion?: string; clientVersion?: string; clientLibrary?: string };
+  enableNativeAPI?: boolean;
+  nativeAllowList?: string[];
+};
+if (neutralinoConfig.cli?.binaryVersion !== lock.frameworks.neutralino.version.replace(/^v/, "") ||
+    neutralinoConfig.cli?.clientVersion !== lock.frameworks.neutralino.clientVersion.replace(/^v/, "") ||
+    neutralinoConfig.cli?.clientLibrary !== "/resources/neutralino.js" || neutralinoConfig.enableNativeAPI !== true ||
+    JSON.stringify(neutralinoConfig.nativeAllowList) !== JSON.stringify(["window.setTitle"])) {
+  throw new Error("Neutralinojs relaunch bridge does not match pinned core and client contracts");
 }
 
 const committedTauriIcon = await readFile(join(root, "apps", "tauri", "src-tauri", "icons", "icon.ico"));
@@ -170,6 +186,29 @@ if (/^\s{2}(push|pull_request|schedule):/m.test(startupWorkflow)) {
   throw new Error("startup workflow must remain manual-only until its cost is measured");
 }
 for (const schema of ["startup-v1.schema.json", "startup-v2.schema.json", "startup-summary-v1.schema.json", "startup-history-v1.schema.json"]) {
+  JSON.parse(await readFile(join(root, "schema", schema), "utf8"));
+}
+
+const controlVersion = lock.controls.webview2Binding.version.replace(/^v/, "");
+for (const moduleFile of [join(root, "apps", "webview2-control", "go.mod"), join(root, "harness", "relaunch", "go.mod")]) {
+  const module = await readFile(moduleFile, "utf8");
+  if (!module.includes(`github.com/jchv/go-webview2 v${controlVersion}`)) throw new Error(`${moduleFile} does not use the pinned WebView2 control binding`);
+}
+const relaunchWorkflow = await readFile(join(root, ".github", "workflows", "relaunch-controls.yml"), "utf8");
+for (const action of ["checkout", "setupBun", "setupGo", "setupNode", "uploadArtifact", "downloadArtifact"] as const) {
+  if (!relaunchWorkflow.includes(`@${lock.actions[action]}`)) throw new Error(`relaunch workflow does not use pinned actions.${action}`);
+}
+for (const revision of [lock.controls.webview2Binding.commit, lock.frameworks.wails.commit, lock.frameworks.neutralino.commit]) {
+  if (!relaunchWorkflow.includes(revision)) throw new Error(`relaunch workflow does not pin revision ${revision}`);
+}
+if (/actions\/cache@/.test(relaunchWorkflow) || /^\s*cache:\s*true\s*$/m.test(relaunchWorkflow)) throw new Error("relaunch workflow enables a GitHub Actions cache");
+for (const match of relaunchWorkflow.matchAll(/^\s*uses:\s*[^@\s]+@([^\s#]+)/gm)) {
+  if (!commitPattern.test(match[1])) throw new Error(`relaunch workflow action is not pinned to a commit: ${match[0].trim()}`);
+}
+for (const marker of ["webview2-control", "framework-managed-app-directory", "summarize-relaunch.ts", "relaunch-control-v1.schema.json", "relaunch-control-summary-v1.schema.json"]) {
+  if (!relaunchWorkflow.includes(marker)) throw new Error(`relaunch workflow is missing ${marker}`);
+}
+for (const schema of ["relaunch-control-v1.schema.json", "relaunch-control-summary-v1.schema.json"]) {
   JSON.parse(await readFile(join(root, "schema", schema), "utf8"));
 }
 

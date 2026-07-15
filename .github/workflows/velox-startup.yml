@@ -55,7 +55,7 @@ jobs:
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           repository: 0disoft/velox
-          ref: f0ac7c42acea86c42c7b5c976791e5fd643fee87
+          ref: cf1230cbc31049aaba201a4d0ef5cc5f204a9a12
           path: velox-source
           persist-credentials: false
 

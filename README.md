@@ -10,7 +10,8 @@ while publication requires ten complete isolated samples per framework.
 
 ## Current Pins
 
-- Velox: commit `64ee93a26eef65e4216095f546f1ed74d5232ee9`
+- Velox: commit `cf1230cbc31049aaba201a4d0ef5cc5f204a9a12`
+- Raw WebView2 control binding: commit `56598839c808a2340edee99204db479f410e9bf4`
 - Wails: `v2.13.0`
 - Neutralinojs core: `v6.8.0`
 - Neutralinojs CLI: `v11.7.2`
@@ -54,3 +55,18 @@ After a successful summary, the workflow collects up to twelve recent startup
 summary artifacts into `velox.startup-history/v1`. Environment changes create
 separate series, and missing or invalid artifacts remain visible as collection
 issues. History is diagnostic evidence, not an automatic regression verdict.
+
+## Immediate Relaunch Controls
+
+The manual `Immediate relaunch controls` workflow runs a raw WebView2 host,
+Wails, and Neutralinojs in isolated jobs. Each sample closes the first host and
+starts the second host immediately against the same profile boundary. The raw
+control and Wails receive an explicit UDF path. Neutralinojs reuses one isolated
+application directory and its framework-managed profile; the weaker control is
+recorded in every result.
+
+All adapters use the same `DOMContentLoaded` plus two-animation-frame marker.
+The marker calls the host's narrow benchmark bridge, which changes the native
+window title. A Windows harness observes that title, closes the window, and
+starts the immediate launch. Three samples classify the likely lifecycle owner;
+ten complete samples are required before the summary is publishable.
