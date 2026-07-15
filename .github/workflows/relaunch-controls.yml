@@ -71,7 +71,7 @@ jobs:
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           repository: 0disoft/velox
-          ref: cf1230cbc31049aaba201a4d0ef5cc5f204a9a12
+          ref: ca22e099368ed91e8a9b430ced5178dab9202be9
           path: .bench/velox-source
           persist-credentials: false
 
@@ -186,7 +186,7 @@ jobs:
         env:
           FRAMEWORK: ${{ matrix.framework }}
           SAMPLE: ${{ matrix.sample }}
-          FRAMEWORK_REVISION: ${{ matrix.framework == 'velox' && 'cf1230cbc31049aaba201a4d0ef5cc5f204a9a12' || matrix.framework == 'webview2-control' && '56598839c808a2340edee99204db479f410e9bf4' || matrix.framework == 'wails' && '474b677c9b9191d703607bea7d76143b1b2eeb0c' || 'c30cbaeb5821785c24505ab7053d7ed76699d672' }}
+          FRAMEWORK_REVISION: ${{ matrix.framework == 'velox' && 'ca22e099368ed91e8a9b430ced5178dab9202be9' || matrix.framework == 'webview2-control' && '56598839c808a2340edee99204db479f410e9bf4' || matrix.framework == 'wails' && '474b677c9b9191d703607bea7d76143b1b2eeb0c' || 'c30cbaeb5821785c24505ab7053d7ed76699d672' }}
           PROFILE_CONTROL: ${{ matrix.framework == 'neutralino' && 'framework-managed-app-directory' || 'explicit-udf' }}
         run: |
           $ErrorActionPreference = 'Stop'

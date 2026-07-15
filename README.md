@@ -10,7 +10,7 @@ while publication requires ten complete isolated samples per framework.
 
 ## Current Pins
 
-- Velox: commit `cf1230cbc31049aaba201a4d0ef5cc5f204a9a12`
+- Velox: commit `ca22e099368ed91e8a9b430ced5178dab9202be9`
 - Raw WebView2 control binding: commit `56598839c808a2340edee99204db479f410e9bf4`
 - Wails: `v2.13.0`
 - Neutralinojs core: `v6.8.0`
