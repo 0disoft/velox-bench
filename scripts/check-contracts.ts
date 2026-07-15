@@ -212,4 +212,52 @@ for (const schema of ["relaunch-control-v1.schema.json", "relaunch-control-summa
   JSON.parse(await readFile(join(root, "schema", schema), "utf8"));
 }
 
+const transportModule = await readFile(join(root, "apps", "webview2-transport-control", "go.mod"), "utf8");
+if (!transportModule.includes("replace github.com/jchv/go-webview2 => ../../.bench/velox-source/third_party/go-webview2")) {
+  throw new Error("asset transport control must use the pinned Velox WebView2 fork checkout");
+}
+const transportSource = await readFile(join(root, "apps", "webview2-transport-control", "main.go"), "utf8");
+for (const marker of ["file-url", "virtual-host", "web-resource", "SetVirtualHostNameToFolderMapping", "SetWebResourceRequestHandler"]) {
+  if (!transportSource.includes(marker)) throw new Error(`asset transport control source is missing ${marker}`);
+}
+const transportWorkflow = await readFile(join(root, ".github", "workflows", "asset-transport-controls.yml"), "utf8");
+for (const action of ["checkout", "setupBun", "setupGo", "uploadArtifact", "downloadArtifact"] as const) {
+  if (!transportWorkflow.includes(`@${lock.actions[action]}`)) {
+    throw new Error(`asset transport workflow does not use pinned actions.${action}`);
+  }
+}
+if (!transportWorkflow.includes(`ref: ${lock.frameworks.velox.commit}`) ||
+    !transportWorkflow.includes(`--revision ${lock.frameworks.velox.commit}`)) {
+  throw new Error("asset transport workflow Velox revision differs from frameworks.velox.commit");
+}
+if (/actions\/cache@/.test(transportWorkflow) || /^\s*cache:\s*true\s*$/m.test(transportWorkflow)) {
+  throw new Error("asset transport workflow enables a GitHub Actions cache");
+}
+for (const match of transportWorkflow.matchAll(/^\s*uses:\s*[^@\s]+@([^\s#]+)/gm)) {
+  if (!commitPattern.test(match[1])) throw new Error(`asset transport workflow action is not pinned to a commit: ${match[0].trim()}`);
+}
+for (const marker of [
+  "workflow_dispatch:",
+  "fork-file-url",
+  "fork-virtual-host",
+  "fork-web-resource",
+  "velox.asset-transport-relaunch/v1",
+  "summarize-transport.ts",
+  "asset-transport-relaunch-v1.schema.json",
+  "asset-transport-relaunch-summary-v1.schema.json",
+  "inputs.sample_count == '3'",
+  "'[0,1,2]'",
+  "'[0,1,2,3,4,5,6,7,8,9]'",
+  "no-cache: true",
+  "cache: false",
+]) {
+  if (!transportWorkflow.includes(marker)) throw new Error(`asset transport workflow is missing ${marker}`);
+}
+if (/^\s{2}(push|pull_request|schedule):/m.test(transportWorkflow)) {
+  throw new Error("asset transport workflow must remain manual-only");
+}
+for (const schema of ["asset-transport-relaunch-v1.schema.json", "asset-transport-relaunch-summary-v1.schema.json"]) {
+  JSON.parse(await readFile(join(root, "schema", schema), "utf8"));
+}
+
 console.log(JSON.stringify({ ok: true, fixtureSha256: digest.digest("hex"), adapters: adapters.length }));

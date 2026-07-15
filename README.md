@@ -10,7 +10,7 @@ while publication requires ten complete isolated samples per framework.
 
 ## Current Pins
 
-- Velox: commit `ca22e099368ed91e8a9b430ced5178dab9202be9`
+- Velox: commit `ae7a819f0ef9b22cb4f959451d0189d699c6e546`
 - Raw WebView2 control binding: commit `56598839c808a2340edee99204db479f410e9bf4`
 - Wails: `v2.13.0`
 - Neutralinojs core: `v6.8.0`
@@ -71,3 +71,13 @@ change their native window title. A Windows harness observes either signal,
 closes the window externally, and starts the immediate launch. Three samples
 classify the likely lifecycle owner; ten complete samples are required before
 the summary is publishable.
+
+## Asset Transport Controls
+
+The manual `Asset transport relaunch controls` workflow isolates asset loading
+from the rest of the host. Three controls use the same pinned Velox WebView2
+fork and host code with only `file://`, virtual-host folder mapping, or
+`WebResourceRequested` response handling changed. A fourth row runs Velox's
+production virtual-host path. All four reuse an explicit UDF and the same
+external-close harness. Ten samples per transport are required for a
+publishable cause-classification result.

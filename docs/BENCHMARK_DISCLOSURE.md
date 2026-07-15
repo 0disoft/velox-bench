@@ -22,6 +22,13 @@
 - Velox uses a named-pipe ready marker while the other host bridges change the
   native title. Their small signaling overhead remains inside the measured
   boundary and is disclosed. The harness closes all four hosts externally.
+- The asset-transport suite is a cause-classification experiment, not a product
+  ranking. Its three synthetic controls share one pinned Velox fork and differ
+  only in file URL, virtual-host mapping, or synchronous web-resource response
+  delivery. The production Velox row retains its named-pipe marker.
+- Web-resource interception blocks a matching request until the synchronous
+  handler returns. The fixture is tiny and frame-free; the result does not
+  establish large-asset throughput, iframe behavior, or production hardening.
 - The current startup suite measures Velox only. It can detect Velox regressions
   and fresh-versus-settled-warm behavior, but it cannot support a claim that
   Velox starts faster than another framework.

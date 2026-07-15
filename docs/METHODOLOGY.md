@@ -122,6 +122,27 @@ and do not erase delayed pairs. Three samples are diagnostic. Ten successful
 samples per host are required for a publishable summary. Local samples are
 contract smoke only.
 
+## Asset Transport Control Measurement
+
+The asset-transport suite compares four hosts pinned to one Velox source
+revision: the production Velox host plus one common control compiled in
+`file-url`, `virtual-host`, and `web-resource` modes. The three control binaries
+share source, WebView2 fork, UDF policy, window settings, fixture bytes, ready
+bridge, external close, and relaunch harness. Only asset delivery changes.
+
+The web-resource mode synchronously handles exact
+`https://transport.velox.invalid/*` requests, serves only regular files beneath
+the fixture root, and returns explicit error responses. The request blocks
+until the handler returns; no deferral, worker, cache, server, socket, or
+network fallback is used. The legacy all-source-kind filter overload is
+acceptable only for this top-level, frame-free diagnostic fixture. This suite
+does not prove iframe behavior or production security equivalence.
+
+Pair delay uses the same rule as relaunch summary v2: immediate ready is at
+least twice first ready and at least 1,000 ms greater. Cross-transport
+classification requires complete evidence from all four transports. Ten
+successful samples per transport are required before `publishable` is true.
+
 ## Cache and Acquisition Evidence
 
 The zero-cache workflow contains no `actions/cache` use. It disables Bun

@@ -101,6 +101,8 @@ func main() {
 }
 
 func run() error {
+	schemaVersion := flag.String("schema-version", "velox.relaunch-control/v1", "result schema version")
+	suite := flag.String("suite", "same-profile-immediate-relaunch", "measurement suite identifier")
 	framework := flag.String("framework", "", "framework identifier")
 	revision := flag.String("revision", "", "immutable framework revision")
 	executable := flag.String("executable", "", "application executable")
@@ -110,15 +112,15 @@ func run() error {
 	output := flag.String("output", "", "result JSON path")
 	sample := flag.Int("sample", -1, "sample index")
 	flag.Parse()
-	if flag.NArg() != 0 || *framework == "" || *revision == "" || *executable == "" || *workdir == "" || *profile == "" || *output == "" || *sample < 0 || *sample > 9 {
-		return errors.New("framework, revision, executable, workdir, profile, output, and sample are required")
+	if flag.NArg() != 0 || *schemaVersion == "" || *suite == "" || *framework == "" || *revision == "" || *executable == "" || *workdir == "" || *profile == "" || *output == "" || *sample < 0 || *sample > 9 {
+		return errors.New("schema-version, suite, framework, revision, executable, workdir, profile, output, and sample are required")
 	}
 	if *profileControl != "explicit-udf" && *profileControl != "framework-managed-app-directory" {
 		return errors.New("invalid profile-control")
 	}
 	started := time.Now().UTC()
 	result := result{
-		SchemaVersion: "velox.relaunch-control/v1", Suite: "same-profile-immediate-relaunch",
+		SchemaVersion: *schemaVersion, Suite: *suite,
 		Framework: *framework, FrameworkRevision: *revision, ProfileControl: *profileControl, Sample: *sample,
 		Outcome: "success", StartedAtUTC: started.Format(time.RFC3339Nano), Environment: currentEnvironment(),
 	}
