@@ -13,14 +13,15 @@
   access by the fixture are excluded.
 - Startup comparison remains separate from cold-build comparison until every
   adapter exposes the same ready boundary.
-- The immediate-relaunch control suite exposes one common ready boundary for a
-  raw WebView2 host, Wails, and Neutralinojs, but it classifies lifecycle
+- The immediate-relaunch control suite exposes one common ready boundary for
+  Velox, a raw WebView2 host, Wails, and Neutralinojs, but it classifies lifecycle
   behavior rather than ranking product startup speed.
-- The raw control and Wails use explicit UDF paths. Neutralinojs reuses an
+- Velox, the raw control, and Wails use explicit UDF paths. Neutralinojs reuses an
   isolated application directory with framework-managed profile placement, so
   a Neutralinojs difference cannot by itself prove a WebView2 controller cause.
-- Host bridges differ only in how they change the native ready title. Their
-  small call overhead remains inside the measured boundary and is disclosed.
+- Velox uses a named-pipe ready marker while the other host bridges change the
+  native title. Their small signaling overhead remains inside the measured
+  boundary and is disclosed. The harness closes all four hosts externally.
 - The current startup suite measures Velox only. It can detect Velox regressions
   and fresh-versus-settled-warm behavior, but it cannot support a claim that
   Velox starts faster than another framework.

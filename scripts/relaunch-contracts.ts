@@ -1,7 +1,7 @@
 export const relaunchSchemaVersion = "velox.relaunch-control/v1" as const;
 export const relaunchSummarySchemaVersion = "velox.relaunch-control-summary/v1" as const;
 export const relaunchSuite = "same-profile-immediate-relaunch" as const;
-export const relaunchFrameworks = ["webview2-control", "wails", "neutralino"] as const;
+export const relaunchFrameworks = ["velox", "webview2-control", "wails", "neutralino"] as const;
 
 export type RelaunchFramework = typeof relaunchFrameworks[number];
 export type Statistics = { minMs: number; p50Ms: number; p95Ms: number; maxMs: number };
@@ -27,7 +27,7 @@ export type RelaunchResult = {
     runAttempt: string;
   };
   measurement: null | {
-    readyBoundary: "process-start-to-window-title-after-domcontentloaded-plus-two-animation-frames";
+    readyBoundary: "process-start-to-framework-ready-after-domcontentloaded-plus-two-animation-frames";
     immediateProcessStartAfterFirstHostExitMs: number;
     first: { readyMs: number; hostExitMs: number };
     immediate: { readyMs: number; hostExitMs: number };
@@ -41,7 +41,7 @@ export type RelaunchSummary = {
   expectedPerFramework: 1 | 3 | 10;
   observed: number;
   publishable: boolean;
-  platformClassification: "shared-immediate-relaunch-delay" | "webview2-host-delay" | "control-specific-delay" | "mixed-or-not-observed";
+  platformClassification: "velox-specific-delay" | "shared-immediate-relaunch-delay" | "webview2-host-delay" | "control-specific-delay" | "mixed-or-not-observed";
   rows: Array<{
     framework: RelaunchFramework;
     revision: string;
@@ -80,7 +80,7 @@ export function validateRelaunchResult(value: unknown): asserts value is Relaunc
       !environment.repositoryCommit || !environment.runId || !environment.runAttempt) throw new Error("invalid relaunch environment");
   if (result.outcome === "success") {
     const measurement = result.measurement;
-    if (!measurement || result.failure !== null || measurement.readyBoundary !== "process-start-to-window-title-after-domcontentloaded-plus-two-animation-frames" ||
+    if (!measurement || result.failure !== null || measurement.readyBoundary !== "process-start-to-framework-ready-after-domcontentloaded-plus-two-animation-frames" ||
         !finiteNonNegative(measurement.immediateProcessStartAfterFirstHostExitMs) ||
         !finiteNonNegative(measurement.first?.readyMs) || !finiteNonNegative(measurement.first?.hostExitMs) ||
         !finiteNonNegative(measurement.immediate?.readyMs) || !finiteNonNegative(measurement.immediate?.hostExitMs)) {
@@ -134,8 +134,9 @@ export function buildRelaunchSummary(results: RelaunchResult[], expected: 1 | 3 
   });
   const delayed = new Set(rows.filter((row) => row.delayClassification === "observed").map((row) => row.framework));
   let platformClassification: RelaunchSummary["platformClassification"] = "mixed-or-not-observed";
-  if (delayed.size === 3) platformClassification = "shared-immediate-relaunch-delay";
-  else if (delayed.has("webview2-control") && delayed.has("wails") && !delayed.has("neutralino")) platformClassification = "webview2-host-delay";
+  if (delayed.size === 4) platformClassification = "shared-immediate-relaunch-delay";
+  else if (delayed.size === 1 && delayed.has("velox")) platformClassification = "velox-specific-delay";
+  else if (delayed.has("velox") && delayed.has("webview2-control") && delayed.has("wails") && !delayed.has("neutralino")) platformClassification = "webview2-host-delay";
   else if (delayed.size === 1 && delayed.has("webview2-control")) platformClassification = "control-specific-delay";
   return {
     schemaVersion: relaunchSummarySchemaVersion, suite: relaunchSuite, expectedPerFramework: expected,

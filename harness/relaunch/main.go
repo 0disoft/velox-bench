@@ -17,11 +17,16 @@ import (
 	"unsafe"
 
 	"github.com/jchv/go-webview2/webviewloader"
+	"golang.org/x/sys/windows"
 )
 
 const (
 	readyTitle = "Velox Bench Ready"
 	wmClose    = 0x0010
+
+	pipeAccessInbound = 0x00000001
+	pipeTypeByte      = 0x00000000
+	pipeWait          = 0x00000000
 )
 
 var (
@@ -31,6 +36,11 @@ var (
 	procGetWindowThreadPID = user32.NewProc("GetWindowThreadProcessId")
 	procIsWindowVisible    = user32.NewProc("IsWindowVisible")
 	procPostMessageW       = user32.NewProc("PostMessageW")
+	kernel32               = windows.NewLazySystemDLL("kernel32.dll")
+	createNamedPipeW       = kernel32.NewProc("CreateNamedPipeW")
+	connectNamedPipe       = kernel32.NewProc("ConnectNamedPipe")
+	disconnectNamedPipe    = kernel32.NewProc("DisconnectNamedPipe")
+	cancelIoEx             = kernel32.NewProc("CancelIoEx")
 )
 
 type result struct {
@@ -112,17 +122,17 @@ func run() error {
 		Framework: *framework, FrameworkRevision: *revision, ProfileControl: *profileControl, Sample: *sample,
 		Outcome: "success", StartedAtUTC: started.Format(time.RFC3339Nano), Environment: currentEnvironment(),
 	}
-	first, firstExitedAt, err := runLaunch(*executable, *workdir, *profile)
+	first, firstExitedAt, err := runLaunch(*framework, *executable, *workdir, *profile)
 	if err != nil {
 		result.Outcome, result.Failure = "failure", &failure{Phase: failurePhase(err, "first-launch"), Code: "PHASE_FAILED"}
 	} else {
 		immediateStartedAt := time.Now()
-		immediate, _, immediateErr := runLaunch(*executable, *workdir, *profile)
+		immediate, _, immediateErr := runLaunch(*framework, *executable, *workdir, *profile)
 		if immediateErr != nil {
 			result.Outcome, result.Failure = "failure", &failure{Phase: failurePhase(immediateErr, "immediate-launch"), Code: "PHASE_FAILED"}
 		} else {
 			result.Measurement = &measurement{
-				ReadyBoundary: "process-start-to-window-title-after-domcontentloaded-plus-two-animation-frames",
+				ReadyBoundary: "process-start-to-framework-ready-after-domcontentloaded-plus-two-animation-frames",
 				ImmediateProcessStartAfterFirstHostExitMS: milliseconds(immediateStartedAt.Sub(firstExitedAt)),
 				First: first, Immediate: immediate,
 			}
@@ -138,11 +148,26 @@ func run() error {
 	return nil
 }
 
-func runLaunch(executable, workdir, profile string) (launch, time.Time, error) {
+func runLaunch(framework, executable, workdir, profile string) (launch, time.Time, error) {
+	var pipe windows.Handle
+	var pipeName string
+	if framework == "velox" {
+		pipeName = fmt.Sprintf(`\\.\pipe\velox-relaunch-%d`, time.Now().UnixNano())
+		var err error
+		pipe, err = createPipe(pipeName)
+		if err != nil {
+			return launch{}, time.Time{}, runFailure{phase: "ready-pipe-create", err: err}
+		}
+		defer windows.CloseHandle(pipe)
+		defer disconnectNamedPipe.Call(uintptr(pipe))
+	}
 	started := time.Now()
 	command := exec.Command(executable)
 	command.Dir = workdir
-	command.Env = append(os.Environ(), "VELOX_BENCH_PROFILE="+profile)
+	command.Env = append(os.Environ(), "VELOX_BENCH_PROFILE="+profile, "VELOX_DATA_DIR="+profile)
+	if pipeName != "" {
+		command.Env = append(command.Env, "VELOX_BENCH_PIPE="+pipeName)
+	}
 	command.Stdin = nil
 	command.Stdout = os.Stdout
 	command.Stderr = os.Stderr
@@ -150,11 +175,24 @@ func runLaunch(executable, workdir, profile string) (launch, time.Time, error) {
 		return launch{}, time.Time{}, runFailure{phase: "process-start", err: err}
 	}
 	processID := uint32(command.Process.Pid)
-	hwnd, readyAt, err := waitForReadyWindow(processID, 15*time.Second)
+	var err error
+	var hwnd uintptr
+	var readyAt time.Time
+	if pipe != 0 {
+		readyAt, err = waitForVeloxReady(pipe, 15*time.Second)
+		if err == nil {
+			hwnd, _, err = waitForWindow(processID, "", 5*time.Second)
+		}
+	} else {
+		hwnd, readyAt, err = waitForWindow(processID, readyTitle, 15*time.Second)
+	}
 	if err != nil {
 		_ = command.Process.Kill()
+		if pipe != 0 {
+			cancelIoEx.Call(uintptr(pipe), 0)
+		}
 		_, _ = command.Process.Wait()
-		return launch{}, time.Time{}, runFailure{phase: "ready-window", err: err}
+		return launch{}, time.Time{}, runFailure{phase: "framework-ready", err: err}
 	}
 	posted, _, postErr := procPostMessageW.Call(hwnd, wmClose, 0, 0)
 	if posted == 0 {
@@ -178,10 +216,10 @@ func runLaunch(executable, workdir, profile string) (launch, time.Time, error) {
 	return launch{ReadyMS: milliseconds(readyAt.Sub(started)), HostExitMS: milliseconds(exitedAt.Sub(readyAt))}, exitedAt, nil
 }
 
-func waitForReadyWindow(processID uint32, timeout time.Duration) (uintptr, time.Time, error) {
+func waitForWindow(processID uint32, title string, timeout time.Duration) (uintptr, time.Time, error) {
 	deadline := time.Now().Add(timeout)
 	for time.Now().Before(deadline) {
-		if hwnd := findReadyWindow(processID); hwnd != 0 {
+		if hwnd := findWindow(processID, title); hwnd != 0 {
 			return hwnd, time.Now(), nil
 		}
 		time.Sleep(10 * time.Millisecond)
@@ -189,7 +227,7 @@ func waitForReadyWindow(processID uint32, timeout time.Duration) (uintptr, time.
 	return 0, time.Time{}, errors.New("ready title timeout")
 }
 
-func findReadyWindow(processID uint32) uintptr {
+func findWindow(processID uint32, title string) uintptr {
 	var found uintptr
 	callback := syscall.NewCallback(func(hwnd uintptr, _ uintptr) uintptr {
 		visible, _, _ := procIsWindowVisible.Call(hwnd)
@@ -201,9 +239,13 @@ func findReadyWindow(processID uint32) uintptr {
 		if owner != processID {
 			return 1
 		}
+		if title == "" {
+			found = hwnd
+			return 0
+		}
 		buffer := make([]uint16, 256)
 		length, _, _ := procGetWindowTextW.Call(hwnd, uintptr(unsafe.Pointer(&buffer[0])), uintptr(len(buffer)))
-		if syscall.UTF16ToString(buffer[:int(length)]) == readyTitle {
+		if syscall.UTF16ToString(buffer[:int(length)]) == title {
 			found = hwnd
 			return 0
 		}
@@ -211,6 +253,55 @@ func findReadyWindow(processID uint32) uintptr {
 	})
 	_, _, _ = procEnumWindows.Call(callback, 0)
 	return found
+}
+
+func createPipe(name string) (windows.Handle, error) {
+	nameUTF16, err := windows.UTF16PtrFromString(name)
+	if err != nil {
+		return windows.InvalidHandle, err
+	}
+	handle, _, callErr := createNamedPipeW.Call(
+		uintptr(unsafe.Pointer(nameUTF16)), pipeAccessInbound, pipeTypeByte|pipeWait,
+		1, 4096, 4096, 0, 0,
+	)
+	if handle == uintptr(windows.InvalidHandle) {
+		return windows.InvalidHandle, fmt.Errorf("CreateNamedPipeW: %w", callErr)
+	}
+	return windows.Handle(handle), nil
+}
+
+func waitForVeloxReady(pipe windows.Handle, timeout time.Duration) (time.Time, error) {
+	type readyResult struct {
+		at  time.Time
+		err error
+	}
+	done := make(chan readyResult, 1)
+	go func() {
+		connected, _, err := connectNamedPipe.Call(uintptr(pipe), 0)
+		if connected == 0 && err != windows.ERROR_PIPE_CONNECTED {
+			done <- readyResult{err: err}
+			return
+		}
+		buffer := make([]byte, 128)
+		n, err := windows.Read(pipe, buffer)
+		if err != nil {
+			done <- readyResult{err: err}
+			return
+		}
+		fields := strings.Fields(string(buffer[:n]))
+		if len(fields) != 3 || fields[0] != "ready" || fields[1] != "dom-2raf" {
+			done <- readyResult{err: fmt.Errorf("unexpected Velox ready marker %q", buffer[:n])}
+			return
+		}
+		done <- readyResult{at: time.Now()}
+	}()
+	select {
+	case result := <-done:
+		return result.at, result.err
+	case <-time.After(timeout):
+		cancelIoEx.Call(uintptr(pipe), 0)
+		return time.Time{}, errors.New("Velox ready marker timeout")
+	}
 }
 
 func currentEnvironment() environment {

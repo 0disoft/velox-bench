@@ -58,15 +58,16 @@ issues. History is diagnostic evidence, not an automatic regression verdict.
 
 ## Immediate Relaunch Controls
 
-The manual `Immediate relaunch controls` workflow runs a raw WebView2 host,
-Wails, and Neutralinojs in isolated jobs. Each sample closes the first host and
-starts the second host immediately against the same profile boundary. The raw
-control and Wails receive an explicit UDF path. Neutralinojs reuses one isolated
-application directory and its framework-managed profile; the weaker control is
-recorded in every result.
+The manual `Immediate relaunch controls` workflow runs Velox, a raw WebView2
+host, Wails, and Neutralinojs in isolated jobs. Each sample closes the first
+host and starts the second host immediately against the same profile boundary.
+Velox, the raw control, and Wails receive an explicit UDF path. Neutralinojs
+reuses one isolated application directory and its framework-managed profile;
+the weaker control is recorded in every result.
 
 All adapters use the same `DOMContentLoaded` plus two-animation-frame marker.
-The marker calls the host's narrow benchmark bridge, which changes the native
-window title. A Windows harness observes that title, closes the window, and
-starts the immediate launch. Three samples classify the likely lifecycle owner;
-ten complete samples are required before the summary is publishable.
+Velox reports it through the existing benchmark named pipe; the other hosts
+change their native window title. A Windows harness observes either signal,
+closes the window externally, and starts the immediate launch. Three samples
+classify the likely lifecycle owner; ten complete samples are required before
+the summary is publishable.

@@ -198,14 +198,14 @@ const relaunchWorkflow = await readFile(join(root, ".github", "workflows", "rela
 for (const action of ["checkout", "setupBun", "setupGo", "setupNode", "uploadArtifact", "downloadArtifact"] as const) {
   if (!relaunchWorkflow.includes(`@${lock.actions[action]}`)) throw new Error(`relaunch workflow does not use pinned actions.${action}`);
 }
-for (const revision of [lock.controls.webview2Binding.commit, lock.frameworks.wails.commit, lock.frameworks.neutralino.commit]) {
+for (const revision of [lock.frameworks.velox.commit, lock.controls.webview2Binding.commit, lock.frameworks.wails.commit, lock.frameworks.neutralino.commit]) {
   if (!relaunchWorkflow.includes(revision)) throw new Error(`relaunch workflow does not pin revision ${revision}`);
 }
 if (/actions\/cache@/.test(relaunchWorkflow) || /^\s*cache:\s*true\s*$/m.test(relaunchWorkflow)) throw new Error("relaunch workflow enables a GitHub Actions cache");
 for (const match of relaunchWorkflow.matchAll(/^\s*uses:\s*[^@\s]+@([^\s#]+)/gm)) {
   if (!commitPattern.test(match[1])) throw new Error(`relaunch workflow action is not pinned to a commit: ${match[0].trim()}`);
 }
-for (const marker of ["webview2-control", "framework-managed-app-directory", "summarize-relaunch.ts", "relaunch-control-v1.schema.json", "relaunch-control-summary-v1.schema.json"]) {
+for (const marker of ["velox", "webview2-control", "framework-managed-app-directory", "summarize-relaunch.ts", "relaunch-control-v1.schema.json", "relaunch-control-summary-v1.schema.json"]) {
   if (!relaunchWorkflow.includes(marker)) throw new Error(`relaunch workflow is missing ${marker}`);
 }
 for (const schema of ["relaunch-control-v1.schema.json", "relaunch-control-summary-v1.schema.json"]) {

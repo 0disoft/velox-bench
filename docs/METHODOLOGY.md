@@ -93,20 +93,21 @@ a regression threshold.
 ## Immediate Relaunch Control Measurement
 
 Immediate relaunch is a separate cause-classification suite. It is not a
-startup winner table. The suite compares three hosts: the pinned upstream
+startup winner table. The suite compares four hosts: Velox, the pinned upstream
 `go-webview2` binding with no Velox runtime or IPC policy, Wails, and
 Neutralinojs. Each isolated sample performs one first launch and one immediate
 relaunch. No browser-exit or UDF-release wait is inserted between them.
 
 The canonical fixture waits for `DOMContentLoaded` and two animation frames,
-then invokes a minimal host-specific bridge. The raw control uses a bound Go
-function, Wails uses one bound Go method, and Neutralinojs uses only the
-allowlisted `window.setTitle` API. Each bridge changes the native title to a
-fixed ready marker. The parent Windows harness detects that title by process
-ID, posts `WM_CLOSE`, waits for normal host exit, and launches the second
-process immediately.
+then invokes a minimal host-specific bridge. Velox uses its existing benchmark
+named pipe, the raw control uses a bound Go function, Wails uses one bound Go
+method, and Neutralinojs uses only the allowlisted `window.setTitle` API. The
+parent Windows harness detects the pipe marker or native title by process ID,
+posts `WM_CLOSE`, waits for normal host exit, and launches the second process
+immediately. This external close deliberately differs from the core lifecycle
+probe's close request inside the ready callback.
 
-The raw control and Wails receive one explicit WebView2 UDF path. Neutralinojs
+Velox, the raw control, and Wails receive one explicit WebView2 UDF path. Neutralinojs
 does not expose an equivalent supported window-mode UDF override in this
 fixture, so the suite reuses one isolated application directory and labels its
 profile control `framework-managed-app-directory`. A difference involving

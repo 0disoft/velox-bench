@@ -10,6 +10,7 @@ on:
         type: choice
         options:
           - all
+          - velox
           - webview2-control
           - wails
           - neutralino
@@ -56,13 +57,22 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        framework: ${{ fromJSON(inputs.framework == 'all' && '["webview2-control","wails","neutralino"]' || format('["{0}"]', inputs.framework)) }}
+        framework: ${{ fromJSON(inputs.framework == 'all' && '["velox","webview2-control","wails","neutralino"]' || format('["{0}"]', inputs.framework)) }}
     runs-on: windows-2025
     timeout-minutes: 20
     steps:
       - name: Check out benchmark
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
+          persist-credentials: false
+
+      - name: Check out pinned Velox
+        if: matrix.framework == 'velox'
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          repository: 0disoft/velox
+          ref: cf1230cbc31049aaba201a4d0ef5cc5f204a9a12
+          path: .bench/velox-source
           persist-credentials: false
 
       - name: Set up Go
@@ -95,7 +105,15 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           Pop-Location
 
-          if ($env:FRAMEWORK -eq 'webview2-control') {
+          if ($env:FRAMEWORK -eq 'velox') {
+            Push-Location '.bench/velox-source'
+            go build -mod=readonly -trimpath -o (Join-Path $output 'app.exe') ./cmd/velox-host
+            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+            Copy-Item -LiteralPath 'examples/hello/velox.runtime.json' -Destination (Join-Path $output 'velox.runtime.json')
+            Copy-Item -LiteralPath 'examples/hello/web' -Destination (Join-Path $output 'web') -Recurse
+            Pop-Location
+          }
+          elseif ($env:FRAMEWORK -eq 'webview2-control') {
             Push-Location 'apps/webview2-control'
             go build -mod=readonly -trimpath -o (Join-Path $output 'app.exe') .
             if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
@@ -145,7 +163,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        framework: ${{ fromJSON(inputs.framework == 'all' && '["webview2-control","wails","neutralino"]' || format('["{0}"]', inputs.framework)) }}
+        framework: ${{ fromJSON(inputs.framework == 'all' && '["velox","webview2-control","wails","neutralino"]' || format('["{0}"]', inputs.framework)) }}
         sample: ${{ fromJSON(inputs.sample_count == '1' && '[0]' || inputs.sample_count == '3' && '[0,1,2]' || '[0,1,2,3,4,5,6,7,8,9]') }}
     runs-on: windows-2025
     timeout-minutes: 5
@@ -168,7 +186,7 @@ jobs:
         env:
           FRAMEWORK: ${{ matrix.framework }}
           SAMPLE: ${{ matrix.sample }}
-          FRAMEWORK_REVISION: ${{ matrix.framework == 'webview2-control' && '56598839c808a2340edee99204db479f410e9bf4' || matrix.framework == 'wails' && '474b677c9b9191d703607bea7d76143b1b2eeb0c' || 'c30cbaeb5821785c24505ab7053d7ed76699d672' }}
+          FRAMEWORK_REVISION: ${{ matrix.framework == 'velox' && 'cf1230cbc31049aaba201a4d0ef5cc5f204a9a12' || matrix.framework == 'webview2-control' && '56598839c808a2340edee99204db479f410e9bf4' || matrix.framework == 'wails' && '474b677c9b9191d703607bea7d76143b1b2eeb0c' || 'c30cbaeb5821785c24505ab7053d7ed76699d672' }}
           PROFILE_CONTROL: ${{ matrix.framework == 'neutralino' && 'framework-managed-app-directory' || 'explicit-udf' }}
         run: |
           $ErrorActionPreference = 'Stop'

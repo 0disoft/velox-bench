@@ -8,7 +8,7 @@
   "properties": {
     "schemaVersion": { "const": "velox.relaunch-control/v1" },
     "suite": { "const": "same-profile-immediate-relaunch" },
-    "framework": { "enum": ["webview2-control", "wails", "neutralino"] },
+    "framework": { "enum": ["velox", "webview2-control", "wails", "neutralino"] },
     "frameworkRevision": { "type": "string", "pattern": "^[0-9a-f]{40}$" },
     "profileControl": { "enum": ["explicit-udf", "framework-managed-app-directory"] },
     "sample": { "type": "integer", "minimum": 0, "maximum": 9 },
@@ -37,7 +37,7 @@
           "additionalProperties": false,
           "required": ["readyBoundary", "immediateProcessStartAfterFirstHostExitMs", "first", "immediate"],
           "properties": {
-            "readyBoundary": { "const": "process-start-to-window-title-after-domcontentloaded-plus-two-animation-frames" },
+            "readyBoundary": { "const": "process-start-to-framework-ready-after-domcontentloaded-plus-two-animation-frames" },
             "immediateProcessStartAfterFirstHostExitMs": { "type": "number", "minimum": 0 },
             "first": { "$ref": "#/$defs/launch" },
             "immediate": { "$ref": "#/$defs/launch" }
