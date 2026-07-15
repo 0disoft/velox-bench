@@ -1,5 +1,5 @@
 export const relaunchSchemaVersion = "velox.relaunch-control/v1" as const;
-export const relaunchSummarySchemaVersion = "velox.relaunch-control-summary/v1" as const;
+export const relaunchSummarySchemaVersion = "velox.relaunch-control-summary/v2" as const;
 export const relaunchSuite = "same-profile-immediate-relaunch" as const;
 export const relaunchFrameworks = ["velox", "webview2-control", "wails", "neutralino"] as const;
 
@@ -51,6 +51,8 @@ export type RelaunchSummary = {
     failed: number;
     timedOut: number;
     delayClassification: "observed" | "not-observed" | "insufficient-evidence";
+    pairedDelaySamples: number;
+    pairedDelayRate: number | null;
     firstReady: Statistics | null;
     immediateReady: Statistics | null;
     immediateMinusFirst: Statistics | null;
@@ -120,24 +122,34 @@ export function buildRelaunchSummary(results: RelaunchResult[], expected: 1 | 3 
     const delta = successful.map((result) => result.measurement!.immediate.readyMs - result.measurement!.first.readyMs);
     const firstStats = statistics(first);
     const immediateStats = statistics(immediate);
+    const pairedDelaySamples = successful.filter((result) => {
+      const firstReady = result.measurement!.first.readyMs;
+      const immediateReady = result.measurement!.immediate.readyMs;
+      return immediateReady >= firstReady * 2 && immediateReady - firstReady >= 1000;
+    }).length;
     let delayClassification: "observed" | "not-observed" | "insufficient-evidence" = "insufficient-evidence";
     if (successful.length === expected && firstStats && immediateStats) {
-      delayClassification = immediateStats.p50Ms >= firstStats.p50Ms * 2 && immediateStats.p50Ms - firstStats.p50Ms >= 1000 ? "observed" : "not-observed";
+      delayClassification = pairedDelaySamples > 0 ? "observed" : "not-observed";
     }
     return {
       framework, revision: [...revisions][0] ?? "unavailable", profileControl: [...profileControls][0] ?? "unavailable",
       observed: frameworkResults.length, successful: successful.length,
       failed: frameworkResults.filter((result) => result.outcome === "failure").length,
       timedOut: frameworkResults.filter((result) => result.outcome === "timeout").length,
-      delayClassification, firstReady: firstStats, immediateReady: immediateStats, immediateMinusFirst: statistics(delta),
+      delayClassification, pairedDelaySamples,
+      pairedDelayRate: successful.length === 0 ? null : pairedDelaySamples / successful.length,
+      firstReady: firstStats, immediateReady: immediateStats, immediateMinusFirst: statistics(delta),
     };
   });
   const delayed = new Set(rows.filter((row) => row.delayClassification === "observed").map((row) => row.framework));
+  const completeCrossHostEvidence = rows.every((row) => row.successful === expected);
   let platformClassification: RelaunchSummary["platformClassification"] = "mixed-or-not-observed";
-  if (delayed.size === 4) platformClassification = "shared-immediate-relaunch-delay";
-  else if (delayed.size === 1 && delayed.has("velox")) platformClassification = "velox-specific-delay";
-  else if (delayed.has("velox") && delayed.has("webview2-control") && delayed.has("wails") && !delayed.has("neutralino")) platformClassification = "webview2-host-delay";
-  else if (delayed.size === 1 && delayed.has("webview2-control")) platformClassification = "control-specific-delay";
+  if (completeCrossHostEvidence) {
+    if (delayed.size === 4) platformClassification = "shared-immediate-relaunch-delay";
+    else if (delayed.size === 1 && delayed.has("velox")) platformClassification = "velox-specific-delay";
+    else if (delayed.has("velox") && delayed.has("webview2-control") && delayed.has("wails") && !delayed.has("neutralino")) platformClassification = "webview2-host-delay";
+    else if (delayed.size === 1 && delayed.has("webview2-control")) platformClassification = "control-specific-delay";
+  }
   return {
     schemaVersion: relaunchSummarySchemaVersion, suite: relaunchSuite, expectedPerFramework: expected,
     observed: results.length, publishable: expected === 10 && rows.every((row) => row.successful === 10), platformClassification, rows,

@@ -205,10 +205,10 @@ if (/actions\/cache@/.test(relaunchWorkflow) || /^\s*cache:\s*true\s*$/m.test(re
 for (const match of relaunchWorkflow.matchAll(/^\s*uses:\s*[^@\s]+@([^\s#]+)/gm)) {
   if (!commitPattern.test(match[1])) throw new Error(`relaunch workflow action is not pinned to a commit: ${match[0].trim()}`);
 }
-for (const marker of ["velox", "webview2-control", "framework-managed-app-directory", "summarize-relaunch.ts", "relaunch-control-v1.schema.json", "relaunch-control-summary-v1.schema.json"]) {
+for (const marker of ["velox", "webview2-control", "framework-managed-app-directory", "summarize-relaunch.ts", "relaunch-control-v1.schema.json", "relaunch-control-summary-v2.schema.json"]) {
   if (!relaunchWorkflow.includes(marker)) throw new Error(`relaunch workflow is missing ${marker}`);
 }
-for (const schema of ["relaunch-control-v1.schema.json", "relaunch-control-summary-v1.schema.json"]) {
+for (const schema of ["relaunch-control-v1.schema.json", "relaunch-control-summary-v1.schema.json", "relaunch-control-summary-v2.schema.json"]) {
   JSON.parse(await readFile(join(root, "schema", schema), "utf8"));
 }
 

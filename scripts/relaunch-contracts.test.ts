@@ -28,5 +28,22 @@ test("classifies a delay observed only in Velox", () => {
   const results = relaunchFrameworks.flatMap((framework) => [0, 1, 2].map((sample) =>
     result(framework, sample, 500, framework === "velox" ? 6000 : 600),
   ));
-  expect(buildRelaunchSummary(results, 3).platformClassification).toBe("velox-specific-delay");
+  const summary = buildRelaunchSummary(results, 3);
+  expect(summary.platformClassification).toBe("velox-specific-delay");
+  expect(summary.rows[0].pairedDelaySamples).toBe(3);
+  expect(summary.rows[0].pairedDelayRate).toBe(1);
+});
+
+test("preserves an intermittent paired delay hidden by the median", () => {
+  const immediate = [5989, 422, 6191, 6027, 536, 6064, 489, 487, 568, 516];
+  const first = [2414, 4535, 2234, 2210, 2550, 2202, 2296, 2520, 2653, 2675];
+  const results = immediate.map((ready, sample) => result("velox", sample, first[sample], ready));
+  const summary = buildRelaunchSummary(results, 10);
+  const velox = summary.rows[0];
+
+  expect(velox.immediateReady?.p50Ms).toBe(536);
+  expect(velox.pairedDelaySamples).toBe(4);
+  expect(velox.pairedDelayRate).toBe(0.4);
+  expect(velox.delayClassification).toBe("observed");
+  expect(summary.platformClassification).toBe("mixed-or-not-observed");
 });

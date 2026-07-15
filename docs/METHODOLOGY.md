@@ -113,10 +113,14 @@ fixture, so the suite reuses one isolated application directory and labels its
 profile control `framework-managed-app-directory`. A difference involving
 Neutralinojs must be interpreted with that limitation.
 
-The generated summary marks a host as delayed only when its complete sample set
-has an immediate p50 at least twice first-launch p50 and at least 1000 ms
-slower. Three samples are diagnostic. Ten successful samples per host are
-required for a publishable summary. Local samples are contract smoke only.
+The v2 summary classifies each first/immediate pair independently. A pair is
+delayed when immediate ready time is at least twice first ready time and at
+least 1,000 ms greater. Complete evidence is `observed` when one or more pairs
+are delayed; `pairedDelaySamples` and `pairedDelayRate` distinguish an
+intermittent tail from a consistent delay. Aggregate medians remain descriptive
+and do not erase delayed pairs. Three samples are diagnostic. Ten successful
+samples per host are required for a publishable summary. Local samples are
+contract smoke only.
 
 ## Cache and Acquisition Evidence
 
