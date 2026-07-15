@@ -21,8 +21,9 @@ import (
 )
 
 const (
-	readyTitle = "Velox Bench Ready"
-	wmClose    = 0x0010
+	readyTitle         = "Velox Bench Ready"
+	delaySchemaVersion = "velox.asset-transport-delay/v1"
+	wmClose            = 0x0010
 
 	pipeAccessInbound = 0x00000001
 	pipeTypeByte      = 0x00000000
@@ -44,18 +45,19 @@ var (
 )
 
 type result struct {
-	SchemaVersion     string       `json:"schemaVersion"`
-	Suite             string       `json:"suite"`
-	Framework         string       `json:"framework"`
-	FrameworkRevision string       `json:"frameworkRevision"`
-	ProfileControl    string       `json:"profileControl"`
-	Sample            int          `json:"sample"`
-	Outcome           string       `json:"outcome"`
-	StartedAtUTC      string       `json:"startedAtUtc"`
-	FinishedAtUTC     string       `json:"finishedAtUtc"`
-	Environment       environment  `json:"environment"`
-	Measurement       *measurement `json:"measurement"`
-	Failure           *failure     `json:"failure"`
+	SchemaVersion     string      `json:"schemaVersion"`
+	Suite             string      `json:"suite"`
+	Framework         string      `json:"framework"`
+	FrameworkRevision string      `json:"frameworkRevision"`
+	ProfileControl    string      `json:"profileControl"`
+	Sample            int         `json:"sample"`
+	RequestedDelayMS  *int        `json:"requestedDelayMs,omitempty"`
+	Outcome           string      `json:"outcome"`
+	StartedAtUTC      string      `json:"startedAtUtc"`
+	FinishedAtUTC     string      `json:"finishedAtUtc"`
+	Environment       environment `json:"environment"`
+	Measurement       any         `json:"measurement"`
+	Failure           *failure    `json:"failure"`
 }
 
 type environment struct {
@@ -74,6 +76,13 @@ type measurement struct {
 	ImmediateProcessStartAfterFirstHostExitMS float64 `json:"immediateProcessStartAfterFirstHostExitMs"`
 	First                                     launch  `json:"first"`
 	Immediate                                 launch  `json:"immediate"`
+}
+
+type delayMeasurement struct {
+	ReadyBoundary                          string  `json:"readyBoundary"`
+	ActualProcessStartAfterFirstHostExitMS float64 `json:"actualProcessStartAfterFirstHostExitMs"`
+	First                                  launch  `json:"first"`
+	Relaunched                             launch  `json:"relaunched"`
 }
 
 type launch struct {
@@ -111,6 +120,7 @@ func run() error {
 	profileControl := flag.String("profile-control", "", "explicit-udf or framework-managed-app-directory")
 	output := flag.String("output", "", "result JSON path")
 	sample := flag.Int("sample", -1, "sample index")
+	relaunchDelayMS := flag.Int("relaunch-delay-ms", 0, "delay after first host exit before relaunch")
 	flag.Parse()
 	if flag.NArg() != 0 || *schemaVersion == "" || *suite == "" || *framework == "" || *revision == "" || *executable == "" || *workdir == "" || *profile == "" || *output == "" || *sample < 0 || *sample > 9 {
 		return errors.New("schema-version, suite, framework, revision, executable, workdir, profile, output, and sample are required")
@@ -118,25 +128,49 @@ func run() error {
 	if *profileControl != "explicit-udf" && *profileControl != "framework-managed-app-directory" {
 		return errors.New("invalid profile-control")
 	}
+	if *relaunchDelayMS < 0 || *relaunchDelayMS > 60_000 {
+		return errors.New("relaunch-delay-ms must be between 0 and 60000")
+	}
+	if *schemaVersion != delaySchemaVersion && *relaunchDelayMS != 0 {
+		return errors.New("relaunch-delay-ms requires the asset transport delay schema")
+	}
 	started := time.Now().UTC()
 	result := result{
 		SchemaVersion: *schemaVersion, Suite: *suite,
 		Framework: *framework, FrameworkRevision: *revision, ProfileControl: *profileControl, Sample: *sample,
 		Outcome: "success", StartedAtUTC: started.Format(time.RFC3339Nano), Environment: currentEnvironment(),
 	}
+	if *schemaVersion == delaySchemaVersion {
+		result.RequestedDelayMS = relaunchDelayMS
+	}
 	first, firstExitedAt, err := runLaunch(*framework, *executable, *workdir, *profile)
 	if err != nil {
 		result.Outcome, result.Failure = "failure", &failure{Phase: failurePhase(err, "first-launch"), Code: "PHASE_FAILED"}
 	} else {
-		immediateStartedAt := time.Now()
-		immediate, _, immediateErr := runLaunch(*framework, *executable, *workdir, *profile)
-		if immediateErr != nil {
-			result.Outcome, result.Failure = "failure", &failure{Phase: failurePhase(immediateErr, "immediate-launch"), Code: "PHASE_FAILED"}
+		if *relaunchDelayMS > 0 {
+			time.Sleep(time.Duration(*relaunchDelayMS) * time.Millisecond)
+		}
+		relaunchStartedAt := time.Now()
+		relaunched, _, relaunchErr := runLaunch(*framework, *executable, *workdir, *profile)
+		if relaunchErr != nil {
+			failurePrefix := "immediate-launch"
+			if *schemaVersion == delaySchemaVersion {
+				failurePrefix = "relaunch-launch"
+			}
+			result.Outcome, result.Failure = "failure", &failure{Phase: failurePhase(relaunchErr, failurePrefix), Code: "PHASE_FAILED"}
 		} else {
-			result.Measurement = &measurement{
-				ReadyBoundary: "process-start-to-framework-ready-after-domcontentloaded-plus-two-animation-frames",
-				ImmediateProcessStartAfterFirstHostExitMS: milliseconds(immediateStartedAt.Sub(firstExitedAt)),
-				First: first, Immediate: immediate,
+			if *schemaVersion == delaySchemaVersion {
+				result.Measurement = &delayMeasurement{
+					ReadyBoundary:                          "process-start-to-framework-ready-after-domcontentloaded-plus-two-animation-frames",
+					ActualProcessStartAfterFirstHostExitMS: milliseconds(relaunchStartedAt.Sub(firstExitedAt)),
+					First:                                  first, Relaunched: relaunched,
+				}
+			} else {
+				result.Measurement = &measurement{
+					ReadyBoundary: "process-start-to-framework-ready-after-domcontentloaded-plus-two-animation-frames",
+					ImmediateProcessStartAfterFirstHostExitMS: milliseconds(relaunchStartedAt.Sub(firstExitedAt)),
+					First: first, Immediate: relaunched,
+				}
 			}
 		}
 	}

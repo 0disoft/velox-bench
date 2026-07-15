@@ -260,4 +260,56 @@ for (const schema of ["asset-transport-relaunch-v1.schema.json", "asset-transpor
   JSON.parse(await readFile(join(root, "schema", schema), "utf8"));
 }
 
+const delayWorkflow = await readFile(join(root, ".github", "workflows", "asset-transport-delay-sweep.yml"), "utf8");
+for (const action of ["checkout", "setupBun", "setupGo", "uploadArtifact", "downloadArtifact"] as const) {
+  if (!delayWorkflow.includes(`@${lock.actions[action]}`)) {
+    throw new Error(`asset transport delay workflow does not use pinned actions.${action}`);
+  }
+}
+if (!delayWorkflow.includes(`ref: ${lock.frameworks.velox.commit}`) ||
+    !delayWorkflow.includes(`--revision ${lock.frameworks.velox.commit}`)) {
+  throw new Error("asset transport delay workflow Velox revision differs from frameworks.velox.commit");
+}
+if (/actions\/cache@/.test(delayWorkflow) || /^\s*cache:\s*true\s*$/m.test(delayWorkflow)) {
+  throw new Error("asset transport delay workflow enables a GitHub Actions cache");
+}
+for (const match of delayWorkflow.matchAll(/^\s*uses:\s*[^@\s]+@([^\s#]+)/gm)) {
+  if (!commitPattern.test(match[1])) throw new Error(`asset transport delay workflow action is not pinned to a commit: ${match[0].trim()}`);
+}
+for (const marker of [
+  "workflow_dispatch:",
+  "$delays = @(0, 100, 250, 500, 1000)",
+  "$offset = ([int] $env:SAMPLE) % $delays.Count",
+  ".bench/profiles-delay/$env:TRANSPORT-$env:SAMPLE-$delay",
+  "velox.asset-transport-delay/v1",
+  "asset-transport-relaunch-delay-sweep",
+  "summarize-delay-sweep.ts",
+  "asset-transport-delay-v1.schema.json",
+  "asset-transport-delay-summary-v1.schema.json",
+  "inputs.sample_count == '3'",
+  "'[0,1,2]'",
+  "'[0,1,2,3,4,5,6,7,8,9]'",
+  "no-cache: true",
+  "cache: false",
+]) {
+  if (!delayWorkflow.includes(marker)) throw new Error(`asset transport delay workflow is missing ${marker}`);
+}
+if (/^\s{2}(push|pull_request|schedule):/m.test(delayWorkflow)) {
+  throw new Error("asset transport delay workflow must remain manual-only");
+}
+for (const schema of ["asset-transport-delay-v1.schema.json", "asset-transport-delay-summary-v1.schema.json"]) {
+  JSON.parse(await readFile(join(root, "schema", schema), "utf8"));
+}
+
+const relaunchHarness = await readFile(join(root, "harness", "relaunch", "main.go"), "utf8");
+for (const marker of [
+  'delaySchemaVersion = "velox.asset-transport-delay/v1"',
+  'json:"requestedDelayMs,omitempty"',
+  'json:"actualProcessStartAfterFirstHostExitMs"',
+  'json:"relaunched"',
+  'flag.Int("relaunch-delay-ms", 0',
+]) {
+  if (!relaunchHarness.includes(marker)) throw new Error(`relaunch harness is missing delay contract marker ${marker}`);
+}
+
 console.log(JSON.stringify({ ok: true, fixtureSha256: digest.digest("hex"), adapters: adapters.length }));

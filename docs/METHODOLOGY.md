@@ -143,6 +143,23 @@ least twice first ready and at least 1,000 ms greater. Cross-transport
 classification requires complete evidence from all four transports. Ten
 successful samples per transport are required before `publishable` is true.
 
+## Asset Transport Relaunch Delay Sweep
+
+The delay sweep tests requested waits of 0, 100, 250, 500, and 1,000 ms after
+the first host exits and before the second process starts. Every delay uses a
+separate explicit UDF. A transport/sample job runs all five delay cells and
+rotates their order by sample index, so the workflow needs 4 x N measurement
+runners rather than 4 x 5 x N runners while distributing within-run order
+effects.
+
+The harness records both the requested delay and the actual process-start gap.
+A cell uses the same paired-tail rule as the immediate suite. `cleanFromDelayMs`
+is the first tested delay after which that cell and every larger tested delay
+contain no paired tails. It is not an estimate between tested points and is
+null when the 1,000 ms cell still contains a tail. Three samples are diagnostic;
+ten complete samples in one pinned runner/WebView2 environment are required for
+a publishable result.
+
 ## Cache and Acquisition Evidence
 
 The zero-cache workflow contains no `actions/cache` use. It disables Bun

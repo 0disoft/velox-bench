@@ -1,0 +1,83 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.velox.invalid/asset-transport-delay/v1.json",
+  "title": "Velox asset transport relaunch delay result v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "suite", "framework", "frameworkRevision", "profileControl", "sample", "requestedDelayMs", "outcome", "startedAtUtc", "finishedAtUtc", "environment", "measurement", "failure"],
+  "properties": {
+    "schemaVersion": { "const": "velox.asset-transport-delay/v1" },
+    "suite": { "const": "asset-transport-relaunch-delay-sweep" },
+    "framework": { "enum": ["velox", "fork-file-url", "fork-virtual-host", "fork-web-resource"] },
+    "frameworkRevision": { "type": "string", "pattern": "^[0-9a-f]{40}$" },
+    "profileControl": { "const": "explicit-udf" },
+    "sample": { "type": "integer", "minimum": 0, "maximum": 9 },
+    "requestedDelayMs": { "enum": [0, 100, 250, 500, 1000] },
+    "outcome": { "enum": ["success", "failure", "timeout"] },
+    "startedAtUtc": { "type": "string", "format": "date-time" },
+    "finishedAtUtc": { "type": "string", "format": "date-time" },
+    "environment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["os", "architecture", "runnerImage", "runnerImageVersion", "webView2Version", "repositoryCommit", "runId", "runAttempt"],
+      "properties": {
+        "os": { "const": "windows" },
+        "architecture": { "const": "amd64" },
+        "runnerImage": { "type": "string", "minLength": 1 },
+        "runnerImageVersion": { "type": "string", "minLength": 1 },
+        "webView2Version": { "type": "string", "minLength": 1 },
+        "repositoryCommit": { "type": "string", "minLength": 1 },
+        "runId": { "type": "string", "minLength": 1 },
+        "runAttempt": { "type": "string", "minLength": 1 }
+      }
+    },
+    "measurement": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["readyBoundary", "actualProcessStartAfterFirstHostExitMs", "first", "relaunched"],
+          "properties": {
+            "readyBoundary": { "const": "process-start-to-framework-ready-after-domcontentloaded-plus-two-animation-frames" },
+            "actualProcessStartAfterFirstHostExitMs": { "type": "number", "minimum": 0 },
+            "first": { "$ref": "#/$defs/launch" },
+            "relaunched": { "$ref": "#/$defs/launch" }
+          }
+        },
+        { "type": "null" }
+      ]
+    },
+    "failure": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["phase", "code"],
+          "properties": {
+            "phase": { "type": "string", "minLength": 1 },
+            "code": { "type": "string", "pattern": "^[A-Z0-9_]+$" }
+          }
+        },
+        { "type": "null" }
+      ]
+    }
+  },
+  "$defs": {
+    "launch": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["readyMs", "hostExitMs"],
+      "properties": {
+        "readyMs": { "type": "number", "minimum": 0 },
+        "hostExitMs": { "type": "number", "minimum": 0 }
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": { "properties": { "outcome": { "const": "success" } } },
+      "then": { "properties": { "measurement": { "type": "object" }, "failure": { "type": "null" } } },
+      "else": { "properties": { "measurement": { "type": "null" }, "failure": { "type": "object" } } }
+    }
+  ]
+}

@@ -29,6 +29,11 @@
 - Web-resource interception blocks a matching request until the synchronous
   handler returns. The fixture is tiny and frame-free; the result does not
   establish large-asset throughput, iframe behavior, or production hardening.
+- The delay sweep reuses one runner for five delay cells to control hosted setup
+  cost. Every cell has a separate UDF and order rotates by sample, but residual
+  machine-wide WebView2 process state can still cross cell boundaries. The
+  reported boundary is one of the five tested delays, not a continuous-time
+  estimate or proof of an internal WebView2 timer.
 - The current startup suite measures Velox only. It can detect Velox regressions
   and fresh-versus-settled-warm behavior, but it cannot support a claim that
   Velox starts faster than another framework.

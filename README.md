@@ -81,3 +81,11 @@ fork and host code with only `file://`, virtual-host folder mapping, or
 production virtual-host path. All four reuse an explicit UDF and the same
 external-close harness. Ten samples per transport are required for a
 publishable cause-classification result.
+
+The manual `Asset transport relaunch delay sweep` workflow follows that result
+with requested delays of 0, 100, 250, 500, and 1,000 ms. One runner measures
+all five delays for one transport/sample pair, rotates their order by sample,
+and assigns a separate UDF to every delay. This keeps the hosted job count at
+four transports times the requested sample count instead of multiplying it by
+five. Ten complete samples per transport and delay are required for a
+publishable recovery-boundary result.
