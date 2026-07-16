@@ -149,6 +149,8 @@ for (const marker of [
   "inputs.sample_count == '3'",
   "'[0,1,2]'",
   "inputs.framework == 'all'",
+  "raw-${{ matrix.framework }}-${{ matrix.sample }}-${{ github.run_attempt }}",
+  "pattern: raw-*-${{ github.run_attempt }}",
 ]) {
   if (!workflow.includes(marker)) throw new Error(`zero-cache diagnostic matrix is missing ${marker}`);
 }
@@ -179,6 +181,8 @@ for (const marker of [
   "VELOX_STARTUP_EVIDENCE_LEVEL: hosted-pinned-source",
   "no-cache: true",
   "cache: false",
+  "startup-raw-${{ matrix.sample }}-${{ github.run_attempt }}",
+  "pattern: startup-raw-*-${{ github.run_attempt }}",
 ]) {
   if (!startupWorkflow.includes(marker)) throw new Error(`startup workflow is missing ${marker}`);
 }
@@ -205,7 +209,12 @@ if (/actions\/cache@/.test(relaunchWorkflow) || /^\s*cache:\s*true\s*$/m.test(re
 for (const match of relaunchWorkflow.matchAll(/^\s*uses:\s*[^@\s]+@([^\s#]+)/gm)) {
   if (!commitPattern.test(match[1])) throw new Error(`relaunch workflow action is not pinned to a commit: ${match[0].trim()}`);
 }
-for (const marker of ["velox", "webview2-control", "framework-managed-app-directory", "summarize-relaunch.ts", "relaunch-control-v1.schema.json", "relaunch-control-summary-v2.schema.json"]) {
+for (const marker of [
+  "velox", "webview2-control", "framework-managed-app-directory", "summarize-relaunch.ts",
+  "relaunch-control-v1.schema.json", "relaunch-control-summary-v2.schema.json",
+  "relaunch-raw-${{ matrix.framework }}-${{ matrix.sample }}-${{ github.run_attempt }}",
+  "pattern: relaunch-raw-*-${{ github.run_attempt }}",
+]) {
   if (!relaunchWorkflow.includes(marker)) throw new Error(`relaunch workflow is missing ${marker}`);
 }
 for (const schema of ["relaunch-control-v1.schema.json", "relaunch-control-summary-v1.schema.json", "relaunch-control-summary-v2.schema.json"]) {
@@ -250,6 +259,8 @@ for (const marker of [
   "'[0,1,2,3,4,5,6,7,8,9]'",
   "no-cache: true",
   "cache: false",
+  "asset-transport-raw-${{ matrix.transport }}-${{ matrix.sample }}-${{ github.run_attempt }}",
+  "pattern: asset-transport-raw-*-${{ github.run_attempt }}",
 ]) {
   if (!transportWorkflow.includes(marker)) throw new Error(`asset transport workflow is missing ${marker}`);
 }
@@ -303,10 +314,65 @@ for (const schema of ["asset-transport-delay-v1.schema.json", "asset-transport-d
   JSON.parse(await readFile(join(root, "schema", schema), "utf8"));
 }
 
-const relaunchHarness = await readFile(join(root, "harness", "relaunch", "main.go"), "utf8");
+const recoveryWorkflow = await readFile(join(root, ".github", "workflows", "asset-transport-recovery.yml"), "utf8");
+for (const action of ["checkout", "setupBun", "setupGo", "uploadArtifact", "downloadArtifact"] as const) {
+  if (!recoveryWorkflow.includes(`@${lock.actions[action]}`)) throw new Error(`asset recovery workflow does not use pinned actions.${action}`);
+}
+if (!recoveryWorkflow.includes(`ref: ${lock.frameworks.velox.commit}`) ||
+    !recoveryWorkflow.includes(`--revision ${lock.frameworks.velox.commit}`)) {
+  throw new Error("asset recovery workflow Velox revision differs from frameworks.velox.commit");
+}
+if (/actions\/cache@/.test(recoveryWorkflow) || /^\s*cache:\s*true\s*$/m.test(recoveryWorkflow)) {
+  throw new Error("asset recovery workflow enables a GitHub Actions cache");
+}
+for (const match of recoveryWorkflow.matchAll(/^\s*uses:\s*[^@\s]+@([^\s#]+)/gm)) {
+  if (!commitPattern.test(match[1])) throw new Error(`asset recovery workflow action is not pinned to a commit: ${match[0].trim()}`);
+}
 for (const marker of [
-  'delaySchemaVersion = "velox.asset-transport-delay/v1"',
+  "workflow_dispatch:",
+  "$delays = @(0, 1000, 2000, 4000, 6000, 7000)",
+  "velox-same-profile",
+  "velox-fresh-profile",
+  "file-url-same-profile",
+  "file-url-fresh-profile",
+  "virtual-host-same-profile",
+  "virtual-host-fresh-profile",
+  "virtual-host-fresh-origin",
+  "velox.asset-transport-recovery/v1",
+  "asset-transport-recovery-boundary",
+  "summarize-recovery.ts",
+  "asset-transport-recovery-v1.schema.json",
+  "asset-transport-recovery-summary-v1.schema.json",
+  "asset-recovery-raw-${{ matrix.scenario }}-${{ matrix.sample }}-${{ github.run_attempt }}",
+  "pattern: asset-recovery-raw-*-${{ github.run_attempt }}",
+  "inputs.sample_count == '3'",
+  "'[0,1,2]'",
+  "'[0,1,2,3,4,5,6,7,8,9]'",
+  "no-cache: true",
+  "cache: false",
+]) {
+  if (!recoveryWorkflow.includes(marker)) throw new Error(`asset recovery workflow is missing ${marker}`);
+}
+if (/^\s{2}(push|pull_request|schedule):/m.test(recoveryWorkflow)) throw new Error("asset recovery workflow must remain manual-only");
+for (const schema of ["asset-transport-recovery-v1.schema.json", "asset-transport-recovery-summary-v1.schema.json"]) {
+  JSON.parse(await readFile(join(root, "schema", schema), "utf8"));
+}
+
+const relaunchHarness = await readFile(join(root, "harness", "relaunch", "main.go"), "utf8");
+for (const [name, value] of [
+  ["delaySchemaVersion", "velox.asset-transport-delay/v1"],
+  ["recoverySchemaVersion", "velox.asset-transport-recovery/v1"],
+]) {
+  if (!new RegExp(`${name}\\s*=\\s*"${value}"`).test(relaunchHarness)) {
+    throw new Error(`relaunch harness is missing schema constant ${name}`);
+  }
+}
+for (const marker of [
   'json:"requestedDelayMs,omitempty"',
+  'json:"scenario,omitempty"',
+  'json:"browserProcessId"',
+  'json:"startupTimeline"',
+  'json:"shutdownTimeline"',
   'json:"actualProcessStartAfterFirstHostExitMs"',
   'json:"relaunched"',
   'flag.Int("relaunch-delay-ms", 0',

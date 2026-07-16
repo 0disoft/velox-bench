@@ -9,12 +9,17 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"regexp"
 	"strings"
 
 	webview2 "github.com/jchv/go-webview2"
 )
 
 const transportHost = "transport.velox.invalid"
+
+const readyTitle = "Velox Bench Ready"
+
+var originSuffixPattern = regexp.MustCompile(`^[a-z0-9-]{1,32}$`)
 
 var transportMode string
 
@@ -35,19 +40,40 @@ func run() error {
 		return err
 	}
 	webRoot := filepath.Join(filepath.Dir(executable), "web")
+	captureTimeline := os.Getenv("VELOX_BENCH_CAPTURE_TIMELINE") == "1"
+	startupTimeline := newStartupTimeline(captureTimeline)
+	shutdownTimeline := newShutdownTimeline(captureTimeline)
 	view := webview2.NewWithOptions(webview2.WebViewOptions{
-		DataPath:      profile,
+		DataPath: profile, StartupPhase: startupTimeline.Mark, ShutdownPhase: shutdownTimeline.Mark,
 		WindowOptions: webview2.WindowOptions{Title: "Velox Bench", Width: 960, Height: 640, Center: true},
 	})
 	if view == nil {
 		return fmt.Errorf("create WebView2 transport control window")
 	}
-	defer view.Destroy()
+	enteredRunLoop := false
+	defer func() {
+		if !enteredRunLoop {
+			view.Destroy()
+			view.Run()
+		}
+	}()
 	if err := view.Bind("__veloxReady", func(marker string) error {
 		if marker != "dom-2raf" {
 			return fmt.Errorf("unexpected ready marker %q", marker)
 		}
-		view.Dispatch(func() { view.SetTitle("Velox Bench Ready") })
+		browserProcessID, err := view.BrowserProcessID()
+		if err != nil {
+			return fmt.Errorf("read browser process ID: %w", err)
+		}
+		startupTimeline.Mark(marker)
+		if err := startupTimeline.Emit(os.Stderr); err != nil {
+			return err
+		}
+		title := readyTitle
+		if captureTimeline {
+			title = fmt.Sprintf("%s %d", readyTitle, browserProcessID)
+		}
+		view.Dispatch(func() { view.SetTitle(title) })
 		return nil
 	}); err != nil {
 		return err
@@ -57,35 +83,56 @@ func run() error {
 	if err != nil {
 		return err
 	}
+	startupTimeline.Mark("transport-configured")
 	view.Navigate(entryURL)
+	startupTimeline.Mark("navigation-dispatched")
+	enteredRunLoop = true
 	view.Run()
+	shutdownTimeline.Mark("run-loop-exited")
+	if err := shutdownTimeline.Emit(os.Stderr); err != nil {
+		return err
+	}
 	return nil
 }
 
 func configureTransport(view webview2.WebView, webRoot string) (string, error) {
+	host, err := transportHostname(os.Getenv("VELOX_BENCH_ORIGIN_SUFFIX"))
+	if err != nil {
+		return "", err
+	}
 	switch transportMode {
 	case "file-url":
 		entry := filepath.Join(webRoot, "index.html")
 		return (&url.URL{Scheme: "file", Path: filepath.ToSlash(entry)}).String(), nil
 	case "virtual-host":
-		if err := view.SetVirtualHostNameToFolderMapping(transportHost, webRoot); err != nil {
+		if err := view.SetVirtualHostNameToFolderMapping(host, webRoot); err != nil {
 			return "", fmt.Errorf("map virtual host: %w", err)
 		}
-		return "https://" + transportHost + "/index.html", nil
+		return "https://" + host + "/index.html", nil
 	case "web-resource":
-		if err := view.SetWebResourceRequestHandler("https://"+transportHost+"/*", resourceHandler(webRoot)); err != nil {
+		if err := view.SetWebResourceRequestHandler("https://"+host+"/*", resourceHandler(webRoot, host)); err != nil {
 			return "", fmt.Errorf("install web resource handler: %w", err)
 		}
-		return "https://" + transportHost + "/index.html", nil
+		return "https://" + host + "/index.html", nil
 	default:
 		return "", fmt.Errorf("unsupported transport mode %q", transportMode)
 	}
 }
 
-func resourceHandler(webRoot string) webview2.WebResourceRequestHandler {
+func transportHostname(suffix string) (string, error) {
+	if suffix == "" {
+		return transportHost, nil
+	}
+	if !originSuffixPattern.MatchString(suffix) {
+		return "", fmt.Errorf("invalid origin suffix %q", suffix)
+	}
+	return "transport-" + suffix + ".velox.invalid", nil
+}
+
+func resourceHandler(webRoot, host string) webview2.WebResourceRequestHandler {
 	return func(rawURL string) (webview2.WebResourceResponse, bool) {
 		parsed, err := url.Parse(rawURL)
-		if err != nil || parsed.Scheme != "https" || parsed.Host != transportHost || parsed.User != nil {
+		if err != nil || parsed.Scheme != "https" || parsed.Host != host || parsed.User != nil {
 			return webview2.WebResourceResponse{}, false
 		}
 		decodedPath, err := url.PathUnescape(parsed.EscapedPath())

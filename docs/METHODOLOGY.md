@@ -160,6 +160,49 @@ null when the 1,000 ms cell still contains a tail. Three samples are diagnostic;
 ten complete samples in one pinned runner/WebView2 environment are required for
 a publishable result.
 
+## Asset Transport Recovery Diagnostics
+
+The recovery suite does not replace the original five-cell delay sweep. It
+tests 0, 1, 2, 4, 6, and 7 second waits and separates seven scenarios:
+
+- Velox with the same UDF and with a fresh relaunch UDF;
+- file URL with the same UDF and with a fresh relaunch UDF;
+- virtual-host mapping with the same UDF, a fresh relaunch UDF, and the same
+  UDF with a different virtual hostname on the relaunch.
+
+Each scenario/sample job rotates all six delays. Every delay gets its own base
+UDF, and the fresh-profile scenario derives a separate relaunch UDF from that
+base. The fresh-origin scenario changes only `VELOX_BENCH_ORIGIN_SUFFIX` for
+the second control process; it does not claim to model a production Velox app
+identity change.
+
+The parent harness observes the browser process ID before posting `WM_CLOSE`
+and opens a process synchronization handle without waiting before relaunch.
+After both ready measurements and host exits are complete, it records browser
+exit relative to host exit. It also captures the benchmark-only startup and
+shutdown timelines emitted by Velox and the normalized controls. Summary
+intervals are derived from raw phase timestamps for environment creation and
+controller creation, plus the remaining controller-to-ready path. The largest
+relaunch interval by p50 is retained as `dominantRelaunchPhase`; this is a
+descriptive phase owner, not proof of an undocumented Runtime cause.
+
+Each main browser process is observed for at most 15 seconds after host exit.
+The timeout is part of every raw result, and summaries count observed first and
+relaunch exits separately so a null duration remains visibly right-censored.
+An observation API failure fails the sample instead of being converted to null.
+`relaunchedReadyAfterFirstBrowserExit` combines the parent-clock process-start
+gap, relaunch ready time, and first browser exit; positive values mean ready
+followed that browser exit, while negative values mean ready occurred first.
+
+The paired-tail and publication rules remain unchanged. `cleanFromDelayMs` is
+one of the six tested points, not an interpolated timer. A fresh-profile or
+fresh-origin difference localizes ownership but does not by itself establish
+an undocumented WebView2 implementation guarantee.
+
+All raw artifact names include `github.run_attempt`, and summary jobs download
+only the current attempt. A rerun therefore cannot merge or collide with raw
+evidence from an earlier attempt.
+
 ## Cache and Acquisition Evidence
 
 The zero-cache workflow contains no `actions/cache` use. It disables Bun

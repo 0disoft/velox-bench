@@ -34,6 +34,22 @@
   machine-wide WebView2 process state can still cross cell boundaries. The
   reported boundary is one of the five tested delays, not a continuous-time
   estimate or proof of an internal WebView2 timer.
+- The recovery suite adds process and phase diagnostics, but its process handle
+  observes only the main WebView2 browser process ID reported by the host. GPU,
+  renderer, crashpad, and utility process lifetimes are not independently
+  classified.
+- Main browser exits not observed within 15 seconds are right-censored and
+  counted, not treated as process leaks. `dominantRelaunchPhase` compares
+  measured host intervals; it does not identify an internal Chromium lock or
+  timer by itself.
+- A fresh UDF changes process and storage ownership together. A fresh virtual
+  hostname changes origin identity only in the synthetic virtual-host control.
+  Neither scenario is a drop-in security-equivalent replacement for Velox's
+  production virtual HTTPS origin.
+- Recovery jobs run six delay cells sequentially on one hosted runner. Delay
+  order rotates by sample, but antivirus, runner scheduling, and machine-wide
+  WebView2 state can still affect later cells. Only repeated complete evidence
+  may support a boundary claim.
 - The current startup suite measures Velox only. It can detect Velox regressions
   and fresh-versus-settled-warm behavior, but it cannot support a claim that
   Velox starts faster than another framework.

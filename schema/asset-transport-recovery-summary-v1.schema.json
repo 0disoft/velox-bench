@@ -1,0 +1,82 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.velox.invalid/asset-transport-recovery-summary/v1.json",
+  "title": "Velox asset transport recovery summary v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "suite", "expectedPerCell", "observed", "publishable", "environmentCount", "experimentClassification", "rows"],
+  "properties": {
+    "schemaVersion": { "const": "velox.asset-transport-recovery-summary/v1" },
+    "suite": { "const": "asset-transport-recovery-boundary" },
+    "expectedPerCell": { "enum": [1, 3, 10] },
+    "observed": { "type": "integer", "minimum": 0, "maximum": 420 },
+    "publishable": { "type": "boolean" },
+    "environmentCount": { "type": "integer", "minimum": 0 },
+    "experimentClassification": { "enum": ["recovery-boundary-observed", "no-delay-observed", "not-recovered-within-range", "insufficient-evidence"] },
+    "rows": {
+      "type": "array",
+      "minItems": 7,
+      "maxItems": 7,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["scenario", "framework", "revision", "recoveryClassification", "maximumDelayWithTailMs", "cleanFromDelayMs", "cells"],
+        "properties": {
+          "scenario": { "enum": ["velox-same-profile", "velox-fresh-profile", "file-url-same-profile", "file-url-fresh-profile", "virtual-host-same-profile", "virtual-host-fresh-profile", "virtual-host-fresh-origin"] },
+          "framework": { "enum": ["velox", "fork-file-url", "fork-virtual-host"] },
+          "revision": { "type": "string", "minLength": 1 },
+          "recoveryClassification": { "enum": ["recovers-within-range", "no-delay-observed", "not-recovered-within-range", "insufficient-evidence"] },
+          "maximumDelayWithTailMs": { "oneOf": [{ "enum": [0, 1000, 2000, 4000, 6000, 7000] }, { "type": "null" }] },
+          "cleanFromDelayMs": { "oneOf": [{ "enum": [0, 1000, 2000, 4000, 6000, 7000] }, { "type": "null" }] },
+          "cells": { "type": "array", "minItems": 6, "maxItems": 6, "items": { "$ref": "#/$defs/cell" } }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "metric": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["minMs", "p50Ms", "p95Ms", "maxMs"],
+      "properties": {
+        "minMs": { "type": "number" },
+        "p50Ms": { "type": "number" },
+        "p95Ms": { "type": "number" },
+        "maxMs": { "type": "number" }
+      }
+    },
+    "cell": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["requestedDelayMs", "observed", "successful", "failed", "timedOut", "pairedDelaySamples", "pairedDelayRate", "firstBrowserRunningAtRelaunchSamples", "sharedBrowserProcessSamples", "firstBrowserExitObservedSamples", "relaunchedBrowserExitObservedSamples", "firstReady", "relaunchedReady", "relaunchedMinusFirst", "actualStartGap", "firstEnvironmentCreate", "relaunchedEnvironmentCreate", "firstControllerCreate", "relaunchedControllerCreate", "firstPostController", "relaunchedPostController", "firstBrowserExitAfterHostExit", "relaunchedBrowserExitAfterHostExit", "relaunchedReadyAfterFirstBrowserExit", "dominantRelaunchPhase"],
+      "properties": {
+        "requestedDelayMs": { "enum": [0, 1000, 2000, 4000, 6000, 7000] },
+        "observed": { "type": "integer", "minimum": 0, "maximum": 10 },
+        "successful": { "type": "integer", "minimum": 0, "maximum": 10 },
+        "failed": { "type": "integer", "minimum": 0, "maximum": 10 },
+        "timedOut": { "type": "integer", "minimum": 0, "maximum": 10 },
+        "pairedDelaySamples": { "type": "integer", "minimum": 0, "maximum": 10 },
+        "pairedDelayRate": { "oneOf": [{ "type": "number", "minimum": 0, "maximum": 1 }, { "type": "null" }] },
+        "firstBrowserRunningAtRelaunchSamples": { "type": "integer", "minimum": 0, "maximum": 10 },
+        "sharedBrowserProcessSamples": { "type": "integer", "minimum": 0, "maximum": 10 },
+        "firstBrowserExitObservedSamples": { "type": "integer", "minimum": 0, "maximum": 10 },
+        "relaunchedBrowserExitObservedSamples": { "type": "integer", "minimum": 0, "maximum": 10 },
+        "firstReady": { "$ref": "#/$defs/nullableMetric" },
+        "relaunchedReady": { "$ref": "#/$defs/nullableMetric" },
+        "relaunchedMinusFirst": { "$ref": "#/$defs/nullableMetric" },
+        "actualStartGap": { "$ref": "#/$defs/nullableMetric" },
+        "firstEnvironmentCreate": { "$ref": "#/$defs/nullableMetric" },
+        "relaunchedEnvironmentCreate": { "$ref": "#/$defs/nullableMetric" },
+        "firstControllerCreate": { "$ref": "#/$defs/nullableMetric" },
+        "relaunchedControllerCreate": { "$ref": "#/$defs/nullableMetric" },
+        "firstPostController": { "$ref": "#/$defs/nullableMetric" },
+        "relaunchedPostController": { "$ref": "#/$defs/nullableMetric" },
+        "firstBrowserExitAfterHostExit": { "$ref": "#/$defs/nullableMetric" },
+        "relaunchedBrowserExitAfterHostExit": { "$ref": "#/$defs/nullableMetric" },
+        "relaunchedReadyAfterFirstBrowserExit": { "$ref": "#/$defs/nullableMetric" },
+        "dominantRelaunchPhase": { "oneOf": [{ "enum": ["environment-create", "controller-create", "post-controller"] }, { "type": "null" }] }
+      }
+    },
+    "nullableMetric": { "oneOf": [{ "$ref": "#/$defs/metric" }, { "type": "null" }] }
+  }
+}

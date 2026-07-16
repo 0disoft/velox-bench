@@ -89,3 +89,16 @@ and assigns a separate UDF to every delay. This keeps the hosted job count at
 four transports times the requested sample count instead of multiplying it by
 five. Ten complete samples per transport and delay are required for a
 publishable recovery-boundary result.
+
+The manual `Asset transport recovery diagnostics` workflow extends the search
+to 0, 1, 2, 4, 6, and 7 seconds. It compares same-profile and fresh-profile
+relaunches for Velox, file URL, and virtual-host mapping, plus a virtual-host
+control that changes only the second launch origin. Each successful result
+includes host and browser process IDs, browser-exit timing, and the WebView2
+environment, controller, navigation, ready, and shutdown phase timelines.
+Browser-exit observation is bounded at 15 seconds and failed observations fail
+the sample. The summary counts censored exits and names the p50-dominant
+relaunch phase across environment creation, controller creation, and the
+remaining controller-to-ready path.
+Three samples diagnose the boundary; ten complete samples are required before
+the summary is publishable.
