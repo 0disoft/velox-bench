@@ -109,4 +109,17 @@ test("ten complete samples in one environment are publishable", () => {
   const summary = buildRecoverySummary(results, 10);
   expect(summary.observed).toBe(420);
   expect(summary.publishable).toBeTrue();
+  expect(summary.environments).toEqual([{
+    os: "windows", architecture: "amd64", runnerImage: "windows2025", runnerImageVersion: "1",
+    webView2Version: "1", repositoryCommit: "b".repeat(40), frameworkRevision: "a".repeat(40), observed: 420,
+  }]);
+});
+
+test("preserves every environment tuple that blocks publication", () => {
+  const results = recoveryScenarios.flatMap((scenario) => recoveryDelays.map((delay) => result(scenario, 0, delay)));
+  results[0].environment.webView2Version = "2";
+  const summary = buildRecoverySummary(results, 1);
+  expect(summary.environmentCount).toBe(2);
+  expect(summary.environments.map((environment) => [environment.webView2Version, environment.observed])).toEqual([["1", 41], ["2", 1]]);
+  expect(summary.experimentClassification).toBe("insufficient-evidence");
 });

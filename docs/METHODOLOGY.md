@@ -199,6 +199,11 @@ one of the six tested points, not an interpolated timer. A fresh-profile or
 fresh-origin difference localizes ownership but does not by itself establish
 an undocumented WebView2 implementation guarantee.
 
+The summary retains every runner-image, runner-image-version, WebView2-version,
+repository-commit, and framework-revision tuple with its observed sample count.
+When more than one tuple exists, the result remains non-publishable and the
+specific environment drift stays visible instead of being reduced to a count.
+
 All raw artifact names include `github.run_attempt`, and summary jobs download
 only the current attempt. A rerun therefore cannot merge or collide with raw
 evidence from an earlier attempt.

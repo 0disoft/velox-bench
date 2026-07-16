@@ -4,7 +4,7 @@
   "title": "Velox asset transport recovery summary v1",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schemaVersion", "suite", "expectedPerCell", "observed", "publishable", "environmentCount", "experimentClassification", "rows"],
+  "required": ["schemaVersion", "suite", "expectedPerCell", "observed", "publishable", "environmentCount", "environments", "experimentClassification", "rows"],
   "properties": {
     "schemaVersion": { "const": "velox.asset-transport-recovery-summary/v1" },
     "suite": { "const": "asset-transport-recovery-boundary" },
@@ -12,6 +12,24 @@
     "observed": { "type": "integer", "minimum": 0, "maximum": 420 },
     "publishable": { "type": "boolean" },
     "environmentCount": { "type": "integer", "minimum": 0 },
+    "environments": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["os", "architecture", "runnerImage", "runnerImageVersion", "webView2Version", "repositoryCommit", "frameworkRevision", "observed"],
+        "properties": {
+          "os": { "const": "windows" },
+          "architecture": { "const": "amd64" },
+          "runnerImage": { "type": "string", "minLength": 1 },
+          "runnerImageVersion": { "type": "string", "minLength": 1 },
+          "webView2Version": { "type": "string", "minLength": 1 },
+          "repositoryCommit": { "type": "string", "minLength": 1 },
+          "frameworkRevision": { "type": "string", "pattern": "^[0-9a-f]{40}$" },
+          "observed": { "type": "integer", "minimum": 1, "maximum": 420 }
+        }
+      }
+    },
     "experimentClassification": { "enum": ["recovery-boundary-observed", "no-delay-observed", "not-recovered-within-range", "insufficient-evidence"] },
     "rows": {
       "type": "array",

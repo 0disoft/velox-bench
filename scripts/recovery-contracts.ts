@@ -99,6 +99,16 @@ export type RecoverySummary = {
   observed: number;
   publishable: boolean;
   environmentCount: number;
+  environments: Array<{
+    os: "windows";
+    architecture: "amd64";
+    runnerImage: string;
+    runnerImageVersion: string;
+    webView2Version: string;
+    repositoryCommit: string;
+    frameworkRevision: string;
+    observed: number;
+  }>;
   experimentClassification: "recovery-boundary-observed" | "no-delay-observed" | "not-recovered-within-range" | "insufficient-evidence";
   rows: Array<{
     scenario: RecoveryScenario;
@@ -238,6 +248,29 @@ function environmentKey(result: RecoveryResult): string {
   return [environment.runnerImage, environment.runnerImageVersion, environment.webView2Version, environment.repositoryCommit, result.frameworkRevision].join("|");
 }
 
+function summarizeEnvironments(results: RecoveryResult[]): RecoverySummary["environments"] {
+  const groups = new Map<string, RecoverySummary["environments"][number]>();
+  for (const result of results) {
+    const key = environmentKey(result);
+    const existing = groups.get(key);
+    if (existing) {
+      existing.observed += 1;
+      continue;
+    }
+    groups.set(key, {
+      os: result.environment.os,
+      architecture: result.environment.architecture,
+      runnerImage: result.environment.runnerImage,
+      runnerImageVersion: result.environment.runnerImageVersion,
+      webView2Version: result.environment.webView2Version,
+      repositoryCommit: result.environment.repositoryCommit,
+      frameworkRevision: result.frameworkRevision,
+      observed: 1,
+    });
+  }
+  return [...groups.entries()].sort(([left], [right]) => left.localeCompare(right)).map(([, group]) => group);
+}
+
 function isPairedDelay(result: RecoveryResult): boolean {
   if (result.outcome !== "success") return false;
   const first = result.measurement!.first.readyMs;
@@ -253,7 +286,8 @@ export function buildRecoverySummary(results: RecoveryResult[], expected: 1 | 3 
     if (seen.has(key)) throw new Error(`duplicate recovery result ${key}`);
     seen.add(key);
   }
-  const environmentCount = new Set(results.map(environmentKey)).size;
+  const environments = summarizeEnvironments(results);
+  const environmentCount = environments.length;
   const rows = recoveryScenarios.map((scenario) => {
     const scenarioResults = results.filter((result) => result.scenario === scenario);
     const revisions = new Set(scenarioResults.map((result) => result.frameworkRevision));
@@ -330,6 +364,6 @@ export function buildRecoverySummary(results: RecoveryResult[], expected: 1 | 3 
   return {
     schemaVersion: recoverySummarySchemaVersion, suite: recoverySuite, expectedPerCell: expected,
     observed: results.length, publishable: expected === 10 && complete && environmentCount === 1,
-    environmentCount, experimentClassification, rows,
+    environmentCount, environments, experimentClassification, rows,
   };
 }
