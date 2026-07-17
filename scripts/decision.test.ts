@@ -3,13 +3,13 @@ import { buildDecision } from "./decision";
 import { buildSummary } from "./summary";
 import type { Framework, Result } from "./contracts";
 
-function result(framework: Framework, sample: number, duration: number, image = "stable"): Result {
+function result(framework: Framework, sample: number, duration: number, image = "stable", cpuModel = "test"): Result {
   return {
     schemaVersion: "velox.bench-result/v1", suite: "zero-cache", framework,
     frameworkRevision: framework.charCodeAt(0).toString(16).padStart(40, "0"), sample,
     fixtureSha256: "b".repeat(64), outcome: "success",
     startedAtUtc: "2026-07-17T00:00:00.000Z", finishedAtUtc: "2026-07-17T00:00:01.000Z",
-    environment: { runner: "windows-2025", runnerImageVersion: image, os: "windows", architecture: "amd64", windowsVersion: "10.0", cpuModel: "test", logicalProcessors: 4, memoryBytes: 1024, bunVersion: "1.3.14", repositoryCommit: "c", runId: "1", runAttempt: "1" },
+    environment: { runner: "windows-2025", runnerImageVersion: image, os: "windows", architecture: "amd64", windowsVersion: "10.0", cpuModel, logicalProcessors: 4, memoryBytes: 1024, bunVersion: "1.3.14", repositoryCommit: "c", runId: "1", runAttempt: "1" },
     measurement: { endToEndMs: duration, frameworkSetupMs: 1, buildMs: 1, packageMs: 1, acquisitionWorkingSetBytes: 1, outputFiles: 1, outputBytes: 1, outputArchiveBytes: 1, outputArchiveSha256: "c".repeat(64), intermediateFiles: 0, intermediateBytes: 0, uploadedCacheBytes: 0, cacheEvidence: "workflow-source-audit" },
     failure: null,
   };
@@ -43,3 +43,12 @@ test("mixed environments remain inconclusive instead of failing the product", ()
   expect(decision.questionsRequired).toBeFalse();
 });
 
+test("unbalanced hosted CPU assignment remains inconclusive", () => {
+  const frameworks = ["velox", "wails", "neutralino", "tauri"] as Framework[];
+  const summary = buildSummary(frameworks.flatMap((framework) => Array.from({ length: 3 }, (_, sample) =>
+    result(framework, sample, framework === "velox" ? 100 : framework === "wails" ? 350 : 200, "stable", framework === "tauri" ? "EPYC 9V74" : "EPYC 7763"),
+  )), 3);
+  const decision = buildDecision(summary);
+  expect(decision.status).toBe("insufficient-evidence");
+  expect(decision.gates.hardwareBalanced).toBeFalse();
+});

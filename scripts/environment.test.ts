@@ -22,13 +22,12 @@ test("stable hosted environment produces a stable fingerprint", () => {
   expect(() => assertHostedEnvironment(first)).not.toThrow();
 });
 
-test("runner image and CPU changes produce different fingerprints", () => {
+test("runner image changes the fingerprint while hosted CPU variation does not", () => {
   const baseline = environment();
   expect(environmentFingerprint(environment({ runnerImageVersion: "20260715.1" }))).not.toBe(environmentFingerprint(baseline));
-  expect(environmentFingerprint(environment({ cpuModel: "Intel Xeon" }))).not.toBe(environmentFingerprint(baseline));
+  expect(environmentFingerprint(environment({ cpuModel: "Intel Xeon" }))).toBe(environmentFingerprint(baseline));
 });
 
 test("hosted capture rejects missing image evidence", () => {
   expect(() => assertHostedEnvironment(environment({ runnerImageVersion: "local-unverified" }))).toThrow("image version");
 });
-

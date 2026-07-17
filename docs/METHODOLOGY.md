@@ -237,13 +237,16 @@ results from the same fixture digest, one pinned framework revision, and one
 hosted environment tuple.
 
 Before any measured framework setup, a separate runner captures a SHA-256
-fingerprint over the runner label, image version, Windows version, CPU model,
-logical processor count, and physical memory. Each measurement runner computes
+fingerprint over the runner label, image version, Windows version, logical
+processor count, and physical memory. Each measurement runner computes
 the same fingerprint after the dependency-free harness setup and exits before
 the benchmark clock and framework toolchains when it differs. This saves most
 of the expensive native setup work during a hosted image rollout, but it does
 not claim that one baseline probe can force GitHub to allocate identical
-machines.
+machines. CPU model is intentionally excluded from the blocking fingerprint
+because GitHub assigns multiple processor generations within the same standard
+runner image. Raw results still preserve the model, and summary v2 requires its
+per-framework distribution to differ by no more than one sample for each model.
 
 Summary v2 repeats the environment check from the raw results instead of
 trusting the preflight alone. Mixed tuples keep `publishable` false. The

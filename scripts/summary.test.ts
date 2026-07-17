@@ -2,7 +2,7 @@ import { expect, test } from "bun:test";
 import type { Framework, Result } from "./contracts";
 import { buildSummary } from "./summary";
 
-function result(framework: Framework, sample: number, outcome: Result["outcome"] = "success", image = "x", duration = sample + 1): Result {
+function result(framework: Framework, sample: number, outcome: Result["outcome"] = "success", image = "x", duration = sample + 1, cpuModel = "test"): Result {
   return {
     schemaVersion: "velox.bench-result/v1",
     suite: "zero-cache",
@@ -13,7 +13,7 @@ function result(framework: Framework, sample: number, outcome: Result["outcome"]
     outcome,
     startedAtUtc: "2026-07-13T00:00:00.000Z",
     finishedAtUtc: "2026-07-13T00:00:01.000Z",
-    environment: { runner: "windows-2025", runnerImageVersion: image, os: "windows", architecture: "amd64", windowsVersion: "10.0", cpuModel: "test", logicalProcessors: 2, memoryBytes: 1024, bunVersion: "1.3.14", repositoryCommit: "c", runId: "1", runAttempt: "1" },
+    environment: { runner: "windows-2025", runnerImageVersion: image, os: "windows", architecture: "amd64", windowsVersion: "10.0", cpuModel, logicalProcessors: 2, memoryBytes: 1024, bunVersion: "1.3.14", repositoryCommit: "c", runId: "1", runAttempt: "1" },
     measurement: outcome === "success" ? { endToEndMs: duration, frameworkSetupMs: 1, buildMs: 1, packageMs: 1, acquisitionWorkingSetBytes: 1, outputFiles: 1, outputBytes: 1, outputArchiveBytes: 1, outputArchiveSha256: "c".repeat(64), intermediateFiles: 0, intermediateBytes: 0, uploadedCacheBytes: 0, cacheEvidence: "workflow-source-audit" } : null,
     failure: outcome === "success" ? null : { phase: "build", code: outcome === "timeout" ? "DEADLINE_EXCEEDED" : "PHASE_FAILED" },
   };
@@ -49,6 +49,17 @@ test("mixed hosted environments prevent publication and remain visible", () => {
   expect(summary.publishable).toBe(false);
   expect(summary.environmentCount).toBe(2);
   expect(summary.environments.map((environment) => environment.observed).sort((a, b) => a - b)).toEqual([1, 39]);
+});
+
+test("balanced hosted CPU variation remains publishable and visible", () => {
+  const results = (["velox", "wails", "neutralino", "tauri"] as Framework[]).flatMap((framework) =>
+    Array.from({ length: 10 }, (_, sample) => result(framework, sample, "success", "stable", sample % 2 === 0 ? 100 : 101, sample % 2 === 0 ? "EPYC 7763" : "EPYC 9V74")),
+  );
+  const summary = buildSummary(results, 10);
+  expect(summary.publishable).toBe(true);
+  expect(summary.environmentCount).toBe(1);
+  expect(summary.hardwareBalanced).toBe(true);
+  expect(summary.hardwareVariants).toHaveLength(2);
 });
 
 test("failures remain counted and prevent publication", () => {

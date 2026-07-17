@@ -32,10 +32,11 @@
     "gates": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["completeSuccessfulSamples", "singleEnvironment", "zeroCacheUpload", "minimumSpeedup"],
+      "required": ["completeSuccessfulSamples", "singleEnvironment", "hardwareBalanced", "zeroCacheUpload", "minimumSpeedup"],
       "properties": {
         "completeSuccessfulSamples": { "type": "boolean" },
         "singleEnvironment": { "type": "boolean" },
+        "hardwareBalanced": { "type": "boolean" },
         "zeroCacheUpload": { "type": "boolean" },
         "minimumSpeedup": { "type": ["boolean", "null"] }
       }
@@ -43,4 +44,3 @@
     "questionsRequired": { "type": "boolean" }
   }
 }
-

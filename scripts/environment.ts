@@ -12,6 +12,8 @@ export type BenchmarkEnvironmentIdentity = {
   memoryBytes: number;
 };
 
+export type ComparableEnvironmentIdentity = Omit<BenchmarkEnvironmentIdentity, "cpuModel">;
+
 export function currentBenchmarkEnvironment(): BenchmarkEnvironmentIdentity {
   const processors = cpus();
   return {
@@ -20,27 +22,38 @@ export function currentBenchmarkEnvironment(): BenchmarkEnvironmentIdentity {
     os: "windows",
     architecture: "amd64",
     windowsVersion: release(),
-    cpuModel: processors[0]?.model || "unverified",
+    cpuModel: processors[0]?.model.trim().replace(/\s+/g, " ") || "unverified",
     logicalProcessors: processors.length,
     memoryBytes: totalmem(),
   };
 }
 
-export function environmentKey(environment: BenchmarkEnvironmentIdentity): string {
+export function comparableEnvironment(environment: BenchmarkEnvironmentIdentity): ComparableEnvironmentIdentity {
+  return {
+    runner: environment.runner,
+    runnerImageVersion: environment.runnerImageVersion,
+    os: environment.os,
+    architecture: environment.architecture,
+    windowsVersion: environment.windowsVersion,
+    logicalProcessors: environment.logicalProcessors,
+    memoryBytes: environment.memoryBytes,
+  };
+}
+
+export function environmentKey(environment: ComparableEnvironmentIdentity): string {
   return [
     environment.runner,
     environment.runnerImageVersion,
     environment.os,
     environment.architecture,
     environment.windowsVersion,
-    environment.cpuModel,
     environment.logicalProcessors,
     environment.memoryBytes,
   ].join("|");
 }
 
 export function environmentFingerprint(environment: BenchmarkEnvironmentIdentity): string {
-  return createHash("sha256").update(environmentKey(environment)).digest("hex");
+  return createHash("sha256").update(environmentKey(comparableEnvironment(environment))).digest("hex");
 }
 
 export function assertHostedEnvironment(environment: BenchmarkEnvironmentIdentity): void {
@@ -48,4 +61,3 @@ export function assertHostedEnvironment(environment: BenchmarkEnvironmentIdentit
   if (environment.cpuModel === "unverified") throw new Error("hosted runner CPU model is unavailable");
   if (environment.logicalProcessors < 1 || environment.memoryBytes < 1) throw new Error("hosted runner resources are invalid");
 }
-

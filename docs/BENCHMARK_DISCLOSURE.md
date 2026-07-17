@@ -68,7 +68,10 @@
 - The zero-cache baseline fingerprint can reject a measurement runner before
   compiler or framework setup, but it cannot reserve a stable GitHub-hosted
   image. Summary v2 independently groups raw environment tuples and blocks
-  publication when they differ.
+  publication when they differ. CPU model is disclosed but excluded from the
+  blocking fingerprint because GitHub's standard runner pool mixes processor
+  generations; an unbalanced per-framework CPU distribution still blocks the
+  decision.
 - The go-or-kill decision artifact applies only the numeric cache and
   Wails-to-Velox cold-build gates. Structural simplicity, PWA differentiation,
   security review, and external user attempts remain separate product decisions.

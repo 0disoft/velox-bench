@@ -1,5 +1,5 @@
 import { frameworks, percentile, validateResult, type Framework, type Result } from "./contracts";
-import { environmentKey, type BenchmarkEnvironmentIdentity } from "./environment";
+import { comparableEnvironment, environmentKey, type ComparableEnvironmentIdentity } from "./environment";
 
 export type BenchmarkSummary = {
   schemaVersion: "velox.bench-summary/v2";
@@ -9,7 +9,13 @@ export type BenchmarkSummary = {
   frameworkRevisions: Record<Framework, string>;
   uploadedCacheBytes: 0;
   environmentCount: number;
-  environments: Array<BenchmarkEnvironmentIdentity & { bunVersion: string; observed: number }>;
+  environments: Array<ComparableEnvironmentIdentity & { bunVersion: string; observed: number }>;
+  hardwareBalanced: boolean;
+  hardwareVariants: Array<{
+    cpuModel: string;
+    observed: number;
+    frameworks: Record<Framework, number>;
+  }>;
   publishable: boolean;
   rows: Array<{
     framework: Framework;
@@ -31,6 +37,9 @@ export function validateSummary(value: unknown): asserts value is BenchmarkSumma
   if (summary.uploadedCacheBytes !== 0) throw new Error("summary cache evidence is invalid");
   if (!Array.isArray(summary.environments) || summary.environments.length < 1 || summary.environmentCount !== summary.environments.length) {
     throw new Error("summary environment groups are invalid");
+  }
+  if (!Array.isArray(summary.hardwareVariants) || summary.hardwareVariants.length < 1 || typeof summary.hardwareBalanced !== "boolean") {
+    throw new Error("summary hardware groups are invalid");
   }
   if (!Array.isArray(summary.rows) || summary.rows.length !== frameworks.length) throw new Error("summary rows are invalid");
   for (const framework of frameworks) {
@@ -85,8 +94,9 @@ export function buildSummary(results: Result[], expectedPerFramework: number): B
     return JSON.stringify(ids) === JSON.stringify([0, 1, 2, 3, 4, 5, 6, 7, 8, 9]);
   });
   const environmentGroups = new Map<string, BenchmarkSummary["environments"][number]>();
+  const hardwareGroups = new Map<string, BenchmarkSummary["hardwareVariants"][number]>();
   for (const result of results) {
-    const identity: BenchmarkEnvironmentIdentity = {
+    const identity = comparableEnvironment({
       runner: result.environment.runner,
       runnerImageVersion: result.environment.runnerImageVersion,
       os: result.environment.os,
@@ -95,15 +105,29 @@ export function buildSummary(results: Result[], expectedPerFramework: number): B
       cpuModel: result.environment.cpuModel,
       logicalProcessors: result.environment.logicalProcessors,
       memoryBytes: result.environment.memoryBytes,
-    };
+    });
     const key = environmentKey(identity);
     const existing = environmentGroups.get(key);
     if (existing) existing.observed += 1;
     else environmentGroups.set(key, { ...identity, bunVersion: result.environment.bunVersion, observed: 1 });
+    const cpuModel = result.environment.cpuModel.trim().replace(/\s+/g, " ");
+    const hardware = hardwareGroups.get(cpuModel) ?? {
+      cpuModel,
+      observed: 0,
+      frameworks: { velox: 0, wails: 0, neutralino: 0, tauri: 0 },
+    };
+    hardware.observed += 1;
+    hardware.frameworks[result.framework] += 1;
+    hardwareGroups.set(cpuModel, hardware);
   }
   const environments = [...environmentGroups.values()].sort((left, right) =>
     environmentKey(left).localeCompare(environmentKey(right)),
   );
+  const hardwareVariants = [...hardwareGroups.values()].sort((left, right) => left.cpuModel.localeCompare(right.cpuModel));
+  const hardwareBalanced = hardwareVariants.every((variant) => {
+    const counts = frameworks.map((framework) => variant.frameworks[framework]);
+    return Math.max(...counts) - Math.min(...counts) <= 1;
+  });
   const summary: BenchmarkSummary = {
     schemaVersion: "velox.bench-summary/v2",
     suite: "zero-cache" as const,
@@ -113,7 +137,9 @@ export function buildSummary(results: Result[], expectedPerFramework: number): B
     uploadedCacheBytes: 0,
     environmentCount: environments.length,
     environments,
-    publishable: completeSampleSet && environments.length === 1 && rows.every((row) => row.successful === expectedPerFramework),
+    hardwareBalanced,
+    hardwareVariants,
+    publishable: completeSampleSet && environments.length === 1 && hardwareBalanced && rows.every((row) => row.successful === expectedPerFramework),
     rows,
   };
   validateSummary(summary);

@@ -11,6 +11,7 @@ export type BenchmarkDecision = {
   gates: {
     completeSuccessfulSamples: boolean;
     singleEnvironment: boolean;
+    hardwareBalanced: boolean;
     zeroCacheUpload: boolean;
     minimumSpeedup: boolean | null;
   };
@@ -42,13 +43,14 @@ export function buildDecision(summary: BenchmarkSummary): BenchmarkDecision {
     candidate.missing === 0,
   );
   const singleEnvironment = summary.environmentCount === 1;
+  const hardwareBalanced = summary.hardwareBalanced;
   const zeroCacheUpload = summary.uploadedCacheBytes === 0;
   const veloxP50Ms = velox.endToEndMs?.p50 ?? null;
   const wailsP50Ms = wails.endToEndMs?.p50 ?? null;
   const ratio = veloxP50Ms !== null && veloxP50Ms > 0 && wailsP50Ms !== null
     ? Number((wailsP50Ms / veloxP50Ms).toFixed(3))
     : null;
-  const comparable = completeSuccessfulSamples && singleEnvironment && zeroCacheUpload && ratio !== null;
+  const comparable = completeSuccessfulSamples && singleEnvironment && hardwareBalanced && zeroCacheUpload && ratio !== null;
   const minimumSpeedup = comparable ? ratio >= 3 : null;
   const evidenceLevel = summary.expectedPerFramework === 10 && summary.publishable ? "publishable" : "diagnostic";
   let status: BenchmarkDecision["status"] = "insufficient-evidence";
@@ -61,7 +63,7 @@ export function buildDecision(summary: BenchmarkSummary): BenchmarkDecision {
     status,
     target: { metric: "wails-to-velox-p50-ratio", minimum: 3 },
     metrics: { veloxP50Ms, wailsP50Ms, wailsToVeloxP50Ratio: ratio },
-    gates: { completeSuccessfulSamples, singleEnvironment, zeroCacheUpload, minimumSpeedup },
+    gates: { completeSuccessfulSamples, singleEnvironment, hardwareBalanced, zeroCacheUpload, minimumSpeedup },
     questionsRequired: status === "below-target" || status === "failed",
   };
   validateDecision(decision);
