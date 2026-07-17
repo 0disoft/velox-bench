@@ -238,14 +238,14 @@ hosted environment tuple.
 
 Before any measured framework setup, a separate runner captures a SHA-256
 fingerprint over the runner label, image version, Windows version, logical
-processor count, and physical memory. Each measurement runner computes
+processor count, and physical memory rounded to the nearest GiB. Each measurement runner computes
 the same fingerprint after the dependency-free harness setup and exits before
 the benchmark clock and framework toolchains when it differs. This saves most
 of the expensive native setup work during a hosted image rollout, but it does
 not claim that one baseline probe can force GitHub to allocate identical
-machines. CPU model is intentionally excluded from the blocking fingerprint
-because GitHub assigns multiple processor generations within the same standard
-runner image. Raw results still preserve the model, and summary v2 requires its
+machines. Exact physical-memory bytes and CPU model are intentionally excluded from the blocking fingerprint
+because hosted VM memory reporting jitters and GitHub assigns multiple processor generations within the same standard
+runner image. Raw results still preserve both values, and summary v2 requires the CPU model's
 per-framework distribution to differ by no more than one sample for each model.
 
 Summary v2 repeats the environment check from the raw results instead of

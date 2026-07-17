@@ -12,7 +12,11 @@ export type BenchmarkEnvironmentIdentity = {
   memoryBytes: number;
 };
 
-export type ComparableEnvironmentIdentity = Omit<BenchmarkEnvironmentIdentity, "cpuModel">;
+export type ComparableEnvironmentIdentity = Omit<BenchmarkEnvironmentIdentity, "cpuModel" | "memoryBytes"> & {
+  memoryClassBytes: number;
+};
+
+const gibibyte = 1024 ** 3;
 
 export function currentBenchmarkEnvironment(): BenchmarkEnvironmentIdentity {
   const processors = cpus();
@@ -36,7 +40,7 @@ export function comparableEnvironment(environment: BenchmarkEnvironmentIdentity)
     architecture: environment.architecture,
     windowsVersion: environment.windowsVersion,
     logicalProcessors: environment.logicalProcessors,
-    memoryBytes: environment.memoryBytes,
+    memoryClassBytes: Math.max(gibibyte, Math.round(environment.memoryBytes / gibibyte) * gibibyte),
   };
 }
 
@@ -48,7 +52,7 @@ export function environmentKey(environment: ComparableEnvironmentIdentity): stri
     environment.architecture,
     environment.windowsVersion,
     environment.logicalProcessors,
-    environment.memoryBytes,
+    environment.memoryClassBytes,
   ].join("|");
 }
 

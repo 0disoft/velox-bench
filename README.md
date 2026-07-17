@@ -35,14 +35,14 @@ Pull requests and ordinary main pushes run contract checks only. A manual run
 can target one framework or all four with one, three, or ten isolated samples.
 Targeted runs upload raw evidence only; all-framework runs also upload a
 summary and a machine-derived go-or-kill decision. A cheap baseline job records
-the runner image, Windows version, logical processor count, and memory before
+the runner image, Windows version, logical processor count, and nearest-GiB memory class before
 measurement. Every measurement job must match that fingerprint
 before framework toolchain setup starts. Weekly and `benchmark-v*` tag runs execute ten isolated samples per
 framework. Raw results remain available when an individual measurement reports
 failure.
 
-Summary v2 preserves every observed environment tuple and refuses publication
-when more than one tuple is present. CPU models remain recorded separately;
+Summary v2 preserves every observed compatible environment tuple and refuses publication
+when more than one tuple is present. Exact memory bytes and CPU models remain recorded separately;
 their per-framework sample counts must be balanced even though normal hosted
 CPU variation does not fail the preflight. A three-sample decision can be `promising`,
 `below-target`, or `insufficient-evidence`; only a complete ten-sample summary

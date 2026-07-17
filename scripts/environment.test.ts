@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import { assertHostedEnvironment, environmentFingerprint, environmentKey, type BenchmarkEnvironmentIdentity } from "./environment";
+import { assertHostedEnvironment, comparableEnvironment, environmentFingerprint, environmentKey, type BenchmarkEnvironmentIdentity } from "./environment";
 
 function environment(overrides: Partial<BenchmarkEnvironmentIdentity> = {}): BenchmarkEnvironmentIdentity {
   return {
@@ -17,15 +17,17 @@ function environment(overrides: Partial<BenchmarkEnvironmentIdentity> = {}): Ben
 
 test("stable hosted environment produces a stable fingerprint", () => {
   const first = environment();
-  expect(environmentKey(first)).toBe(environmentKey({ ...first }));
+  expect(environmentKey(comparableEnvironment(first))).toBe(environmentKey(comparableEnvironment({ ...first })));
   expect(environmentFingerprint(first)).toBe(environmentFingerprint({ ...first }));
   expect(() => assertHostedEnvironment(first)).not.toThrow();
 });
 
-test("runner image changes the fingerprint while hosted CPU variation does not", () => {
+test("runner image and memory class change the fingerprint while hosted hardware jitter does not", () => {
   const baseline = environment();
   expect(environmentFingerprint(environment({ runnerImageVersion: "20260715.1" }))).not.toBe(environmentFingerprint(baseline));
   expect(environmentFingerprint(environment({ cpuModel: "Intel Xeon" }))).toBe(environmentFingerprint(baseline));
+  expect(environmentFingerprint(environment({ memoryBytes: baseline.memoryBytes + 4_000_000 }))).toBe(environmentFingerprint(baseline));
+  expect(environmentFingerprint(environment({ memoryBytes: baseline.memoryBytes + 8 * 1024 ** 3 }))).not.toBe(environmentFingerprint(baseline));
 });
 
 test("hosted capture rejects missing image evidence", () => {

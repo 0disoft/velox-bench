@@ -30,7 +30,7 @@
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["runner", "runnerImageVersion", "os", "architecture", "windowsVersion", "logicalProcessors", "memoryBytes", "bunVersion", "observed"],
+        "required": ["runner", "runnerImageVersion", "os", "architecture", "windowsVersion", "logicalProcessors", "memoryClassBytes", "bunVersion", "observed"],
         "properties": {
           "runner": { "const": "windows-2025" },
           "runnerImageVersion": { "type": "string", "minLength": 1 },
@@ -38,7 +38,7 @@
           "architecture": { "const": "amd64" },
           "windowsVersion": { "type": "string", "minLength": 1 },
           "logicalProcessors": { "type": "integer", "minimum": 1 },
-          "memoryBytes": { "type": "integer", "minimum": 1 },
+          "memoryClassBytes": { "type": "integer", "minimum": 1073741824, "multipleOf": 1073741824 },
           "bunVersion": { "const": "1.3.14" },
           "observed": { "type": "integer", "minimum": 1, "maximum": 40 }
         }
