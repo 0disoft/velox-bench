@@ -1,0 +1,46 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.velox.invalid/bench-decision/v1.json",
+  "title": "Velox benchmark go-or-kill decision v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "suite", "evidenceLevel", "status", "target", "metrics", "gates", "questionsRequired"],
+  "properties": {
+    "schemaVersion": { "const": "velox.bench-decision/v1" },
+    "suite": { "const": "zero-cache" },
+    "evidenceLevel": { "enum": ["diagnostic", "publishable"] },
+    "status": { "enum": ["promising", "below-target", "passed", "failed", "insufficient-evidence"] },
+    "target": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["metric", "minimum"],
+      "properties": {
+        "metric": { "const": "wails-to-velox-p50-ratio" },
+        "minimum": { "const": 3 }
+      }
+    },
+    "metrics": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["veloxP50Ms", "wailsP50Ms", "wailsToVeloxP50Ratio"],
+      "properties": {
+        "veloxP50Ms": { "type": ["number", "null"], "minimum": 0 },
+        "wailsP50Ms": { "type": ["number", "null"], "minimum": 0 },
+        "wailsToVeloxP50Ratio": { "type": ["number", "null"], "minimum": 0 }
+      }
+    },
+    "gates": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["completeSuccessfulSamples", "singleEnvironment", "zeroCacheUpload", "minimumSpeedup"],
+      "properties": {
+        "completeSuccessfulSamples": { "type": "boolean" },
+        "singleEnvironment": { "type": "boolean" },
+        "zeroCacheUpload": { "type": "boolean" },
+        "minimumSpeedup": { "type": ["boolean", "null"] }
+      }
+    },
+    "questionsRequired": { "type": "boolean" }
+  }
+}
+

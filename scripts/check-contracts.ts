@@ -143,6 +143,17 @@ if (!workflow.includes("runs-on: windows-2025")) {
   throw new Error("zero-cache workflow does not use the pinned runner");
 }
 for (const marker of [
+  "environment-baseline:",
+  "bun scripts/environment-gate.ts capture",
+  "bun scripts/environment-gate.ts verify",
+  "Validate environment baseline schema",
+  "needs: [contracts, environment-baseline, velox-release]",
+  "needs: [environment-baseline, measure]",
+  "bun scripts/decide.ts",
+  "Validate summary and decision schemas",
+  "schema/summary-v2.schema.json",
+  "schema/decision-v1.schema.json",
+  ".bench/summary/go-or-kill.json",
   "inputs.framework != 'all'",
   "inputs.framework == 'velox'",
   "format('[\"{0}\"]', inputs.framework)",
@@ -153,6 +164,9 @@ for (const marker of [
   "pattern: raw-*-${{ github.run_attempt }}",
 ]) {
   if (!workflow.includes(marker)) throw new Error(`zero-cache diagnostic matrix is missing ${marker}`);
+}
+for (const schema of ["result-v1.schema.json", "summary-v1.schema.json", "summary-v2.schema.json", "environment-v1.schema.json", "decision-v1.schema.json"]) {
+  JSON.parse(await readFile(join(root, "schema", schema), "utf8"));
 }
 
 const startupWorkflow = await readFile(join(root, ".github", "workflows", "velox-startup.yml"), "utf8");

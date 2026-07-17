@@ -57,13 +57,55 @@ jobs:
       - name: Check contracts
         run: bun run check
 
+  environment-baseline:
+    name: Capture benchmark environment baseline
+    if: >-
+      github.event_name == 'schedule' ||
+      startsWith(github.ref, 'refs/tags/benchmark-v') ||
+      github.event_name == 'workflow_dispatch'
+    needs: contracts
+    runs-on: windows-2025
+    timeout-minutes: 5
+    outputs:
+      fingerprint: ${{ steps.capture.outputs.fingerprint }}
+    steps:
+      - name: Check out benchmark
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version: 1.3.14
+          no-cache: true
+
+      - name: Capture environment fingerprint
+        id: capture
+        run: bun scripts/environment-gate.ts capture .bench/environment/baseline.json
+
+      - name: Validate environment baseline schema
+        shell: pwsh
+        run: |
+          $schema = Get-Content -LiteralPath 'schema/environment-v1.schema.json' -Raw
+          $baseline = Get-Content -LiteralPath '.bench/environment/baseline.json' -Raw
+          if (-not ($baseline | Test-Json -Schema $schema)) { throw 'Zero-cache environment baseline failed JSON Schema validation.' }
+
+      - name: Upload environment baseline
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: zero-cache-environment-${{ github.run_id }}-${{ github.run_attempt }}
+          path: .bench/environment/baseline.json
+          retention-days: 30
+          if-no-files-found: error
+
   velox-release:
     name: Build pinned Velox producer artifact
     if: >-
       github.event_name == 'schedule' ||
       startsWith(github.ref, 'refs/tags/benchmark-v') ||
       (github.event_name == 'workflow_dispatch' && (inputs.framework == 'all' || inputs.framework == 'velox'))
-    needs: contracts
+    needs: [contracts, environment-baseline]
     runs-on: windows-2025
     timeout-minutes: 10
     steps:
@@ -81,7 +123,7 @@ jobs:
           persist-credentials: false
 
       - name: Set up Go
-        uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6.5.0
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version: 1.26.4
           check-latest: false
@@ -116,9 +158,10 @@ jobs:
       always() &&
       (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/tags/benchmark-v')) &&
       needs.contracts.result == 'success' &&
+      needs.environment-baseline.result == 'success' &&
       (needs.velox-release.result == 'success' ||
       (needs.velox-release.result == 'skipped' && github.event_name == 'workflow_dispatch' && inputs.framework != 'all' && inputs.framework != 'velox'))
-    needs: [contracts, velox-release]
+    needs: [contracts, environment-baseline, velox-release]
     strategy:
       fail-fast: false
       matrix:
@@ -138,12 +181,15 @@ jobs:
           bun-version: 1.3.14
           no-cache: true
 
+      - name: Verify benchmark environment baseline
+        run: bun scripts/environment-gate.ts verify '${{ needs.environment-baseline.outputs.fingerprint }}' .bench/raw/${{ matrix.framework }}-${{ matrix.sample }}.json ${{ matrix.framework }} ${{ matrix.sample }}
+
       - name: Start end-to-end clock
         run: bun scripts/start-clock.ts .bench/clock/${{ matrix.framework }}-${{ matrix.sample }}.txt
 
       - name: Set up Go for Wails
         if: matrix.framework == 'wails'
-        uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6.5.0
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version: 1.26.4
           check-latest: false
@@ -188,7 +234,7 @@ jobs:
       always() &&
       (github.event_name == 'schedule' || startsWith(github.ref, 'refs/tags/benchmark-v') ||
       (github.event_name == 'workflow_dispatch' && inputs.framework == 'all'))
-    needs: [measure]
+    needs: [environment-baseline, measure]
     runs-on: windows-2025
     timeout-minutes: 10
     steps:
@@ -213,10 +259,25 @@ jobs:
       - name: Build summary
         run: bun scripts/summarize.ts .bench/downloaded .bench/summary/zero-cache.json ${{ github.event_name == 'workflow_dispatch' && inputs.sample_count || '10' }}
 
+      - name: Build go-or-kill decision
+        run: bun scripts/decide.ts .bench/summary/zero-cache.json .bench/summary/go-or-kill.json
+
+      - name: Validate summary and decision schemas
+        shell: pwsh
+        run: |
+          $summarySchema = Get-Content -LiteralPath 'schema/summary-v2.schema.json' -Raw
+          $summary = Get-Content -LiteralPath '.bench/summary/zero-cache.json' -Raw
+          if (-not ($summary | Test-Json -Schema $summarySchema)) { throw 'Zero-cache summary failed JSON Schema validation.' }
+          $decisionSchema = Get-Content -LiteralPath 'schema/decision-v1.schema.json' -Raw
+          $decision = Get-Content -LiteralPath '.bench/summary/go-or-kill.json' -Raw
+          if (-not ($decision | Test-Json -Schema $decisionSchema)) { throw 'Go-or-kill decision failed JSON Schema validation.' }
+
       - name: Upload summary
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: zero-cache-summary-${{ github.run_id }}-${{ github.run_attempt }}
-          path: .bench/summary/zero-cache.json
+          path: |
+            .bench/summary/zero-cache.json
+            .bench/summary/go-or-kill.json
           retention-days: 90
           if-no-files-found: error

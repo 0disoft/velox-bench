@@ -233,4 +233,21 @@ expected, observed, and missing samples instead of silently dropping them.
 Raw failures remain visible. A summary includes p50, p95, min, max, failure,
 timeout, missing-sample, fixture, and framework-revision evidence. No result is
 publishable until every adapter produces ten successful schema-valid raw
-results from the same fixture digest and one pinned framework revision.
+results from the same fixture digest, one pinned framework revision, and one
+hosted environment tuple.
+
+Before any measured framework setup, a separate runner captures a SHA-256
+fingerprint over the runner label, image version, Windows version, CPU model,
+logical processor count, and physical memory. Each measurement runner computes
+the same fingerprint after the dependency-free harness setup and exits before
+the benchmark clock and framework toolchains when it differs. This saves most
+of the expensive native setup work during a hosted image rollout, but it does
+not claim that one baseline probe can force GitHub to allocate identical
+machines.
+
+Summary v2 repeats the environment check from the raw results instead of
+trusting the preflight alone. Mixed tuples keep `publishable` false. The
+go-or-kill decision artifact is derived only from that summary. Three samples
+are diagnostic: a Wails-to-Velox p50 ratio below `3` is `below-target`, while a
+mixed or incomplete run is `insufficient-evidence`. Ten complete samples in one
+environment are required for `passed` or `failed`.

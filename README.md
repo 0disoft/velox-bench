@@ -4,7 +4,7 @@ Public benchmark contracts and fixtures for Velox, Wails, Neutralinojs, and
 Tauri.
 
 The zero-cache hosted workflow, versioned raw-result contract, failure-preserving
-summary, and byte-identical adapters are implemented. This repository still
+summary, environment-consistency gate, machine-derived go-or-kill decision, and byte-identical adapters are implemented. This repository still
 publishes no performance table: a manual one-sample run validates plumbing,
 while publication requires ten complete isolated samples per framework.
 
@@ -34,9 +34,18 @@ canonical fixture byte for byte.
 Pull requests and ordinary main pushes run contract checks only. A manual run
 can target one framework or all four with one, three, or ten isolated samples.
 Targeted runs upload raw evidence only; all-framework runs also upload a
-summary. Weekly and `benchmark-v*` tag runs execute ten isolated samples per
+summary and a machine-derived go-or-kill decision. A cheap baseline job records
+the runner image, Windows version, CPU model, logical processor count, and
+memory before measurement. Every measurement job must match that fingerprint
+before framework toolchain setup starts. Weekly and `benchmark-v*` tag runs execute ten isolated samples per
 framework. Raw results remain available when an individual measurement reports
 failure.
+
+Summary v2 preserves every observed environment tuple and refuses publication
+when more than one tuple is present. A three-sample decision can be `promising`,
+`below-target`, or `insufficient-evidence`; only a complete ten-sample summary
+can produce a publishable `passed` or `failed` decision. The speed gate is the
+pinned Wails p50 divided by the Velox p50, with a required minimum of `3`.
 
 ## Velox Startup Suite
 

@@ -2,7 +2,7 @@ import { expect, test } from "bun:test";
 import type { Framework, Result } from "./contracts";
 import { buildSummary } from "./summary";
 
-function result(framework: Framework, sample: number, outcome: Result["outcome"] = "success"): Result {
+function result(framework: Framework, sample: number, outcome: Result["outcome"] = "success", image = "x", duration = sample + 1): Result {
   return {
     schemaVersion: "velox.bench-result/v1",
     suite: "zero-cache",
@@ -13,8 +13,8 @@ function result(framework: Framework, sample: number, outcome: Result["outcome"]
     outcome,
     startedAtUtc: "2026-07-13T00:00:00.000Z",
     finishedAtUtc: "2026-07-13T00:00:01.000Z",
-    environment: { runner: "windows-2025", runnerImageVersion: "x", os: "windows", architecture: "amd64", windowsVersion: "10.0", cpuModel: "test", logicalProcessors: 2, memoryBytes: 1024, bunVersion: "1.3.14", repositoryCommit: "c", runId: "1", runAttempt: "1" },
-    measurement: outcome === "success" ? { endToEndMs: sample + 1, frameworkSetupMs: 1, buildMs: 1, packageMs: 1, acquisitionWorkingSetBytes: 1, outputFiles: 1, outputBytes: 1, outputArchiveBytes: 1, outputArchiveSha256: "c".repeat(64), intermediateFiles: 0, intermediateBytes: 0, uploadedCacheBytes: 0, cacheEvidence: "workflow-source-audit" } : null,
+    environment: { runner: "windows-2025", runnerImageVersion: image, os: "windows", architecture: "amd64", windowsVersion: "10.0", cpuModel: "test", logicalProcessors: 2, memoryBytes: 1024, bunVersion: "1.3.14", repositoryCommit: "c", runId: "1", runAttempt: "1" },
+    measurement: outcome === "success" ? { endToEndMs: duration, frameworkSetupMs: 1, buildMs: 1, packageMs: 1, acquisitionWorkingSetBytes: 1, outputFiles: 1, outputBytes: 1, outputArchiveBytes: 1, outputArchiveSha256: "c".repeat(64), intermediateFiles: 0, intermediateBytes: 0, uploadedCacheBytes: 0, cacheEvidence: "workflow-source-audit" } : null,
     failure: outcome === "success" ? null : { phase: "build", code: outcome === "timeout" ? "DEADLINE_EXCEEDED" : "PHASE_FAILED" },
   };
 }
@@ -39,6 +39,16 @@ test("ten complete successful samples per framework are publishable", () => {
     Array.from({ length: 10 }, (_, sample) => result(framework, sample)),
   );
   expect(buildSummary(results, 10).publishable).toBe(true);
+});
+
+test("mixed hosted environments prevent publication and remain visible", () => {
+  const results = (["velox", "wails", "neutralino", "tauri"] as Framework[]).flatMap((framework) =>
+    Array.from({ length: 10 }, (_, sample) => result(framework, sample, "success", framework === "tauri" && sample === 9 ? "rollout" : "stable")),
+  );
+  const summary = buildSummary(results, 10);
+  expect(summary.publishable).toBe(false);
+  expect(summary.environmentCount).toBe(2);
+  expect(summary.environments.map((environment) => environment.observed).sort((a, b) => a - b)).toEqual([1, 39]);
 });
 
 test("failures remain counted and prevent publication", () => {

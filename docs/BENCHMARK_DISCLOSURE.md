@@ -65,3 +65,10 @@
   actions do not provide a stable network-byte counter.
 - A one-sample workflow run proves only that the adapters and evidence pipeline
   execute. It cannot support a speed, cache, or winner claim.
+- The zero-cache baseline fingerprint can reject a measurement runner before
+  compiler or framework setup, but it cannot reserve a stable GitHub-hosted
+  image. Summary v2 independently groups raw environment tuples and blocks
+  publication when they differ.
+- The go-or-kill decision artifact applies only the numeric cache and
+  Wails-to-Velox cold-build gates. Structural simplicity, PWA differentiation,
+  security review, and external user attempts remain separate product decisions.

@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.velox.invalid/bench-environment/v1.json",
+  "title": "Velox hosted benchmark environment v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "fingerprint", "environment"],
+  "properties": {
+    "schemaVersion": { "const": "velox.bench-environment/v1" },
+    "fingerprint": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "environment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["runner", "runnerImageVersion", "os", "architecture", "windowsVersion", "cpuModel", "logicalProcessors", "memoryBytes"],
+      "properties": {
+        "runner": { "const": "windows-2025" },
+        "runnerImageVersion": { "type": "string", "minLength": 1 },
+        "os": { "const": "windows" },
+        "architecture": { "const": "amd64" },
+        "windowsVersion": { "type": "string", "minLength": 1 },
+        "cpuModel": { "type": "string", "minLength": 1 },
+        "logicalProcessors": { "type": "integer", "minimum": 1 },
+        "memoryBytes": { "type": "integer", "minimum": 1 }
+      }
+    }
+  }
+}
+

@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 import { readFile, readdir, stat } from "node:fs/promises";
 import { join } from "node:path";
+import type { BenchmarkEnvironmentIdentity } from "./environment";
 
 export const frameworks = ["velox", "wails", "neutralino", "tauri"] as const;
 export type Framework = (typeof frameworks)[number];
@@ -24,15 +25,7 @@ export type Result = {
   outcome: "success" | "failure" | "timeout";
   startedAtUtc: string;
   finishedAtUtc: string;
-  environment: {
-    runner: "windows-2025";
-    runnerImageVersion: string;
-    os: "windows";
-    architecture: "amd64";
-    windowsVersion: string;
-    cpuModel: string;
-    logicalProcessors: number;
-    memoryBytes: number;
+  environment: BenchmarkEnvironmentIdentity & {
     bunVersion: string;
     repositoryCommit: string;
     runId: string;

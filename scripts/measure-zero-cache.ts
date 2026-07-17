@@ -1,8 +1,8 @@
 import { createHash } from "node:crypto";
-import { cpus, release, totalmem } from "node:os";
 import { cp, mkdir, readFile, readdir, rm } from "node:fs/promises";
 import { basename, dirname, join, resolve } from "node:path";
 import { fixtureDigest, frameworks, loadLock, treeStats, validateResult, type Framework, type Result } from "./contracts";
+import { currentBenchmarkEnvironment } from "./environment";
 import { createDeterministicZip } from "./zip";
 
 const root = resolve(import.meta.dir, "..");
@@ -35,16 +35,8 @@ let portable = "";
 class BenchmarkTimeout extends Error {}
 
 function environment() {
-  const processors = cpus();
   return {
-    runner: "windows-2025" as const,
-    runnerImageVersion: process.env.ImageVersion || "local-unverified",
-    os: "windows" as const,
-    architecture: "amd64" as const,
-    windowsVersion: release(),
-    cpuModel: processors[0]?.model || "unverified",
-    logicalProcessors: processors.length,
-    memoryBytes: totalmem(),
+    ...currentBenchmarkEnvironment(),
     bunVersion: Bun.version,
     repositoryCommit: process.env.GITHUB_SHA || "local-unverified",
     runId: process.env.GITHUB_RUN_ID || "local-unverified",

@@ -1,6 +1,45 @@
 import { frameworks, percentile, validateResult, type Framework, type Result } from "./contracts";
+import { environmentKey, type BenchmarkEnvironmentIdentity } from "./environment";
 
-export function buildSummary(results: Result[], expectedPerFramework: number) {
+export type BenchmarkSummary = {
+  schemaVersion: "velox.bench-summary/v2";
+  suite: "zero-cache";
+  expectedPerFramework: number;
+  fixtureSha256: string;
+  frameworkRevisions: Record<Framework, string>;
+  uploadedCacheBytes: 0;
+  environmentCount: number;
+  environments: Array<BenchmarkEnvironmentIdentity & { bunVersion: string; observed: number }>;
+  publishable: boolean;
+  rows: Array<{
+    framework: Framework;
+    expected: number;
+    observed: number;
+    missing: number;
+    successful: number;
+    failed: number;
+    timedOut: number;
+    endToEndMs: null | { min: number; p50: number; p95: number; max: number };
+  }>;
+};
+
+export function validateSummary(value: unknown): asserts value is BenchmarkSummary {
+  if (!value || typeof value !== "object") throw new Error("summary must be an object");
+  const summary = value as Partial<BenchmarkSummary>;
+  if (summary.schemaVersion !== "velox.bench-summary/v2" || summary.suite !== "zero-cache") throw new Error("unsupported summary contract");
+  if (![1, 3, 10].includes(summary.expectedPerFramework ?? 0)) throw new Error("invalid summary sample count");
+  if (summary.uploadedCacheBytes !== 0) throw new Error("summary cache evidence is invalid");
+  if (!Array.isArray(summary.environments) || summary.environments.length < 1 || summary.environmentCount !== summary.environments.length) {
+    throw new Error("summary environment groups are invalid");
+  }
+  if (!Array.isArray(summary.rows) || summary.rows.length !== frameworks.length) throw new Error("summary rows are invalid");
+  for (const framework of frameworks) {
+    const rows = summary.rows.filter((row) => row.framework === framework);
+    if (rows.length !== 1) throw new Error(`summary must contain exactly one ${framework} row`);
+  }
+}
+
+export function buildSummary(results: Result[], expectedPerFramework: number): BenchmarkSummary {
   if (results.length === 0) throw new Error("no raw benchmark results were found");
   if (![1, 3, 10].includes(expectedPerFramework)) throw new Error("expected sample count must be 1, 3, or 10");
   const keys = new Set<string>();
@@ -45,13 +84,38 @@ export function buildSummary(results: Result[], expectedPerFramework: number) {
     const ids = results.filter((result) => result.framework === row.framework).map((result) => result.sample).sort((a, b) => a - b);
     return JSON.stringify(ids) === JSON.stringify([0, 1, 2, 3, 4, 5, 6, 7, 8, 9]);
   });
-  return {
-    schemaVersion: "velox.bench-summary/v1" as const,
+  const environmentGroups = new Map<string, BenchmarkSummary["environments"][number]>();
+  for (const result of results) {
+    const identity: BenchmarkEnvironmentIdentity = {
+      runner: result.environment.runner,
+      runnerImageVersion: result.environment.runnerImageVersion,
+      os: result.environment.os,
+      architecture: result.environment.architecture,
+      windowsVersion: result.environment.windowsVersion,
+      cpuModel: result.environment.cpuModel,
+      logicalProcessors: result.environment.logicalProcessors,
+      memoryBytes: result.environment.memoryBytes,
+    };
+    const key = environmentKey(identity);
+    const existing = environmentGroups.get(key);
+    if (existing) existing.observed += 1;
+    else environmentGroups.set(key, { ...identity, bunVersion: result.environment.bunVersion, observed: 1 });
+  }
+  const environments = [...environmentGroups.values()].sort((left, right) =>
+    environmentKey(left).localeCompare(environmentKey(right)),
+  );
+  const summary: BenchmarkSummary = {
+    schemaVersion: "velox.bench-summary/v2",
     suite: "zero-cache" as const,
     expectedPerFramework,
     fixtureSha256: [...fixtureDigests][0],
     frameworkRevisions: revisions,
-    publishable: completeSampleSet && rows.every((row) => row.successful === expectedPerFramework),
+    uploadedCacheBytes: 0,
+    environmentCount: environments.length,
+    environments,
+    publishable: completeSampleSet && environments.length === 1 && rows.every((row) => row.successful === expectedPerFramework),
     rows,
   };
+  validateSummary(summary);
+  return summary;
 }
