@@ -255,10 +255,13 @@ are diagnostic: a Wails-to-Velox p50 ratio below `3` is `below-target`, while a
 mixed or incomplete run is `insufficient-evidence`. Ten complete samples in one
 environment are required for `passed` or `failed`.
 
-The manual `velox-wails` scope is a lower-cost product gate. It schedules only
-Velox and Wails but preserves the same raw-result contract, environment
-fingerprint, zero-cache rule, ten-sample completeness check, and per-CPU count
-spread of at most one. Its `velox.bench-pair-summary/v1` and
+The manual `velox-wails` scope is a lower-cost product gate. It schedules ten
+paired runner jobs. Every job measures both frameworks on the same machine, and
+the matrix alternates which framework runs first for five samples each. The
+Velox clock starts before release-artifact download; the Wails clock starts
+before `setup-go`, preserving the existing end-to-end boundaries. The scope
+retains the same raw-result contract, environment fingerprint, zero-cache rule,
+ten-sample completeness check, and per-CPU count spread of at most one. Its `velox.bench-pair-summary/v1` and
 `velox.bench-pair-decision/v1` artifacts cannot be substituted for the
 all-framework summary. A pair `passed` result supports only the Wails-to-Velox
 p50 target; it does not establish a Neutralinojs or Tauri comparison.

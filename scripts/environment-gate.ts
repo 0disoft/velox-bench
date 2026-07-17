@@ -5,8 +5,8 @@ import { assertHostedEnvironment, currentBenchmarkEnvironment, environmentFinger
 
 const mode = process.argv[2];
 const argument = process.argv[3];
-if (!mode || !argument || !["capture", "verify"].includes(mode)) {
-  throw new Error("usage: environment-gate.ts capture <output-json> | verify <expected-fingerprint> <result-json> <framework> <sample>");
+if (!mode || !argument || !["capture", "verify", "verify-pair"].includes(mode)) {
+  throw new Error("usage: environment-gate.ts capture <output-json> | verify <expected-fingerprint> <result-json> <framework> <sample> | verify-pair <expected-fingerprint> <result-directory> <sample>");
 }
 
 const environment = currentBenchmarkEnvironment();
@@ -25,38 +25,43 @@ if (mode === "capture") {
   if (!/^[0-9a-f]{64}$/.test(argument)) throw new Error("expected environment fingerprint is invalid");
   if (fingerprint !== argument) {
     const resultArgument = process.argv[4];
-    const framework = process.argv[5] as Framework;
-    const sample = Number(process.argv[6]);
-    if (!resultArgument || !frameworks.includes(framework) || !Number.isInteger(sample) || sample < 0 || sample > 9) {
+    const selectedFrameworks: Framework[] = mode === "verify-pair" ? ["velox", "wails"] : [process.argv[5] as Framework];
+    const sample = Number(mode === "verify-pair" ? process.argv[5] : process.argv[6]);
+    if (!resultArgument || selectedFrameworks.some((framework) => !frameworks.includes(framework)) || !Number.isInteger(sample) || sample < 0 || sample > 9) {
       throw new Error("environment mismatch result identity is invalid");
     }
     const root = resolve(import.meta.dir, "..");
     const lock = await loadLock(root);
     const now = new Date().toISOString();
-    const result: Result = {
-      schemaVersion: "velox.bench-result/v1",
-      suite: "zero-cache",
-      framework,
-      frameworkRevision: lock.frameworks[framework].commit,
-      sample,
-      fixtureSha256: await fixtureDigest(root, lock),
-      outcome: "failure",
-      startedAtUtc: now,
-      finishedAtUtc: now,
-      environment: {
-        ...environment,
-        bunVersion: Bun.version,
-        repositoryCommit: process.env.GITHUB_SHA || "local-unverified",
-        runId: process.env.GITHUB_RUN_ID || "local-unverified",
-        runAttempt: process.env.GITHUB_RUN_ATTEMPT || "local-unverified",
-      },
-      measurement: null,
-      failure: { phase: "environment-preflight", code: "BENCHMARK_ENVIRONMENT_MISMATCH" },
-    };
-    validateResult(result);
-    const resultPath = resolve(resultArgument);
-    await mkdir(dirname(resultPath), { recursive: true });
-    await Bun.write(resultPath, `${JSON.stringify(result, null, 2)}\n`);
+    const digest = await fixtureDigest(root, lock);
+    for (const framework of selectedFrameworks) {
+      const result: Result = {
+        schemaVersion: "velox.bench-result/v1",
+        suite: "zero-cache",
+        framework,
+        frameworkRevision: lock.frameworks[framework].commit,
+        sample,
+        fixtureSha256: digest,
+        outcome: "failure",
+        startedAtUtc: now,
+        finishedAtUtc: now,
+        environment: {
+          ...environment,
+          bunVersion: Bun.version,
+          repositoryCommit: process.env.GITHUB_SHA || "local-unverified",
+          runId: process.env.GITHUB_RUN_ID || "local-unverified",
+          runAttempt: process.env.GITHUB_RUN_ATTEMPT || "local-unverified",
+        },
+        measurement: null,
+        failure: { phase: "environment-preflight", code: "BENCHMARK_ENVIRONMENT_MISMATCH" },
+      };
+      validateResult(result);
+      const resultPath = mode === "verify-pair"
+        ? resolve(resultArgument, `${framework}-${sample}.json`)
+        : resolve(resultArgument);
+      await mkdir(dirname(resultPath), { recursive: true });
+      await Bun.write(resultPath, `${JSON.stringify(result, null, 2)}\n`);
+    }
     console.error(JSON.stringify({ code: "BENCHMARK_ENVIRONMENT_MISMATCH", expected: argument, actual: fingerprint, environment }));
     process.exit(1);
   }

@@ -34,9 +34,10 @@ canonical fixture byte for byte.
 Pull requests and ordinary main pushes run contract checks only. A manual run
 can target one framework, the `velox-wails` product gate, or all four with one,
 three, or ten isolated samples. Single-framework runs upload raw evidence only.
-The pair scope uploads a dedicated pair summary and decision without scheduling
-Neutralinojs or Tauri; all-framework runs retain their existing summary and
-go-or-kill artifact. A cheap baseline job records
+The pair scope uses ten paired runner jobs. Each job measures Velox and Wails on
+the same machine, with five samples in each execution order, and uploads a
+dedicated pair summary and decision without scheduling Neutralinojs or Tauri.
+All-framework runs retain their existing summary and go-or-kill artifact. A cheap baseline job records
 the runner image, Windows version, logical processor count, and nearest-GiB memory class before
 measurement. Every measurement job must match that fingerprint
 before framework toolchain setup starts. Weekly and `benchmark-v*` tag runs execute ten isolated samples per
@@ -51,7 +52,8 @@ CPU variation does not fail the preflight. A three-sample decision can be `promi
 can produce a publishable `passed` or `failed` decision. The speed gate is the
 pinned Wails p50 divided by the Velox p50, with a required minimum of `3`.
 The pair contract applies the same sample-completeness, environment, CPU-balance,
-and zero-cache gates to Velox and Wails only. Passing it proves the numeric
+and zero-cache gates to Velox and Wails only. Same-runner pairing makes every
+observed CPU model contribute once to each framework. Passing it proves the numeric
 product gate, not a four-framework winner claim.
 
 ## Velox Startup Suite

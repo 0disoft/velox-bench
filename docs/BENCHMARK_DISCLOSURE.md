@@ -76,6 +76,8 @@
   Wails-to-Velox cold-build gates. Structural simplicity, PWA differentiation,
   security review, and external user attempts remain separate product decisions.
 - The `velox-wails` scope intentionally omits Neutralinojs and Tauri to reduce
-  runner cost while validating the product's numeric Wails comparison. Its pair
-  summary and decision use separate schema identifiers and must not be shown as
-  an all-framework benchmark or winner table.
+  runner cost while validating the product's numeric Wails comparison. It runs
+  both frameworks on each runner and alternates execution order, so the pair
+  shares CPU hardware but can still retain order, network, and hosted-runner
+  noise. Its pair summary and decision use separate schema identifiers and must
+  not be shown as an all-framework benchmark or winner table.
