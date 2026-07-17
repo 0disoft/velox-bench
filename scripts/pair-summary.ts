@@ -48,6 +48,26 @@ export function validatePairSummary(value: unknown): asserts value is PairSummar
 }
 
 export function buildPairSummary(results: Result[], expectedPerFramework: number): PairSummary {
+  for (let sample = 0; sample < expectedPerFramework; sample += 1) {
+    const velox = results.find((result) => result.framework === "velox" && result.sample === sample);
+    const wails = results.find((result) => result.framework === "wails" && result.sample === sample);
+    if (!velox || !wails) continue;
+    const sameRunner =
+      velox.environment.runner === wails.environment.runner &&
+      velox.environment.runnerImageVersion === wails.environment.runnerImageVersion &&
+      velox.environment.windowsVersion === wails.environment.windowsVersion &&
+      velox.environment.cpuModel === wails.environment.cpuModel &&
+      velox.environment.logicalProcessors === wails.environment.logicalProcessors &&
+      velox.environment.memoryBytes === wails.environment.memoryBytes;
+    if (!sameRunner) throw new Error(`pair sample ${sample} does not share exact runner hardware`);
+    const veloxStart = Date.parse(velox.startedAtUtc);
+    const veloxFinish = Date.parse(velox.finishedAtUtc);
+    const wailsStart = Date.parse(wails.startedAtUtc);
+    const wailsFinish = Date.parse(wails.finishedAtUtc);
+    if (!(veloxFinish <= wailsStart || wailsFinish <= veloxStart)) {
+      throw new Error(`pair sample ${sample} execution intervals overlap`);
+    }
+  }
   const core = buildScopedSummary(results, expectedPerFramework, pairFrameworks, "velox-wails");
   const summary: PairSummary = {
     schemaVersion: "velox.bench-pair-summary/v1",

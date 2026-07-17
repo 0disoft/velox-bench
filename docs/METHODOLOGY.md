@@ -265,3 +265,8 @@ ten-sample completeness check, and per-CPU count spread of at most one. Its `vel
 `velox.bench-pair-decision/v1` artifacts cannot be substituted for the
 all-framework summary. A pair `passed` result supports only the Wails-to-Velox
 p50 target; it does not establish a Neutralinojs or Tauri comparison.
+Pair summary generation also requires each matching sample ID to report the
+same runner image, Windows version, CPU model, logical processor count, and
+exact physical-memory value. The two timing intervals must be sequential and
+non-overlapping. A balanced aggregate CPU count alone is not accepted as proof
+of same-runner pairing.

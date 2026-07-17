@@ -11,8 +11,8 @@ function result(framework: Framework, sample: number, duration: number, cpuModel
     sample,
     fixtureSha256: "b".repeat(64),
     outcome,
-    startedAtUtc: "2026-07-17T00:00:00.000Z",
-    finishedAtUtc: "2026-07-17T00:00:01.000Z",
+    startedAtUtc: framework === "velox" ? "2026-07-17T00:00:00.000Z" : "2026-07-17T00:00:02.000Z",
+    finishedAtUtc: framework === "velox" ? "2026-07-17T00:00:01.000Z" : "2026-07-17T00:00:03.000Z",
     environment: {
       runner: "windows-2025",
       runnerImageVersion: "stable",
@@ -71,11 +71,16 @@ test("pair summary preserves failures and remains non-publishable", () => {
   expect(summary.rows.find((row) => row.framework === "wails")?.failed).toBe(1);
 });
 
-test("unbalanced pair CPU assignment remains visible and non-publishable", () => {
+test("pair summary rejects samples that do not share exact runner hardware", () => {
   const results = (["velox", "wails"] as Framework[]).flatMap((framework) =>
     Array.from({ length: 10 }, (_, sample) => result(framework, sample, framework === "velox" ? 100 : 400, framework === "velox" ? "EPYC 7763" : "EPYC 9V74")),
   );
-  const summary = buildPairSummary(results, 10);
-  expect(summary.hardwareBalanced).toBeFalse();
-  expect(summary.publishable).toBeFalse();
+  expect(() => buildPairSummary(results, 10)).toThrow("does not share exact runner hardware");
+});
+
+test("pair summary rejects overlapping execution intervals", () => {
+  const results = pair(10);
+  const wails = results.find((entry) => entry.framework === "wails" && entry.sample === 0)!;
+  wails.startedAtUtc = "2026-07-17T00:00:00.500Z";
+  expect(() => buildPairSummary(results, 10)).toThrow("execution intervals overlap");
 });

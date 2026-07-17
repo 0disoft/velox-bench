@@ -81,3 +81,6 @@
   shares CPU hardware but can still retain order, network, and hosted-runner
   noise. Its pair summary and decision use separate schema identifiers and must
   not be shown as an all-framework benchmark or winner table.
+- Pair summary generation rejects matching sample IDs whose exact runner
+  hardware differs or whose timing intervals overlap. This checks the paired
+  workflow claim from raw evidence rather than trusting balanced CPU totals.
