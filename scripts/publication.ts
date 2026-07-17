@@ -114,6 +114,14 @@ function sha256(bytes: Uint8Array): string {
   return createHash("sha256").update(bytes).digest("hex");
 }
 
+export function serializeCanonicalJson(value: unknown): string {
+  return `${JSON.stringify(value, null, 2)}\n`;
+}
+
+function canonicalJsonSha256(value: unknown): string {
+  return sha256(new TextEncoder().encode(serializeCanonicalJson(value)));
+}
+
 export function validateRunMetadata(value: unknown): asserts value is RunMetadata {
   if (!value || typeof value !== "object") throw new Error("run metadata must be an object");
   const metadata = value as Partial<RunMetadata>;
@@ -174,7 +182,6 @@ export function buildPairPublication(
   summaryValue: unknown,
   decisionValue: unknown,
   metadataValue: unknown,
-  sourceBytes: { summary: Uint8Array; decision: Uint8Array; metadata: Uint8Array },
   expected: { runId: string; runAttempt: number; benchmarkCommit: string },
 ): PairPublication {
   validatePairSummary(summaryValue);
@@ -233,9 +240,9 @@ export function buildPairPublication(
       runAttempt: metadata.run.attempt,
       runUrl: metadata.run.url,
       benchmarkCommit: metadata.run.headSha,
-      pairSummarySha256: sha256(sourceBytes.summary),
-      pairDecisionSha256: sha256(sourceBytes.decision),
-      runMetadataSha256: sha256(sourceBytes.metadata),
+      pairSummarySha256: canonicalJsonSha256(summary),
+      pairDecisionSha256: canonicalJsonSha256(decision),
+      runMetadataSha256: canonicalJsonSha256(metadata),
     },
     result: {
       evidenceLevel: "publishable",
@@ -326,5 +333,6 @@ export function updateReadmePublication(readme: string, rendered: string): strin
       readme.indexOf(publicationEndMarker, end + publicationEndMarker.length) >= 0) {
     throw new Error("README publication markers must be unique");
   }
-  return `${readme.slice(0, start)}${rendered}${readme.slice(end + publicationEndMarker.length)}`;
+  const renderedWithExistingEol = readme.includes("\r\n") ? rendered.replaceAll("\n", "\r\n") : rendered;
+  return `${readme.slice(0, start)}${renderedWithExistingEol}${readme.slice(end + publicationEndMarker.length)}`;
 }

@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import { buildPairPublication, publicationEndMarker, publicationStartMarker, renderPairPublication, updateReadmePublication, type RunMetadata } from "./publication";
+import { buildPairPublication, publicationEndMarker, publicationStartMarker, renderPairPublication, serializeCanonicalJson, updateReadmePublication, type RunMetadata } from "./publication";
 
 function source() {
   const summary = {
@@ -48,8 +48,7 @@ function source() {
 
 test("builds a deterministic public result and resource observation", () => {
   const { summary, decision, metadata } = source();
-  const bytes = { summary: new TextEncoder().encode("summary"), decision: new TextEncoder().encode("decision"), metadata: new TextEncoder().encode("metadata") };
-  const publication = buildPairPublication(summary, decision, metadata, bytes, { runId: "123", runAttempt: 1, benchmarkCommit: "c".repeat(40) });
+  const publication = buildPairPublication(summary, decision, metadata, { runId: "123", runAttempt: 1, benchmarkCommit: "c".repeat(40) });
   expect(publication.result.wailsToVeloxP50Ratio).toBe(4);
   expect(publication.resources.workflowWallMs).toBe(600_000);
   expect(publication.resources.aggregateJobRuntimeMs).toBe(540_000);
@@ -60,20 +59,30 @@ test("builds a deterministic public result and resource observation", () => {
 test("rejects a failed source run", () => {
   const { summary, decision, metadata } = source();
   metadata.run.conclusion = "failure";
-  expect(() => buildPairPublication(summary, decision, metadata, { summary: new Uint8Array(), decision: new Uint8Array(), metadata: new Uint8Array() }, { runId: "123", runAttempt: 1, benchmarkCommit: "c".repeat(40) })).toThrow("completed successful");
+  expect(() => buildPairPublication(summary, decision, metadata, { runId: "123", runAttempt: 1, benchmarkCommit: "c".repeat(40) })).toThrow("completed successful");
 });
 
 test("rejects a decision derived from different summary metrics", () => {
   const { summary, decision, metadata } = source();
   decision.metrics.wailsP50Ms = 401;
-  expect(() => buildPairPublication(summary, decision, metadata, { summary: new Uint8Array(), decision: new Uint8Array(), metadata: new Uint8Array() }, { runId: "123", runAttempt: 1, benchmarkCommit: "c".repeat(40) })).toThrow("does not match");
+  expect(() => buildPairPublication(summary, decision, metadata, { runId: "123", runAttempt: 1, benchmarkCommit: "c".repeat(40) })).toThrow("does not match");
+});
+
+test("canonical source serialization is independent of input line endings", () => {
+  const lf = '{\n  "value": 1\n}\n';
+  const crlf = lf.replaceAll("\n", "\r\n");
+  expect(serializeCanonicalJson(JSON.parse(lf))).toBe(serializeCanonicalJson(JSON.parse(crlf)));
+  expect(serializeCanonicalJson(JSON.parse(crlf))).toBe(lf);
 });
 
 test("replaces one generated README block and rejects duplicate markers", () => {
   const { summary, decision, metadata } = source();
-  const publication = buildPairPublication(summary, decision, metadata, { summary: new Uint8Array(), decision: new Uint8Array(), metadata: new Uint8Array() }, { runId: "123", runAttempt: 1, benchmarkCommit: "c".repeat(40) });
+  const publication = buildPairPublication(summary, decision, metadata, { runId: "123", runAttempt: 1, benchmarkCommit: "c".repeat(40) });
   const readme = `before\n${publicationStartMarker}\nold\n${publicationEndMarker}\nafter\n`;
   const updated = updateReadmePublication(readme, renderPairPublication(publication));
   expect(updated).toContain("4.000x");
   expect(() => updateReadmePublication(`${readme}${publicationStartMarker}`, "x")).toThrow("unique");
+  const crlf = readme.replaceAll("\n", "\r\n");
+  const updatedCrlf = updateReadmePublication(crlf, renderPairPublication(publication));
+  expect(updatedCrlf.replaceAll("\r\n", "")).not.toContain("\n");
 });

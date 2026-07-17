@@ -281,8 +281,10 @@ artifact name.
 
 The committed result directory preserves the source pair summary, pair
 decision, normalized GitHub run metadata, and derived
-`velox.bench-publication/v1` document. SHA-256 digests bind the derived document
-to all three source files. The contract check rebuilds the publication and
+`velox.bench-publication/v1` document. Each source is normalized to UTF-8,
+two-space-indented JSON with LF line endings and one final newline before it is
+stored and hashed. SHA-256 digests bind the derived document to those three
+canonical source files without depending on checkout line-ending settings. The contract check rebuilds the publication and
 README marker block in memory and fails when committed bytes differ. Benchmark
 values are therefore generated from source evidence rather than entered into
 README by hand.

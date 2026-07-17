@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
-import { buildPairPublication, renderPairPublication, updateReadmePublication } from "./publication";
+import { buildPairPublication, renderPairPublication, serializeCanonicalJson, updateReadmePublication } from "./publication";
 import { createTauriIcon } from "./tauri-icon";
 
 type Lock = {
@@ -418,18 +418,17 @@ for (const marker of [
 }
 
 const publicationRoot = join(root, lock.publication.directory);
-const publicationSummaryBytes = await readFile(join(publicationRoot, "pair-summary.json"));
-const publicationDecisionBytes = await readFile(join(publicationRoot, "pair-decision.json"));
-const publicationMetadataBytes = await readFile(join(publicationRoot, "run-metadata.json"));
+const publicationSummaryText = await readFile(join(publicationRoot, "pair-summary.json"), "utf8");
+const publicationDecisionText = await readFile(join(publicationRoot, "pair-decision.json"), "utf8");
+const publicationMetadataText = await readFile(join(publicationRoot, "run-metadata.json"), "utf8");
 const publication = buildPairPublication(
-  JSON.parse(publicationSummaryBytes.toString("utf8")),
-  JSON.parse(publicationDecisionBytes.toString("utf8")),
-  JSON.parse(publicationMetadataBytes.toString("utf8")),
-  { summary: publicationSummaryBytes, decision: publicationDecisionBytes, metadata: publicationMetadataBytes },
+  JSON.parse(publicationSummaryText),
+  JSON.parse(publicationDecisionText),
+  JSON.parse(publicationMetadataText),
   { runId: lock.publication.runId, runAttempt: lock.publication.runAttempt, benchmarkCommit: lock.publication.benchmarkCommit },
 );
 const publicationText = await readFile(join(publicationRoot, "publication.json"), "utf8");
-if (publicationText !== `${JSON.stringify(publication, null, 2)}\n`) {
+if (serializeCanonicalJson(JSON.parse(publicationText)) !== serializeCanonicalJson(publication)) {
   throw new Error("committed publication differs from its machine-generated source evidence");
 }
 const readme = await readFile(join(root, "README.md"), "utf8");

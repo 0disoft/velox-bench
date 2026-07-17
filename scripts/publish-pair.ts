@@ -1,6 +1,6 @@
 import { mkdir } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
-import { buildPairPublication, renderPairPublication, updateReadmePublication } from "./publication";
+import { buildPairPublication, renderPairPublication, serializeCanonicalJson, updateReadmePublication } from "./publication";
 
 type PublicationLock = {
   publication?: {
@@ -34,7 +34,7 @@ const metadataBytes = new Uint8Array(await Bun.file(resolvedMetadataPath).arrayB
 const summary = JSON.parse(new TextDecoder().decode(summaryBytes));
 const decision = JSON.parse(new TextDecoder().decode(decisionBytes));
 const metadata = JSON.parse(new TextDecoder().decode(metadataBytes));
-const publication = buildPairPublication(summary, decision, metadata, { summary: summaryBytes, decision: decisionBytes, metadata: metadataBytes }, {
+const publication = buildPairPublication(summary, decision, metadata, {
   runId: config.runId,
   runAttempt: config.runAttempt!,
   benchmarkCommit: config.benchmarkCommit!,
@@ -43,10 +43,10 @@ const publication = buildPairPublication(summary, decision, metadata, { summary:
 const output = resolve(root, config.directory);
 await mkdir(output, { recursive: true });
 await Promise.all([
-  Bun.write(join(output, "pair-summary.json"), summaryBytes),
-  Bun.write(join(output, "pair-decision.json"), decisionBytes),
-  Bun.write(join(output, "run-metadata.json"), metadataBytes),
-  Bun.write(join(output, "publication.json"), `${JSON.stringify(publication, null, 2)}\n`),
+  Bun.write(join(output, "pair-summary.json"), serializeCanonicalJson(summary)),
+  Bun.write(join(output, "pair-decision.json"), serializeCanonicalJson(decision)),
+  Bun.write(join(output, "run-metadata.json"), serializeCanonicalJson(metadata)),
+  Bun.write(join(output, "publication.json"), serializeCanonicalJson(publication)),
 ]);
 const readmePath = join(root, "README.md");
 const readme = await Bun.file(readmePath).text();
