@@ -270,3 +270,33 @@ same runner image, Windows version, CPU model, logical processor count, and
 exact physical-memory value. The two timing intervals must be sequential and
 non-overlapping. A balanced aggregate CPU count alone is not accepted as proof
 of same-runner pairing.
+
+## Durable Pair Publication
+
+`bench.lock.json` pins the one GitHub run, run attempt, benchmark commit, and
+repository directory that own the current public Velox-Wails result. Publication
+requires a complete `publishable` pair summary, a `passed` pair decision, the
+pinned run identity, a successful GitHub run, and the expected pair-summary
+artifact name.
+
+The committed result directory preserves the source pair summary, pair
+decision, normalized GitHub run metadata, and derived
+`velox.bench-publication/v1` document. SHA-256 digests bind the derived document
+to all three source files. The contract check rebuilds the publication and
+README marker block in memory and fails when committed bytes differ. Benchmark
+values are therefore generated from source evidence rather than entered into
+README by hand.
+
+The resource observation uses three distinct units:
+
+- workflow wall time is the GitHub run start-to-update wall-clock interval;
+- aggregate job runtime is the sum of each observed job's GitHub start-to-end
+  wall-clock interval, including parallel overlap;
+- artifact bytes are the sum of GitHub API `size_in_bytes` values at metadata
+  capture time.
+
+These values are not GitHub billing records. Aggregate job runtime can exceed
+workflow wall time because jobs overlap, and GitHub billing may apply platform,
+rounding, repository-visibility, and plan rules that this evidence does not
+model. Expired-artifact state is also a capture-time observation, not a durable
+availability promise.

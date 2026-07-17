@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
+import { buildPairPublication, renderPairPublication, updateReadmePublication } from "./publication";
 import { createTauriIcon } from "./tauri-icon";
 
 type Lock = {
@@ -9,6 +10,7 @@ type Lock = {
   toolchains: Record<string, string>;
   actions: Record<string, string>;
   fixture: { name: string; files: string[] };
+  publication: { scope: string; runId: string; runAttempt: number; benchmarkCommit: string; directory: string };
   controls: Record<string, Record<string, string>>;
   frameworks: Record<string, Record<string, string>>;
 };
@@ -37,6 +39,12 @@ if (JSON.stringify(Object.keys(lock.frameworks).sort()) !== JSON.stringify(["neu
 }
 if (Object.keys(lock.controls).length !== 1 || !lock.controls.webview2Binding || !commitPattern.test(lock.controls.webview2Binding.commit)) {
   throw new Error("WebView2 control binding must be pinned to one immutable revision");
+}
+if (lock.publication.scope !== "velox-wails" || !/^\d+$/.test(lock.publication.runId) ||
+    !Number.isSafeInteger(lock.publication.runAttempt) || lock.publication.runAttempt < 1 ||
+    !commitPattern.test(lock.publication.benchmarkCommit) ||
+    lock.publication.directory !== `results/velox-wails/run-${lock.publication.runId}`) {
+  throw new Error("publication lock must pin one Velox-Wails run and benchmark revision");
 }
 
 for (const [name, value] of Object.entries(lock.actions)) {
@@ -173,6 +181,10 @@ for (const marker of [
   "inputs.framework == 'all'",
   "raw-${{ matrix.framework }}-${{ matrix.sample }}-${{ github.run_attempt }}",
   "pattern: raw-*-${{ github.run_attempt }}",
+  "Validate public result schemas",
+  "schema/github-run-metadata-v1.schema.json",
+  "schema/publication-v1.schema.json",
+  "$lock.publication.directory",
 ]) {
   if (!workflow.includes(marker)) throw new Error(`zero-cache diagnostic matrix is missing ${marker}`);
 }
@@ -403,6 +415,29 @@ for (const marker of [
   'flag.Int("relaunch-delay-ms", 0',
 ]) {
   if (!relaunchHarness.includes(marker)) throw new Error(`relaunch harness is missing delay contract marker ${marker}`);
+}
+
+const publicationRoot = join(root, lock.publication.directory);
+const publicationSummaryBytes = await readFile(join(publicationRoot, "pair-summary.json"));
+const publicationDecisionBytes = await readFile(join(publicationRoot, "pair-decision.json"));
+const publicationMetadataBytes = await readFile(join(publicationRoot, "run-metadata.json"));
+const publication = buildPairPublication(
+  JSON.parse(publicationSummaryBytes.toString("utf8")),
+  JSON.parse(publicationDecisionBytes.toString("utf8")),
+  JSON.parse(publicationMetadataBytes.toString("utf8")),
+  { summary: publicationSummaryBytes, decision: publicationDecisionBytes, metadata: publicationMetadataBytes },
+  { runId: lock.publication.runId, runAttempt: lock.publication.runAttempt, benchmarkCommit: lock.publication.benchmarkCommit },
+);
+const publicationText = await readFile(join(publicationRoot, "publication.json"), "utf8");
+if (publicationText !== `${JSON.stringify(publication, null, 2)}\n`) {
+  throw new Error("committed publication differs from its machine-generated source evidence");
+}
+const readme = await readFile(join(root, "README.md"), "utf8");
+if (updateReadmePublication(readme, renderPairPublication(publication)) !== readme) {
+  throw new Error("README publication block differs from publication.json");
+}
+for (const schema of ["github-run-metadata-v1.schema.json", "publication-v1.schema.json"]) {
+  JSON.parse(await readFile(join(root, "schema", schema), "utf8"));
 }
 
 console.log(JSON.stringify({ ok: true, fixtureSha256: digest.digest("hex"), adapters: adapters.length }));

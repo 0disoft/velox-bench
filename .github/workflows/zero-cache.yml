@@ -57,6 +57,17 @@ jobs:
 
       - name: Check contracts
         run: bun run check
+      - name: Validate public result schemas
+        shell: pwsh
+        run: |
+          $lock = Get-Content -LiteralPath 'bench.lock.json' -Raw | ConvertFrom-Json
+          $root = $lock.publication.directory
+          $metadata = Get-Content -LiteralPath "$root/run-metadata.json" -Raw
+          $metadataSchema = Get-Content -LiteralPath 'schema/github-run-metadata-v1.schema.json' -Raw
+          if (-not ($metadata | Test-Json -Schema $metadataSchema)) { throw 'Published run metadata failed JSON Schema validation.' }
+          $publication = Get-Content -LiteralPath "$root/publication.json" -Raw
+          $publicationSchema = Get-Content -LiteralPath 'schema/publication-v1.schema.json' -Raw
+          if (-not ($publication | Test-Json -Schema $publicationSchema)) { throw 'Published result failed JSON Schema validation.' }
 
   environment-baseline:
     name: Capture benchmark environment baseline

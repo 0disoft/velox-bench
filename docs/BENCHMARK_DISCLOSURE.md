@@ -84,3 +84,12 @@
 - Pair summary generation rejects matching sample IDs whose exact runner
   hardware differs or whose timing intervals overlap. This checks the paired
   workflow claim from raw evidence rather than trusting balanced CPU totals.
+- The committed public result is generated from a pinned pair summary, pair
+  decision, and normalized GitHub run metadata. The README block is a derived
+  view and cannot be edited independently without failing the contract check.
+- Workflow wall time and aggregate job runtime use GitHub API wall-clock
+  timestamps. They are not billed Actions minutes, and summed job runtime
+  intentionally counts intervals that overlap in parallel.
+- Artifact count and bytes describe the GitHub API response at metadata capture
+  time. Retention expiry can later change remote availability without changing
+  the preserved publication evidence.

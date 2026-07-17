@@ -1,0 +1,64 @@
+{
+  "schemaVersion": "velox.bench-publication/v1",
+  "generatedAtUtc": "2026-07-17T09:25:13Z",
+  "scope": "velox-wails",
+  "suite": "zero-cache",
+  "source": {
+    "repository": "0disoft/velox-bench",
+    "runId": "29569560999",
+    "runAttempt": 1,
+    "runUrl": "https://github.com/0disoft/velox-bench/actions/runs/29569560999",
+    "benchmarkCommit": "0f83ff4156441044fa0c2290e8fe266d0d5fcb86",
+    "pairSummarySha256": "cd0ddc688f248bd81668598621e330c2729d6321fd65a92747841306cef6debe",
+    "pairDecisionSha256": "6673b32c1cbfdf9e0889fba6170252fe0f18e3483a3408300dcfbb11ac66c193",
+    "runMetadataSha256": "89d3ac4fe2e7edce1758dfbf701754d3b8f3b3eedea204f3a0caa7fe5edb720e"
+  },
+  "result": {
+    "evidenceLevel": "publishable",
+    "status": "passed",
+    "fixtureSha256": "e50cd76355a78801ce1208d21ff9355f793a3baae8fa8a0cf3a47b37d7662c35",
+    "expectedPerFramework": 10,
+    "uploadedCacheBytes": 0,
+    "wailsToVeloxP50Ratio": 36.124,
+    "rows": [
+      {
+        "framework": "velox",
+        "successful": 10,
+        "failed": 0,
+        "timedOut": 0,
+        "p50Ms": 1997,
+        "p95Ms": 2844
+      },
+      {
+        "framework": "wails",
+        "successful": 10,
+        "failed": 0,
+        "timedOut": 0,
+        "p50Ms": 72140,
+        "p95Ms": 124112
+      }
+    ]
+  },
+  "environment": {
+    "runner": "windows-2025",
+    "runnerImageVersion": "20260714.173.1",
+    "windowsVersion": "10.0.26100",
+    "architecture": "amd64",
+    "logicalProcessors": 4,
+    "memoryClassBytes": 17179869184,
+    "hardwareBalanced": true
+  },
+  "resources": {
+    "observedJobs": 15,
+    "timedJobs": 15,
+    "successfulJobs": 14,
+    "skippedJobs": 1,
+    "failedJobs": 0,
+    "workflowWallMs": 331000,
+    "aggregateJobRuntimeMs": 1233000,
+    "artifactCount": 13,
+    "artifactBytes": 3207423,
+    "expiredArtifacts": 0,
+    "uploadedCacheBytes": 0
+  }
+}

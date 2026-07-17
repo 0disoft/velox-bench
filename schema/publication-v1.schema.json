@@ -1,0 +1,92 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.velox.invalid/bench/publication-v1.schema.json",
+  "title": "Velox benchmark publication v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "generatedAtUtc", "scope", "suite", "source", "result", "environment", "resources"],
+  "properties": {
+    "schemaVersion": { "const": "velox.bench-publication/v1" },
+    "generatedAtUtc": { "type": "string", "format": "date-time" },
+    "scope": { "const": "velox-wails" },
+    "suite": { "const": "zero-cache" },
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["repository", "runId", "runAttempt", "runUrl", "benchmarkCommit", "pairSummarySha256", "pairDecisionSha256", "runMetadataSha256"],
+      "properties": {
+        "repository": { "const": "0disoft/velox-bench" },
+        "runId": { "type": "string", "pattern": "^[0-9]+$" },
+        "runAttempt": { "type": "integer", "minimum": 1 },
+        "runUrl": { "type": "string", "format": "uri" },
+        "benchmarkCommit": { "type": "string", "pattern": "^[0-9a-f]{40}$" },
+        "pairSummarySha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+        "pairDecisionSha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+        "runMetadataSha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" }
+      }
+    },
+    "result": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["evidenceLevel", "status", "fixtureSha256", "expectedPerFramework", "uploadedCacheBytes", "wailsToVeloxP50Ratio", "rows"],
+      "properties": {
+        "evidenceLevel": { "const": "publishable" },
+        "status": { "const": "passed" },
+        "fixtureSha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+        "expectedPerFramework": { "const": 10 },
+        "uploadedCacheBytes": { "const": 0 },
+        "wailsToVeloxP50Ratio": { "type": "number", "minimum": 3 },
+        "rows": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 2,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["framework", "successful", "failed", "timedOut", "p50Ms", "p95Ms"],
+            "properties": {
+              "framework": { "enum": ["velox", "wails"] },
+              "successful": { "const": 10 },
+              "failed": { "const": 0 },
+              "timedOut": { "const": 0 },
+              "p50Ms": { "type": "number", "minimum": 0 },
+              "p95Ms": { "type": "number", "minimum": 0 }
+            }
+          }
+        }
+      }
+    },
+    "environment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["runner", "runnerImageVersion", "windowsVersion", "architecture", "logicalProcessors", "memoryClassBytes", "hardwareBalanced"],
+      "properties": {
+        "runner": { "type": "string", "minLength": 1 },
+        "runnerImageVersion": { "type": "string", "minLength": 1 },
+        "windowsVersion": { "type": "string", "minLength": 1 },
+        "architecture": { "type": "string", "minLength": 1 },
+        "logicalProcessors": { "type": "integer", "minimum": 1 },
+        "memoryClassBytes": { "type": "integer", "minimum": 1 },
+        "hardwareBalanced": { "const": true }
+      }
+    },
+    "resources": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["observedJobs", "timedJobs", "successfulJobs", "skippedJobs", "failedJobs", "workflowWallMs", "aggregateJobRuntimeMs", "artifactCount", "artifactBytes", "expiredArtifacts", "uploadedCacheBytes"],
+      "properties": {
+        "observedJobs": { "type": "integer", "minimum": 1 },
+        "timedJobs": { "type": "integer", "minimum": 1 },
+        "successfulJobs": { "type": "integer", "minimum": 1 },
+        "skippedJobs": { "type": "integer", "minimum": 0 },
+        "failedJobs": { "const": 0 },
+        "workflowWallMs": { "type": "integer", "minimum": 0 },
+        "aggregateJobRuntimeMs": { "type": "integer", "minimum": 0 },
+        "artifactCount": { "type": "integer", "minimum": 1 },
+        "artifactBytes": { "type": "integer", "minimum": 0 },
+        "expiredArtifacts": { "type": "integer", "minimum": 0 },
+        "uploadedCacheBytes": { "const": 0 }
+      }
+    }
+  }
+}

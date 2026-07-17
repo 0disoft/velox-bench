@@ -5,12 +5,38 @@ Tauri.
 
 The zero-cache hosted workflow, versioned raw-result contract,
 failure-preserving summary, environment-consistency gate, machine-derived
-go-or-kill decision, and byte-identical adapters are implemented. This
-repository still generates no persistent public performance table. The
-[publishable Velox-Wails pair run](https://github.com/0disoft/velox-bench/actions/runs/29569560999)
-passes only that pair's numeric product gate. The deterministic asset-pack,
-recommended-cache execution path, generated public table, and aggregate CI
-resource report remain unimplemented.
+go-or-kill decision, byte-identical adapters, and machine-generated public
+result publication are implemented. The published pair result does not claim a
+four-framework winner. The deterministic asset-pack and recommended-cache
+execution path remain unimplemented.
+
+## Published Velox-Wails Result
+
+<!-- BEGIN GENERATED VELOX-WAILS RESULT -->
+
+Source: [GitHub Actions run 29569560999](https://github.com/0disoft/velox-bench/actions/runs/29569560999) at benchmark revision `0f83ff4156441044fa0c2290e8fe266d0d5fcb86`.
+This block is generated from the committed publication contract. Do not edit its values by hand.
+
+| Framework | Successful samples | End-to-end p50 | End-to-end p95 |
+| --- | ---: | ---: | ---: |
+| Velox | 10 | 1,997 ms | 2,844 ms |
+| Wails | 10 | 72,140 ms | 124,112 ms |
+
+Wails-to-Velox p50 ratio: **36.124x**. Uploaded Actions cache: **0 B**.
+
+### CI Resource Observation
+
+| Observation | Value |
+| --- | ---: |
+| Workflow wall time | 331.000 s |
+| Aggregate observed job runtime | 1233.000 s |
+| Jobs | 15 observed / 14 successful / 1 skipped / 0 failed |
+| Artifacts at capture | 13 / 3,207,423 B |
+| Expired artifacts at capture | 0 |
+
+Workflow wall time and aggregate job runtime come from GitHub's wall-clock timestamps. They are observations, not billed Actions minutes. Artifact bytes are the API-reported sizes at capture time.
+
+<!-- END GENERATED VELOX-WAILS RESULT -->
 
 ## Current Pins
 
@@ -30,8 +56,9 @@ bun run check
 
 The check compiles the TypeScript harness, runs contract and deterministic ZIP
 tests, validates immutable framework and Action pins, rejects cache actions,
-and proves that every adapter's HTML, CSS, and JavaScript fixture matches the
-canonical fixture byte for byte.
+proves that every adapter's HTML, CSS, and JavaScript fixture matches the
+canonical fixture byte for byte, and regenerates the publication contract and
+README block in memory to reject hand-edited numbers.
 
 ## Hosted Suites
 

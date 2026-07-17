@@ -1,0 +1,220 @@
+{
+  "schemaVersion": "velox.github-run-metadata/v1",
+  "repository": "0disoft/velox-bench",
+  "capturedAtUtc": "2026-07-17T10:32:18.090Z",
+  "run": {
+    "id": "29569560999",
+    "attempt": 1,
+    "url": "https://github.com/0disoft/velox-bench/actions/runs/29569560999",
+    "workflowName": "Zero-cache benchmark",
+    "event": "workflow_dispatch",
+    "headSha": "0f83ff4156441044fa0c2290e8fe266d0d5fcb86",
+    "status": "completed",
+    "conclusion": "success",
+    "createdAtUtc": "2026-07-17T09:19:42Z",
+    "startedAtUtc": "2026-07-17T09:19:42Z",
+    "completedAtUtc": "2026-07-17T09:25:13Z"
+  },
+  "jobs": [
+    {
+      "id": "87849899511",
+      "name": "Validate benchmark contracts",
+      "status": "completed",
+      "conclusion": "success",
+      "startedAtUtc": "2026-07-17T09:19:46Z",
+      "completedAtUtc": "2026-07-17T09:20:18Z"
+    },
+    {
+      "id": "87850013174",
+      "name": "Capture benchmark environment baseline",
+      "status": "completed",
+      "conclusion": "success",
+      "startedAtUtc": "2026-07-17T09:20:21Z",
+      "completedAtUtc": "2026-07-17T09:20:41Z"
+    },
+    {
+      "id": "87850085672",
+      "name": "Build pinned Velox producer artifact",
+      "status": "completed",
+      "conclusion": "success",
+      "startedAtUtc": "2026-07-17T09:20:44Z",
+      "completedAtUtc": "2026-07-17T09:21:59Z"
+    },
+    {
+      "id": "87850330506",
+      "name": "paired sample 1 (wails first)",
+      "status": "completed",
+      "conclusion": "success",
+      "startedAtUtc": "2026-07-17T09:22:02Z",
+      "completedAtUtc": "2026-07-17T09:23:41Z"
+    },
+    {
+      "id": "87850330515",
+      "name": "paired sample 3 (wails first)",
+      "status": "completed",
+      "conclusion": "success",
+      "startedAtUtc": "2026-07-17T09:22:02Z",
+      "completedAtUtc": "2026-07-17T09:23:42Z"
+    },
+    {
+      "id": "87850330517",
+      "name": "paired sample 2 (velox first)",
+      "status": "completed",
+      "conclusion": "success",
+      "startedAtUtc": "2026-07-17T09:22:02Z",
+      "completedAtUtc": "2026-07-17T09:23:47Z"
+    },
+    {
+      "id": "87850330518",
+      "name": "paired sample 4 (velox first)",
+      "status": "completed",
+      "conclusion": "success",
+      "startedAtUtc": "2026-07-17T09:22:03Z",
+      "completedAtUtc": "2026-07-17T09:23:45Z"
+    },
+    {
+      "id": "87850330520",
+      "name": "paired sample 0 (velox first)",
+      "status": "completed",
+      "conclusion": "success",
+      "startedAtUtc": "2026-07-17T09:22:02Z",
+      "completedAtUtc": "2026-07-17T09:23:38Z"
+    },
+    {
+      "id": "87850330522",
+      "name": "paired sample 5 (wails first)",
+      "status": "completed",
+      "conclusion": "success",
+      "startedAtUtc": "2026-07-17T09:22:02Z",
+      "completedAtUtc": "2026-07-17T09:24:12Z"
+    },
+    {
+      "id": "87850330537",
+      "name": "paired sample 7 (wails first)",
+      "status": "completed",
+      "conclusion": "success",
+      "startedAtUtc": "2026-07-17T09:22:03Z",
+      "completedAtUtc": "2026-07-17T09:23:49Z"
+    },
+    {
+      "id": "87850330538",
+      "name": "paired sample 9 (wails first)",
+      "status": "completed",
+      "conclusion": "success",
+      "startedAtUtc": "2026-07-17T09:22:01Z",
+      "completedAtUtc": "2026-07-17T09:23:35Z"
+    },
+    {
+      "id": "87850330542",
+      "name": "paired sample 8 (velox first)",
+      "status": "completed",
+      "conclusion": "success",
+      "startedAtUtc": "2026-07-17T09:22:03Z",
+      "completedAtUtc": "2026-07-17T09:23:37Z"
+    },
+    {
+      "id": "87850330635",
+      "name": "paired sample 6 (velox first)",
+      "status": "completed",
+      "conclusion": "success",
+      "startedAtUtc": "2026-07-17T09:22:08Z",
+      "completedAtUtc": "2026-07-17T09:24:43Z"
+    },
+    {
+      "id": "87850331020",
+      "name": "${{ matrix.framework }} sample ${{ matrix.sample }}",
+      "status": "completed",
+      "conclusion": "skipped",
+      "startedAtUtc": "2026-07-17T09:22:00Z",
+      "completedAtUtc": "2026-07-17T09:22:00Z"
+    },
+    {
+      "id": "87850848488",
+      "name": "Summarize raw evidence",
+      "status": "completed",
+      "conclusion": "success",
+      "startedAtUtc": "2026-07-17T09:24:48Z",
+      "completedAtUtc": "2026-07-17T09:25:13Z"
+    }
+  ],
+  "artifacts": [
+    {
+      "id": "8402616450",
+      "name": "zero-cache-velox-wails-summary-29569560999-1",
+      "sizeBytes": 1298,
+      "expired": false
+    },
+    {
+      "id": "8402604637",
+      "name": "raw-pair-6-1",
+      "sizeBytes": 1681,
+      "expired": false
+    },
+    {
+      "id": "8402593118",
+      "name": "raw-pair-5-1",
+      "sizeBytes": 1679,
+      "expired": false
+    },
+    {
+      "id": "8402583743",
+      "name": "raw-pair-7-1",
+      "sizeBytes": 1679,
+      "expired": false
+    },
+    {
+      "id": "8402583230",
+      "name": "raw-pair-2-1",
+      "sizeBytes": 1647,
+      "expired": false
+    },
+    {
+      "id": "8402582456",
+      "name": "raw-pair-4-1",
+      "sizeBytes": 1654,
+      "expired": false
+    },
+    {
+      "id": "8402581196",
+      "name": "raw-pair-3-1",
+      "sizeBytes": 1654,
+      "expired": false
+    },
+    {
+      "id": "8402580857",
+      "name": "raw-pair-1-1",
+      "sizeBytes": 1655,
+      "expired": false
+    },
+    {
+      "id": "8402580047",
+      "name": "raw-pair-0-1",
+      "sizeBytes": 1653,
+      "expired": false
+    },
+    {
+      "id": "8402579671",
+      "name": "raw-pair-8-1",
+      "sizeBytes": 1645,
+      "expired": false
+    },
+    {
+      "id": "8402578979",
+      "name": "raw-pair-9-1",
+      "sizeBytes": 1655,
+      "expired": false
+    },
+    {
+      "id": "8402541502",
+      "name": "velox-release-29569560999-1",
+      "sizeBytes": 3189111,
+      "expired": false
+    },
+    {
+      "id": "8402513241",
+      "name": "zero-cache-environment-29569560999-1",
+      "sizeBytes": 412,
+      "expired": false
+    }
+  ]
+}

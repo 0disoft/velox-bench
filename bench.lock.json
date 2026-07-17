@@ -19,6 +19,13 @@
     "name": "hello",
     "files": ["index.html", "style.css", "app.js"]
   },
+  "publication": {
+    "scope": "velox-wails",
+    "runId": "29569560999",
+    "runAttempt": 1,
+    "benchmarkCommit": "0f83ff4156441044fa0c2290e8fe266d0d5fcb86",
+    "directory": "results/velox-wails/run-29569560999"
+  },
   "controls": {
     "webview2Binding": {
       "repository": "jchv/go-webview2",

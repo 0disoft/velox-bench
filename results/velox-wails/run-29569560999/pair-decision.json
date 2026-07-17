@@ -1,0 +1,24 @@
+{
+  "schemaVersion": "velox.bench-pair-decision/v1",
+  "suite": "zero-cache",
+  "scope": "velox-wails",
+  "evidenceLevel": "publishable",
+  "status": "passed",
+  "target": {
+    "metric": "wails-to-velox-p50-ratio",
+    "minimum": 3
+  },
+  "metrics": {
+    "veloxP50Ms": 1997,
+    "wailsP50Ms": 72140,
+    "wailsToVeloxP50Ratio": 36.124
+  },
+  "gates": {
+    "completeSuccessfulSamples": true,
+    "singleEnvironment": true,
+    "hardwareBalanced": true,
+    "zeroCacheUpload": true,
+    "minimumSpeedup": true
+  },
+  "questionsRequired": false
+}
