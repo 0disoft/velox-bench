@@ -150,12 +150,18 @@ for (const marker of [
   "needs: [contracts, environment-baseline, velox-release]",
   "needs: [environment-baseline, measure]",
   "bun scripts/decide.ts",
+  "bun scripts/summarize-pair.ts",
+  "bun scripts/decide-pair.ts",
   "Validate summary and decision schemas",
   "schema/summary-v2.schema.json",
   "schema/decision-v1.schema.json",
+  "schema/pair-summary-v1.schema.json",
+  "schema/pair-decision-v1.schema.json",
   ".bench/summary/go-or-kill.json",
   "inputs.framework != 'all'",
   "inputs.framework == 'velox'",
+  "inputs.framework == 'velox-wails'",
+  "'[\"velox\",\"wails\"]'",
   "format('[\"{0}\"]', inputs.framework)",
   "inputs.sample_count == '3'",
   "'[0,1,2]'",
@@ -165,7 +171,7 @@ for (const marker of [
 ]) {
   if (!workflow.includes(marker)) throw new Error(`zero-cache diagnostic matrix is missing ${marker}`);
 }
-for (const schema of ["result-v1.schema.json", "summary-v1.schema.json", "summary-v2.schema.json", "environment-v1.schema.json", "decision-v1.schema.json"]) {
+for (const schema of ["result-v1.schema.json", "summary-v1.schema.json", "summary-v2.schema.json", "environment-v1.schema.json", "decision-v1.schema.json", "pair-summary-v1.schema.json", "pair-decision-v1.schema.json"]) {
   JSON.parse(await readFile(join(root, "schema", schema), "utf8"));
 }
 

@@ -26,13 +26,16 @@ export function validateDecision(value: unknown): asserts value is BenchmarkDeci
   if (!decision.gates || typeof decision.questionsRequired !== "boolean") throw new Error("decision gates are invalid");
 }
 
-function row(summary: BenchmarkSummary, framework: Framework) {
+export type DecisionInput = Pick<BenchmarkSummary, "expectedPerFramework" | "uploadedCacheBytes" | "environmentCount" | "hardwareBalanced" | "publishable" | "rows">;
+export type DecisionEvaluation = Omit<BenchmarkDecision, "schemaVersion" | "suite">;
+
+function row(summary: DecisionInput, framework: Framework) {
   const value = summary.rows.find((candidate) => candidate.framework === framework);
   if (!value) throw new Error(`summary is missing ${framework}`);
   return value;
 }
 
-export function buildDecision(summary: BenchmarkSummary): BenchmarkDecision {
+export function evaluateDecision(summary: DecisionInput): DecisionEvaluation {
   const velox = row(summary, "velox");
   const wails = row(summary, "wails");
   const completeSuccessfulSamples = summary.rows.every((candidate) =>
@@ -56,15 +59,21 @@ export function buildDecision(summary: BenchmarkSummary): BenchmarkDecision {
   let status: BenchmarkDecision["status"] = "insufficient-evidence";
   if (comparable && evidenceLevel === "publishable") status = minimumSpeedup ? "passed" : "failed";
   else if (comparable) status = minimumSpeedup ? "promising" : "below-target";
-  const decision: BenchmarkDecision = {
-    schemaVersion: "velox.bench-decision/v1",
-    suite: "zero-cache",
+  return {
     evidenceLevel,
     status,
     target: { metric: "wails-to-velox-p50-ratio", minimum: 3 },
     metrics: { veloxP50Ms, wailsP50Ms, wailsToVeloxP50Ratio: ratio },
     gates: { completeSuccessfulSamples, singleEnvironment, hardwareBalanced, zeroCacheUpload, minimumSpeedup },
     questionsRequired: status === "below-target" || status === "failed",
+  };
+}
+
+export function buildDecision(summary: BenchmarkSummary): BenchmarkDecision {
+  const decision: BenchmarkDecision = {
+    schemaVersion: "velox.bench-decision/v1",
+    suite: "zero-cache",
+    ...evaluateDecision(summary),
   };
   validateDecision(decision);
   return decision;

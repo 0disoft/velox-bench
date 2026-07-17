@@ -16,6 +16,7 @@ on:
         type: choice
         options:
           - all
+          - velox-wails
           - velox
           - wails
           - neutralino
@@ -104,7 +105,7 @@ jobs:
     if: >-
       github.event_name == 'schedule' ||
       startsWith(github.ref, 'refs/tags/benchmark-v') ||
-      (github.event_name == 'workflow_dispatch' && (inputs.framework == 'all' || inputs.framework == 'velox'))
+      (github.event_name == 'workflow_dispatch' && (inputs.framework == 'all' || inputs.framework == 'velox-wails' || inputs.framework == 'velox'))
     needs: [contracts, environment-baseline]
     runs-on: windows-2025
     timeout-minutes: 10
@@ -160,12 +161,12 @@ jobs:
       needs.contracts.result == 'success' &&
       needs.environment-baseline.result == 'success' &&
       (needs.velox-release.result == 'success' ||
-      (needs.velox-release.result == 'skipped' && github.event_name == 'workflow_dispatch' && inputs.framework != 'all' && inputs.framework != 'velox'))
+      (needs.velox-release.result == 'skipped' && github.event_name == 'workflow_dispatch' && inputs.framework != 'all' && inputs.framework != 'velox-wails' && inputs.framework != 'velox'))
     needs: [contracts, environment-baseline, velox-release]
     strategy:
       fail-fast: false
       matrix:
-        framework: ${{ fromJSON(github.event_name == 'workflow_dispatch' && inputs.framework != 'all' && format('["{0}"]', inputs.framework) || '["velox","wails","neutralino","tauri"]') }}
+        framework: ${{ fromJSON(github.event_name == 'workflow_dispatch' && inputs.framework == 'velox-wails' && '["velox","wails"]' || github.event_name == 'workflow_dispatch' && inputs.framework != 'all' && format('["{0}"]', inputs.framework) || '["velox","wails","neutralino","tauri"]') }}
         sample: ${{ fromJSON(github.event_name == 'workflow_dispatch' && inputs.sample_count == '1' && '[0]' || github.event_name == 'workflow_dispatch' && inputs.sample_count == '3' && '[0,1,2]' || '[0,1,2,3,4,5,6,7,8,9]') }}
     runs-on: windows-2025
     timeout-minutes: 45
@@ -233,7 +234,7 @@ jobs:
     if: >-
       always() &&
       (github.event_name == 'schedule' || startsWith(github.ref, 'refs/tags/benchmark-v') ||
-      (github.event_name == 'workflow_dispatch' && inputs.framework == 'all'))
+      (github.event_name == 'workflow_dispatch' && (inputs.framework == 'all' || inputs.framework == 'velox-wails')))
     needs: [environment-baseline, measure]
     runs-on: windows-2025
     timeout-minutes: 10
@@ -257,27 +258,48 @@ jobs:
           merge-multiple: true
 
       - name: Build summary
+        if: github.event_name != 'workflow_dispatch' || inputs.framework != 'velox-wails'
         run: bun scripts/summarize.ts .bench/downloaded .bench/summary/zero-cache.json ${{ github.event_name == 'workflow_dispatch' && inputs.sample_count || '10' }}
 
       - name: Build go-or-kill decision
+        if: github.event_name != 'workflow_dispatch' || inputs.framework != 'velox-wails'
         run: bun scripts/decide.ts .bench/summary/zero-cache.json .bench/summary/go-or-kill.json
+
+      - name: Build Velox and Wails pair summary
+        if: github.event_name == 'workflow_dispatch' && inputs.framework == 'velox-wails'
+        run: bun scripts/summarize-pair.ts .bench/downloaded .bench/summary/velox-wails.json ${{ inputs.sample_count }}
+
+      - name: Build Velox and Wails pair decision
+        if: github.event_name == 'workflow_dispatch' && inputs.framework == 'velox-wails'
+        run: bun scripts/decide-pair.ts .bench/summary/velox-wails.json .bench/summary/velox-wails-decision.json
 
       - name: Validate summary and decision schemas
         shell: pwsh
+        env:
+          BENCHMARK_SCOPE: ${{ github.event_name == 'workflow_dispatch' && inputs.framework == 'velox-wails' && 'velox-wails' || 'all' }}
         run: |
-          $summarySchema = Get-Content -LiteralPath 'schema/summary-v2.schema.json' -Raw
-          $summary = Get-Content -LiteralPath '.bench/summary/zero-cache.json' -Raw
+          if ($env:BENCHMARK_SCOPE -eq 'velox-wails') {
+            $summarySchemaPath = 'schema/pair-summary-v1.schema.json'
+            $summaryPath = '.bench/summary/velox-wails.json'
+            $decisionSchemaPath = 'schema/pair-decision-v1.schema.json'
+            $decisionPath = '.bench/summary/velox-wails-decision.json'
+          } else {
+            $summarySchemaPath = 'schema/summary-v2.schema.json'
+            $summaryPath = '.bench/summary/zero-cache.json'
+            $decisionSchemaPath = 'schema/decision-v1.schema.json'
+            $decisionPath = '.bench/summary/go-or-kill.json'
+          }
+          $summarySchema = Get-Content -LiteralPath $summarySchemaPath -Raw
+          $summary = Get-Content -LiteralPath $summaryPath -Raw
           if (-not ($summary | Test-Json -Schema $summarySchema)) { throw 'Zero-cache summary failed JSON Schema validation.' }
-          $decisionSchema = Get-Content -LiteralPath 'schema/decision-v1.schema.json' -Raw
-          $decision = Get-Content -LiteralPath '.bench/summary/go-or-kill.json' -Raw
+          $decisionSchema = Get-Content -LiteralPath $decisionSchemaPath -Raw
+          $decision = Get-Content -LiteralPath $decisionPath -Raw
           if (-not ($decision | Test-Json -Schema $decisionSchema)) { throw 'Go-or-kill decision failed JSON Schema validation.' }
 
       - name: Upload summary
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: zero-cache-summary-${{ github.run_id }}-${{ github.run_attempt }}
-          path: |
-            .bench/summary/zero-cache.json
-            .bench/summary/go-or-kill.json
+          name: ${{ github.event_name == 'workflow_dispatch' && inputs.framework == 'velox-wails' && 'zero-cache-velox-wails-summary' || 'zero-cache-summary' }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: .bench/summary/*.json
           retention-days: 90
           if-no-files-found: error

@@ -75,3 +75,7 @@
 - The go-or-kill decision artifact applies only the numeric cache and
   Wails-to-Velox cold-build gates. Structural simplicity, PWA differentiation,
   security review, and external user attempts remain separate product decisions.
+- The `velox-wails` scope intentionally omits Neutralinojs and Tauri to reduce
+  runner cost while validating the product's numeric Wails comparison. Its pair
+  summary and decision use separate schema identifiers and must not be shown as
+  an all-framework benchmark or winner table.
