@@ -3,10 +3,14 @@
 Public benchmark contracts and fixtures for Velox, Wails, Neutralinojs, and
 Tauri.
 
-The zero-cache hosted workflow, versioned raw-result contract, failure-preserving
-summary, environment-consistency gate, machine-derived go-or-kill decision, and byte-identical adapters are implemented. This repository still
-publishes no performance table: a manual one-sample run validates plumbing,
-while publication requires ten complete isolated samples per framework.
+The zero-cache hosted workflow, versioned raw-result contract,
+failure-preserving summary, environment-consistency gate, machine-derived
+go-or-kill decision, and byte-identical adapters are implemented. This
+repository still generates no persistent public performance table. The
+[publishable Velox-Wails pair run](https://github.com/0disoft/velox-bench/actions/runs/29569560999)
+passes only that pair's numeric product gate. The deterministic asset-pack,
+recommended-cache execution path, generated public table, and aggregate CI
+resource report remain unimplemented.
 
 ## Current Pins
 
