@@ -1,0 +1,12 @@
+{
+  "schemaVersion": "velox.asset-pack-fixture/v1",
+  "algorithm": "xorshift32-v1",
+  "seed": 1447383631,
+  "layout": {
+    "root": "assets",
+    "directories": 10,
+    "fileCount": 1000,
+    "totalBytes": 10485760,
+    "extension": ".bin"
+  }
+}

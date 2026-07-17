@@ -68,6 +68,12 @@ jobs:
           $publication = Get-Content -LiteralPath "$root/publication.json" -Raw
           $publicationSchema = Get-Content -LiteralPath 'schema/publication-v1.schema.json' -Raw
           if (-not ($publication | Test-Json -Schema $publicationSchema)) { throw 'Published result failed JSON Schema validation.' }
+      - name: Validate asset-pack manifest schema
+        shell: pwsh
+        run: |
+          $manifest = Get-Content -LiteralPath 'fixtures/asset-pack/fixture.json' -Raw
+          $schema = Get-Content -LiteralPath 'schema/asset-pack-v1.schema.json' -Raw
+          if (-not ($manifest | Test-Json -Schema $schema)) { throw 'Asset-pack manifest failed JSON Schema validation.' }
 
   environment-baseline:
     name: Capture benchmark environment baseline

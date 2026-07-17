@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
+import { describeAssetPack, validateAssetPackManifest, type AssetPackManifest } from "./asset-pack";
 import { buildPairPublication, renderPairPublication, serializeCanonicalJson, updateReadmePublication } from "./publication";
 import { createTauriIcon } from "./tauri-icon";
 
@@ -10,6 +11,7 @@ type Lock = {
   toolchains: Record<string, string>;
   actions: Record<string, string>;
   fixture: { name: string; files: string[] };
+  assetPack: { manifest: string; expectedTreeSha256: string };
   publication: { scope: string; runId: string; runAttempt: number; benchmarkCommit: string; directory: string };
   controls: Record<string, Record<string, string>>;
   frameworks: Record<string, Record<string, string>>;
@@ -33,6 +35,18 @@ function assertExactKeys(value: unknown, keys: string[], label: string): asserts
 
 if (lock.schemaVersion !== "velox-bench-lock/v2" || lock.runner !== "windows-2025") {
   throw new Error("unsupported benchmark lock contract");
+}
+if (lock.assetPack.manifest !== "fixtures/asset-pack/fixture.json" || !/^[0-9a-f]{64}$/.test(lock.assetPack.expectedTreeSha256)) {
+  throw new Error("asset-pack lock must pin its manifest and deterministic tree digest");
+}
+const assetPackManifest = JSON.parse(await readFile(join(root, lock.assetPack.manifest), "utf8")) as AssetPackManifest;
+validateAssetPackManifest(assetPackManifest);
+if (assetPackManifest.layout.fileCount !== 1000 || assetPackManifest.layout.totalBytes !== 10 * 1024 * 1024) {
+  throw new Error("asset-pack fixture must contain 1,000 generated files totaling exactly 10 MiB");
+}
+const assetPackDescription = describeAssetPack(assetPackManifest);
+if (assetPackDescription.treeSha256 !== lock.assetPack.expectedTreeSha256) {
+  throw new Error("asset-pack generator digest differs from bench.lock.json");
 }
 if (JSON.stringify(Object.keys(lock.frameworks).sort()) !== JSON.stringify(["neutralino", "tauri", "velox", "wails"])) {
   throw new Error("framework lock must contain exactly neutralino, tauri, velox, and wails");
@@ -185,10 +199,13 @@ for (const marker of [
   "schema/github-run-metadata-v1.schema.json",
   "schema/publication-v1.schema.json",
   "$lock.publication.directory",
+  "Validate asset-pack manifest schema",
+  "schema/asset-pack-v1.schema.json",
+  "fixtures/asset-pack/fixture.json",
 ]) {
   if (!workflow.includes(marker)) throw new Error(`zero-cache diagnostic matrix is missing ${marker}`);
 }
-for (const schema of ["result-v1.schema.json", "summary-v1.schema.json", "summary-v2.schema.json", "environment-v1.schema.json", "decision-v1.schema.json", "pair-summary-v1.schema.json", "pair-decision-v1.schema.json"]) {
+for (const schema of ["asset-pack-v1.schema.json", "result-v1.schema.json", "summary-v1.schema.json", "summary-v2.schema.json", "environment-v1.schema.json", "decision-v1.schema.json", "pair-summary-v1.schema.json", "pair-decision-v1.schema.json"]) {
   JSON.parse(await readFile(join(root, "schema", schema), "utf8"));
 }
 

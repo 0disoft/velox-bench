@@ -6,6 +6,24 @@ The first comparison targets Windows x64 and the dependency-free `hello`
 fixture. Velox, Wails, Neutralinojs, and Tauri receive the same HTML, CSS, and
 JavaScript bytes.
 
+## Deterministic Asset-Pack Fixture
+
+The asset-pack contract generates exactly 1,000 `.bin` files totaling
+10,485,760 bytes beneath ten deterministic directories. File sizes distribute
+the byte remainder over the lowest indexes. Paths and bytes derive only from a
+pinned uint32 seed and the versioned `xorshift32-v1` algorithm.
+
+The tree digest processes each lexically stable entry as UTF-8 path, one NUL
+byte, uint64 little-endian size, and file bytes. `bench.lock.json` pins that
+digest. Contract checks compute the complete tree without filesystem I/O;
+materialization uses a sibling staging directory, verifies every resulting
+path and byte, then renames into a destination that must not already exist.
+
+Generated payload files are deliberately ignored build evidence rather than
+committed source. The fixture contract is complete, but hosted zero-cache jobs
+still select `hello`; asset-pack measurements require an explicit workflow and
+raw-result fixture-identity change before any public comparison is made.
+
 ## Headline Boundary
 
 End-to-end cold build starts after source checkout and immediately before the

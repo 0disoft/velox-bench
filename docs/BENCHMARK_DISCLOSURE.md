@@ -93,3 +93,6 @@
 - Artifact count and bytes describe the GitHub API response at metadata capture
   time. Retention expiry can later change remote availability without changing
   the preserved publication evidence.
+- The deterministic asset-pack generator has a pinned 1,000-file, 10 MiB tree
+  contract, but current hosted measurements and the published table still use
+  only `hello`. Generator correctness is not asset-pack performance evidence.

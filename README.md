@@ -6,9 +6,10 @@ Tauri.
 The zero-cache hosted workflow, versioned raw-result contract,
 failure-preserving summary, environment-consistency gate, machine-derived
 go-or-kill decision, byte-identical adapters, and machine-generated public
-result publication are implemented. The published pair result does not claim a
-four-framework winner. The deterministic asset-pack and recommended-cache
-execution path remain unimplemented.
+result publication, and deterministic asset-pack contract are implemented. The
+published pair result does not claim a four-framework winner. The asset-pack is
+not yet wired into hosted measurement jobs, and the recommended-cache execution
+path remains unimplemented.
 
 ## Published Velox-Wails Result
 
@@ -59,6 +60,22 @@ tests, validates immutable framework and Action pins, rejects cache actions,
 proves that every adapter's HTML, CSS, and JavaScript fixture matches the
 canonical fixture byte for byte, and regenerates the publication contract and
 README block in memory to reject hand-edited numbers.
+
+## Deterministic Asset Pack
+
+The asset-pack manifest describes exactly 1,000 generated files totaling
+10 MiB. The dependency-free generator derives every path and byte from the
+pinned seed, refuses an existing destination, verifies the materialized tree,
+and keeps generated payloads out of Git.
+
+```text
+bun scripts/generate-asset-pack.ts .bench/fixtures/asset-pack --json
+```
+
+`bench.lock.json` pins the expected tree digest. `bun run check` computes the
+full 10 MiB contract in memory, while unit tests materialize smaller trees to
+exercise filesystem behavior. Hosted framework adapters still use `hello`
+until the asset-pack workflow input and raw-result identity contract are added.
 
 ## Hosted Suites
 

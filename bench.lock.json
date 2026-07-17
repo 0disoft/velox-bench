@@ -19,6 +19,10 @@
     "name": "hello",
     "files": ["index.html", "style.css", "app.js"]
   },
+  "assetPack": {
+    "manifest": "fixtures/asset-pack/fixture.json",
+    "expectedTreeSha256": "8b7fb697154d4fb91ae7a4f9c797109ff2b83f25cad8d0d947b9f523ef83005f"
+  },
   "publication": {
     "scope": "velox-wails",
     "runId": "29569560999",
