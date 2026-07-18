@@ -3,6 +3,6 @@
   "private": true,
   "version": "0.0.0",
   "scripts": {
-    "check": "bun build scripts/check-contracts.ts scripts/collect-startup-history.ts scripts/environment-gate.ts scripts/fetch-run-metadata.ts scripts/generate-asset-pack.ts scripts/measure-zero-cache.ts scripts/measure-velox-startup.ts scripts/publish-pair.ts scripts/start-clock.ts scripts/summarize.ts scripts/decide.ts scripts/summarize-pair.ts scripts/decide-pair.ts scripts/summarize-startup.ts scripts/summarize-relaunch.ts scripts/summarize-transport.ts scripts/summarize-delay-sweep.ts scripts/summarize-recovery.ts --target=bun --outdir=.bench/compiled && bun test && bun scripts/check-contracts.ts"
+    "check": "bun build scripts/cache-api.ts scripts/check-contracts.ts scripts/collect-startup-history.ts scripts/environment-gate.ts scripts/fetch-run-metadata.ts scripts/finalize-recommended-cache.ts scripts/finish-clock.ts scripts/generate-asset-pack.ts scripts/measure-recommended-cache.ts scripts/measure-zero-cache.ts scripts/measure-velox-startup.ts scripts/publish-pair.ts scripts/start-clock.ts scripts/summarize-recommended-cache.ts scripts/summarize.ts scripts/decide.ts scripts/summarize-pair.ts scripts/decide-pair.ts scripts/summarize-startup.ts scripts/summarize-relaunch.ts scripts/summarize-transport.ts scripts/summarize-delay-sweep.ts scripts/summarize-recovery.ts --target=bun --outdir=.bench/compiled && bun test && bun scripts/check-contracts.ts"
   }
 }

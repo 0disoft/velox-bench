@@ -256,6 +256,33 @@ framework tool and cache directories; it is not labeled downloaded bytes.
 Final archive bytes, portable output bytes, and surviving intermediate bytes
 are measured separately.
 
+The recommended-cache suite uses a separate v1 result contract and never
+modifies zero-cache evidence. Prime and warm builds execute on different hosted
+runners with one exact key per framework, sample, run ID, and run attempt.
+Prime requires a cache miss and records explicit save duration. Warm requires
+an exact hit and records restore duration before rebuilding the same hello
+fixture.
+
+The cache surfaces are intentionally narrow:
+
+- Velox: no cache;
+- Wails: Go module and build caches;
+- Neutralinojs: npm's download cache, not `node_modules`;
+- Tauri: Cargo home and the application and CLI target tree.
+
+The workflow uses explicit `actions/cache/restore` and `actions/cache/save`
+steps rather than opaque setup-action post jobs. This preserves the documented
+Go, npm, and Cargo cache boundaries while allowing the benchmark to measure
+action duration and query the repository cache API after save. The API's exact
+`size_in_bytes` value is the uploaded and restored archive size. The local
+cache-tree byte count remains a separate working-set measurement.
+
+Cache writes occur only on manual dispatch or a dedicated benchmark tag. An
+`always()` cleanup job has `actions: write` only for deleting the exact
+run-owned keys. Failed and missing phase results remain visible; cleanup is not
+evidence that a failed build succeeded. Recommended-cache summaries quantify
+cost and warm behavior but keep `comparativeClaimAllowed` false.
+
 ## Failure Handling
 
 The harness deadline is 40 minutes and precedes the 45-minute job timeout so a

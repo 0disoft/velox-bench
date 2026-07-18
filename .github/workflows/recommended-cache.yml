@@ -1,0 +1,426 @@
+name: Recommended-cache benchmark
+
+on:
+  workflow_dispatch:
+    inputs:
+      framework:
+        description: Frameworks to measure
+        required: true
+        default: velox-wails
+        type: choice
+        options:
+          - velox-wails
+          - all
+          - velox
+          - wails
+          - neutralino
+          - tauri
+      sample_count:
+        description: Isolated prime and warm samples per framework
+        required: true
+        default: "1"
+        type: choice
+        options:
+          - "1"
+          - "3"
+  push:
+    tags: ["benchmark-cache-v*"]
+
+permissions:
+  actions: read
+  contents: read
+
+concurrency:
+  group: recommended-cache-${{ github.ref }}-${{ github.event_name }}
+  cancel-in-progress: false
+
+jobs:
+  contracts:
+    name: Validate recommended-cache contracts
+    runs-on: windows-2025
+    timeout-minutes: 5
+    steps:
+      - name: Check out benchmark
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version: 1.3.14
+          no-cache: true
+
+      - name: Check contracts
+        run: bun run check
+
+  velox-release:
+    name: Build pinned Velox producer artifact
+    if: github.event_name != 'workflow_dispatch' || inputs.framework == 'all' || inputs.framework == 'velox-wails' || inputs.framework == 'velox'
+    needs: contracts
+    runs-on: windows-2025
+    timeout-minutes: 10
+    steps:
+      - name: Check out benchmark
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+
+      - name: Check out pinned Velox
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          repository: 0disoft/velox
+          ref: ae7a819f0ef9b22cb4f959451d0189d699c6e546
+          path: velox-source
+          persist-credentials: false
+
+      - name: Set up Go
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version: 1.26.4
+          check-latest: false
+          cache: false
+
+      - name: Build unsigned release
+        shell: pwsh
+        working-directory: velox-source
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $env:GOCACHE = Join-Path $env:RUNNER_TEMP 'velox-producer-go-build'
+          $inputRoot = Join-Path $env:RUNNER_TEMP 'velox-release-input'
+          New-Item -ItemType Directory -Path $inputRoot -Force | Out-Null
+          go build -trimpath -ldflags='-s -w' -o (Join-Path $inputRoot 'velox.exe') ./cmd/velox
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          go build -trimpath -ldflags='-s -w' -o (Join-Path $inputRoot 'velox-host.exe') ./cmd/velox-host
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          go run ./cmd/velox-release --cli (Join-Path $inputRoot 'velox.exe') --host (Join-Path $inputRoot 'velox-host.exe') --source-root $env:GITHUB_WORKSPACE/velox-source --out dist/release --json
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Upload Velox producer artifact
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: recommended-velox-release-${{ github.run_id }}-${{ github.run_attempt }}
+          path: velox-source/dist/release/velox-windows-x64
+          retention-days: 1
+          if-no-files-found: error
+
+  prime:
+    name: Prime ${{ matrix.framework }} sample ${{ matrix.sample }}
+    if: >-
+      always() &&
+      needs.contracts.result == 'success' &&
+      (needs.velox-release.result == 'success' ||
+      (needs.velox-release.result == 'skipped' && github.event_name == 'workflow_dispatch' && inputs.framework != 'all' && inputs.framework != 'velox-wails' && inputs.framework != 'velox'))
+    needs: [contracts, velox-release]
+    strategy:
+      fail-fast: false
+      matrix:
+        framework: ${{ fromJSON(github.event_name == 'workflow_dispatch' && inputs.framework == 'velox-wails' && '["velox","wails"]' || github.event_name == 'workflow_dispatch' && inputs.framework != 'all' && format('["{0}"]', inputs.framework) || '["velox","wails","neutralino","tauri"]') }}
+        sample: ${{ fromJSON(github.event_name == 'workflow_dispatch' && inputs.sample_count == '1' && '[0]' || '[0,1,2]') }}
+    runs-on: windows-2025
+    timeout-minutes: 50
+    steps:
+      - name: Check out benchmark
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+
+      - name: Set up measurement harness
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version: 1.3.14
+          no-cache: true
+
+      - name: Start prime end-to-end clock
+        run: bun scripts/start-clock.ts .bench/recommended-cache/clock/${{ matrix.framework }}-${{ matrix.sample }}-prime.txt
+
+      - name: Set up Go for Wails
+        if: matrix.framework == 'wails'
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version: 1.26.4
+          check-latest: false
+          cache: false
+
+      - name: Set up Node for Neutralinojs
+        if: matrix.framework == 'neutralino'
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24.18.0
+          check-latest: false
+          package-manager-cache: false
+
+      - name: Start prime cache-restore clock
+        if: matrix.framework != 'velox'
+        run: bun scripts/start-clock.ts .bench/recommended-cache/clock/${{ matrix.framework }}-${{ matrix.sample }}-prime-restore.txt
+
+      - name: Require an empty unique cache key
+        id: cache
+        if: matrix.framework != 'velox'
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: .bench/recommended-cache/cache/${{ matrix.framework }}
+          key: velox-bench-recommended-${{ github.run_id }}-${{ github.run_attempt }}-${{ matrix.framework }}-${{ matrix.sample }}
+          fail-on-cache-miss: false
+
+      - name: Finish prime cache-restore clock
+        if: matrix.framework != 'velox'
+        run: bun scripts/finish-clock.ts .bench/recommended-cache/clock/${{ matrix.framework }}-${{ matrix.sample }}-prime-restore.txt .bench/recommended-cache/timing/${{ matrix.framework }}-${{ matrix.sample }}-prime-restore.json
+
+      - name: Reject a stale prime cache hit
+        if: matrix.framework != 'velox' && steps.cache.outputs.cache-hit == 'true'
+        run: exit 1
+
+      - name: Download Velox producer artifact
+        if: matrix.framework == 'velox'
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: recommended-velox-release-${{ github.run_id }}-${{ github.run_attempt }}
+          path: .bench/recommended-cache/acquired/velox
+
+      - name: Measure prime build
+        id: measure
+        continue-on-error: true
+        env:
+          VELOX_BENCH_CACHE_ROOT: ${{ github.workspace }}/.bench/recommended-cache/cache/${{ matrix.framework }}
+          VELOX_RELEASE_ROOT: ${{ github.workspace }}/.bench/recommended-cache/acquired/velox
+        run: bun scripts/measure-recommended-cache.ts ${{ matrix.framework }} prime ${{ matrix.sample }} .bench/recommended-cache/draft/${{ matrix.framework }}-${{ matrix.sample }}-prime.json .bench/recommended-cache/clock/${{ matrix.framework }}-${{ matrix.sample }}-prime.txt
+
+      - name: Start cache-save clock
+        if: matrix.framework != 'velox' && steps.measure.outcome == 'success'
+        run: bun scripts/start-clock.ts .bench/recommended-cache/clock/${{ matrix.framework }}-${{ matrix.sample }}-prime-save.txt
+
+      - name: Save exact recommended cache
+        if: matrix.framework != 'velox' && steps.measure.outcome == 'success'
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: .bench/recommended-cache/cache/${{ matrix.framework }}
+          key: velox-bench-recommended-${{ github.run_id }}-${{ github.run_attempt }}-${{ matrix.framework }}-${{ matrix.sample }}
+
+      - name: Finish cache-save clock
+        if: matrix.framework != 'velox' && steps.measure.outcome == 'success'
+        run: bun scripts/finish-clock.ts .bench/recommended-cache/clock/${{ matrix.framework }}-${{ matrix.sample }}-prime-save.txt .bench/recommended-cache/timing/${{ matrix.framework }}-${{ matrix.sample }}-prime-save.json
+
+      - name: Read saved cache archive bytes
+        if: matrix.framework != 'velox' && steps.measure.outcome == 'success'
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: bun scripts/cache-api.ts inspect '${{ github.repository_owner }}' '${{ github.event.repository.name }}' 'velox-bench-recommended-${{ github.run_id }}-${{ github.run_attempt }}-${{ matrix.framework }}-${{ matrix.sample }}' '${{ github.ref }}' .bench/recommended-cache/metadata/${{ matrix.framework }}-${{ matrix.sample }}.json
+
+      - name: Finalize prime evidence
+        if: always()
+        env:
+          VELOX_CACHE_HIT: ${{ steps.cache.outputs.cache-hit || 'false' }}
+        run: >-
+          bun scripts/finalize-recommended-cache.ts
+          .bench/recommended-cache/draft/${{ matrix.framework }}-${{ matrix.sample }}-prime.json
+          .bench/recommended-cache/result/${{ matrix.framework }}-${{ matrix.sample }}-prime.json
+          ${{ matrix.framework == 'velox' && 'none' || format('velox-bench-recommended-{0}-{1}-{2}-{3}', github.run_id, github.run_attempt, matrix.framework, matrix.sample) }}
+          ${{ matrix.framework == 'velox' && 'none' || format('.bench/recommended-cache/timing/{0}-{1}-prime-restore.json', matrix.framework, matrix.sample) }}
+          ${{ matrix.framework != 'velox' && steps.measure.outcome == 'success' && format('.bench/recommended-cache/timing/{0}-{1}-prime-save.json', matrix.framework, matrix.sample) || 'none' }}
+          ${{ matrix.framework != 'velox' && steps.measure.outcome == 'success' && format('.bench/recommended-cache/metadata/{0}-{1}.json', matrix.framework, matrix.sample) || 'none' }}
+
+      - name: Validate prime result schema
+        if: always()
+        shell: pwsh
+        run: |
+          $schema = Get-Content -LiteralPath 'schema/recommended-cache-result-v1.schema.json' -Raw
+          $result = Get-Content -LiteralPath '.bench/recommended-cache/result/${{ matrix.framework }}-${{ matrix.sample }}-prime.json' -Raw
+          if (-not ($result | Test-Json -Schema $schema)) { throw 'Prime recommended-cache result failed JSON Schema validation.' }
+
+      - name: Upload prime evidence
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: recommended-cache-prime-${{ matrix.framework }}-${{ matrix.sample }}-${{ github.run_attempt }}
+          path: .bench/recommended-cache/result/${{ matrix.framework }}-${{ matrix.sample }}-prime.json
+          retention-days: 30
+          if-no-files-found: error
+
+      - name: Preserve prime measurement failure
+        if: steps.measure.outcome == 'failure'
+        run: exit 1
+
+  warm:
+    name: Warm ${{ matrix.framework }} sample ${{ matrix.sample }}
+    if: always() && needs.prime.result == 'success'
+    needs: prime
+    strategy:
+      fail-fast: false
+      matrix:
+        framework: ${{ fromJSON(github.event_name == 'workflow_dispatch' && inputs.framework == 'velox-wails' && '["velox","wails"]' || github.event_name == 'workflow_dispatch' && inputs.framework != 'all' && format('["{0}"]', inputs.framework) || '["velox","wails","neutralino","tauri"]') }}
+        sample: ${{ fromJSON(github.event_name == 'workflow_dispatch' && inputs.sample_count == '1' && '[0]' || '[0,1,2]') }}
+    runs-on: windows-2025
+    timeout-minutes: 50
+    steps:
+      - name: Check out benchmark
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+
+      - name: Set up measurement harness
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version: 1.3.14
+          no-cache: true
+
+      - name: Start warm end-to-end clock
+        run: bun scripts/start-clock.ts .bench/recommended-cache/clock/${{ matrix.framework }}-${{ matrix.sample }}-warm.txt
+
+      - name: Set up Go for Wails
+        if: matrix.framework == 'wails'
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version: 1.26.4
+          check-latest: false
+          cache: false
+
+      - name: Set up Node for Neutralinojs
+        if: matrix.framework == 'neutralino'
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24.18.0
+          check-latest: false
+          package-manager-cache: false
+
+      - name: Start warm cache-restore clock
+        if: matrix.framework != 'velox'
+        run: bun scripts/start-clock.ts .bench/recommended-cache/clock/${{ matrix.framework }}-${{ matrix.sample }}-warm-restore.txt
+
+      - name: Restore exact recommended cache
+        id: cache
+        if: matrix.framework != 'velox'
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: .bench/recommended-cache/cache/${{ matrix.framework }}
+          key: velox-bench-recommended-${{ github.run_id }}-${{ github.run_attempt }}-${{ matrix.framework }}-${{ matrix.sample }}
+          fail-on-cache-miss: true
+
+      - name: Finish warm cache-restore clock
+        if: matrix.framework != 'velox'
+        run: bun scripts/finish-clock.ts .bench/recommended-cache/clock/${{ matrix.framework }}-${{ matrix.sample }}-warm-restore.txt .bench/recommended-cache/timing/${{ matrix.framework }}-${{ matrix.sample }}-warm-restore.json
+
+      - name: Read restored cache archive bytes
+        if: matrix.framework != 'velox'
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: bun scripts/cache-api.ts inspect '${{ github.repository_owner }}' '${{ github.event.repository.name }}' 'velox-bench-recommended-${{ github.run_id }}-${{ github.run_attempt }}-${{ matrix.framework }}-${{ matrix.sample }}' '${{ github.ref }}' .bench/recommended-cache/metadata/${{ matrix.framework }}-${{ matrix.sample }}.json
+
+      - name: Download Velox producer artifact
+        if: matrix.framework == 'velox'
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: recommended-velox-release-${{ github.run_id }}-${{ github.run_attempt }}
+          path: .bench/recommended-cache/acquired/velox
+
+      - name: Measure warm build
+        id: measure
+        continue-on-error: true
+        env:
+          VELOX_BENCH_CACHE_ROOT: ${{ github.workspace }}/.bench/recommended-cache/cache/${{ matrix.framework }}
+          VELOX_RELEASE_ROOT: ${{ github.workspace }}/.bench/recommended-cache/acquired/velox
+        run: bun scripts/measure-recommended-cache.ts ${{ matrix.framework }} warm ${{ matrix.sample }} .bench/recommended-cache/draft/${{ matrix.framework }}-${{ matrix.sample }}-warm.json .bench/recommended-cache/clock/${{ matrix.framework }}-${{ matrix.sample }}-warm.txt
+
+      - name: Finalize warm evidence
+        if: always()
+        env:
+          VELOX_CACHE_HIT: ${{ steps.cache.outputs.cache-hit || 'false' }}
+        run: >-
+          bun scripts/finalize-recommended-cache.ts
+          .bench/recommended-cache/draft/${{ matrix.framework }}-${{ matrix.sample }}-warm.json
+          .bench/recommended-cache/result/${{ matrix.framework }}-${{ matrix.sample }}-warm.json
+          ${{ matrix.framework == 'velox' && 'none' || format('velox-bench-recommended-{0}-{1}-{2}-{3}', github.run_id, github.run_attempt, matrix.framework, matrix.sample) }}
+          ${{ matrix.framework == 'velox' && 'none' || format('.bench/recommended-cache/timing/{0}-{1}-warm-restore.json', matrix.framework, matrix.sample) }}
+          none
+          ${{ matrix.framework == 'velox' && 'none' || format('.bench/recommended-cache/metadata/{0}-{1}.json', matrix.framework, matrix.sample) }}
+
+      - name: Validate warm result schema
+        if: always()
+        shell: pwsh
+        run: |
+          $schema = Get-Content -LiteralPath 'schema/recommended-cache-result-v1.schema.json' -Raw
+          $result = Get-Content -LiteralPath '.bench/recommended-cache/result/${{ matrix.framework }}-${{ matrix.sample }}-warm.json' -Raw
+          if (-not ($result | Test-Json -Schema $schema)) { throw 'Warm recommended-cache result failed JSON Schema validation.' }
+
+      - name: Upload warm evidence
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: recommended-cache-warm-${{ matrix.framework }}-${{ matrix.sample }}-${{ github.run_attempt }}
+          path: .bench/recommended-cache/result/${{ matrix.framework }}-${{ matrix.sample }}-warm.json
+          retention-days: 30
+          if-no-files-found: error
+
+      - name: Preserve warm measurement failure
+        if: steps.measure.outcome == 'failure'
+        run: exit 1
+
+  summary:
+    name: Summarize recommended-cache evidence
+    if: always()
+    needs: [prime, warm]
+    runs-on: windows-2025
+    timeout-minutes: 5
+    steps:
+      - name: Check out benchmark
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version: 1.3.14
+          no-cache: true
+
+      - name: Download phase evidence
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          pattern: recommended-cache-*-*-${{ github.run_attempt }}
+          path: .bench/recommended-cache/downloaded
+          merge-multiple: true
+
+      - name: Build summary
+        run: bun scripts/summarize-recommended-cache.ts .bench/recommended-cache/downloaded .bench/recommended-cache/summary.json ${{ github.event_name == 'workflow_dispatch' && inputs.sample_count || '3' }} ${{ github.event_name == 'workflow_dispatch' && inputs.framework || 'all' }}
+
+      - name: Validate summary schema
+        shell: pwsh
+        run: |
+          $schema = Get-Content -LiteralPath 'schema/recommended-cache-summary-v1.schema.json' -Raw
+          $summary = Get-Content -LiteralPath '.bench/recommended-cache/summary.json' -Raw
+          if (-not ($summary | Test-Json -Schema $schema)) { throw 'Recommended-cache summary failed JSON Schema validation.' }
+
+      - name: Upload summary
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: recommended-cache-summary-${{ github.run_id }}-${{ github.run_attempt }}
+          path: .bench/recommended-cache/summary.json
+          retention-days: 30
+          if-no-files-found: warn
+
+  cleanup:
+    name: Delete benchmark cache entries
+    if: always()
+    needs: [prime, warm, summary]
+    permissions:
+      actions: write
+      contents: read
+    runs-on: windows-2025
+    timeout-minutes: 5
+    steps:
+      - name: Check out benchmark
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version: 1.3.14
+          no-cache: true
+
+      - name: Delete exact run-owned cache keys
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: bun scripts/cache-api.ts delete-scope '${{ github.repository_owner }}' '${{ github.event.repository.name }}' '${{ github.event_name == 'workflow_dispatch' && inputs.framework || 'all' }}' '${{ github.event_name == 'workflow_dispatch' && inputs.sample_count || '3' }}' '${{ github.run_id }}' '${{ github.run_attempt }}' '${{ github.ref }}'

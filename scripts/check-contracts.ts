@@ -138,7 +138,8 @@ const workflow = await readFile(join(root, ".github", "workflows", "zero-cache.y
 if (!workflow.includes(`ref: ${lock.frameworks.velox.commit}`)) {
   throw new Error("zero-cache workflow Velox ref differs from frameworks.velox.commit");
 }
-for (const [name, commit] of Object.entries(lock.actions)) {
+for (const name of ["checkout", "setupBun", "setupGo", "setupNode", "uploadArtifact", "downloadArtifact"] as const) {
+  const commit = lock.actions[name];
   if (!workflow.includes(`@${commit}`)) {
     throw new Error(`zero-cache workflow does not use pinned actions.${name}`);
   }
@@ -213,6 +214,41 @@ for (const marker of [
   if (!workflow.includes(marker)) throw new Error(`zero-cache diagnostic matrix is missing ${marker}`);
 }
 for (const schema of ["asset-pack-v1.schema.json", "result-v1.schema.json", "result-v2.schema.json", "summary-v1.schema.json", "summary-v2.schema.json", "summary-v3.schema.json", "environment-v1.schema.json", "decision-v1.schema.json", "pair-summary-v1.schema.json", "pair-decision-v1.schema.json"]) {
+  JSON.parse(await readFile(join(root, "schema", schema), "utf8"));
+}
+
+const recommendedCacheWorkflow = await readFile(join(root, ".github", "workflows", "recommended-cache.yml"), "utf8");
+for (const action of ["cache", "checkout", "setupBun", "setupGo", "setupNode", "uploadArtifact", "downloadArtifact"] as const) {
+  if (!recommendedCacheWorkflow.includes(`@${lock.actions[action]}`)) {
+    throw new Error(`recommended-cache workflow does not use pinned actions.${action}`);
+  }
+}
+for (const match of recommendedCacheWorkflow.matchAll(/^\s*uses:\s*[^@\s]+@([^\s#]+)/gm)) {
+  if (!commitPattern.test(match[1])) throw new Error(`recommended-cache workflow action is not pinned to a commit: ${match[0].trim()}`);
+}
+for (const marker of [
+  "workflow_dispatch:",
+  "prime:",
+  "warm:",
+  "cleanup:",
+  "actions/cache/restore@",
+  "actions/cache/save@",
+  "fail-on-cache-miss: true",
+  "bun scripts/cache-api.ts inspect",
+  "bun scripts/cache-api.ts delete-scope",
+  "bun scripts/finalize-recommended-cache.ts",
+  "bun scripts/summarize-recommended-cache.ts",
+  "schema/recommended-cache-result-v1.schema.json",
+  "schema/recommended-cache-summary-v1.schema.json",
+  "permissions:",
+  "actions: write",
+]) {
+  if (!recommendedCacheWorkflow.includes(marker)) throw new Error(`recommended-cache workflow is missing ${marker}`);
+}
+if (/^\s{2}(pull_request|schedule):/m.test(recommendedCacheWorkflow)) {
+  throw new Error("recommended-cache workflow must not consume cache quota on pull requests or a schedule");
+}
+for (const schema of ["recommended-cache-result-v1.schema.json", "recommended-cache-summary-v1.schema.json"]) {
   JSON.parse(await readFile(join(root, "schema", schema), "utf8"));
 }
 

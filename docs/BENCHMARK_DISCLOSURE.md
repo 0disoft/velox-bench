@@ -102,3 +102,16 @@
   reuses that archive. Its packaging cost is included in `buildMs`, while
   harness `packageMs` is zero. Re-zipping it would add duplicate work and report
   a valid product output as a surviving intermediate.
+- Recommended-cache results are not zero-cache publication inputs. They use
+  explicit cache paths equivalent to the documented Go, npm, and Cargo cache
+  surfaces so save and restore can be measured directly; they do not reproduce
+  every third-party wrapper action's cleanup heuristics.
+- GitHub API `size_in_bytes` is the stored cache archive size. Cache working-set
+  bytes are measured separately and may be larger. Restore duration includes
+  the cache action but not repository checkout or Bun harness setup.
+- Every recommended-cache key contains the run ID and attempt. The cleanup job
+  deletes those exact keys after evidence upload. Cleanup failure can
+  temporarily leave quota-consuming entries and must be reported.
+- A one- or three-sample recommended-cache summary is operational evidence,
+  not a framework winner table. The v1 contract keeps
+  `comparativeClaimAllowed` false.

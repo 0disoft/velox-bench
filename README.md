@@ -6,10 +6,11 @@ Tauri.
 The zero-cache hosted workflow, versioned raw-result contract,
 failure-preserving summary, environment-consistency gate, machine-derived
 go-or-kill decision, byte-identical adapters, and machine-generated public
-result publication, deterministic asset-pack contract, and hosted asset-pack
-diagnostic path are implemented. The published pair result does not claim a
-four-framework winner. The asset-pack is not publication evidence, and the
-recommended-cache execution path remains unimplemented.
+result publication, deterministic asset-pack contract, hosted asset-pack
+diagnostic path, and a quota-cleaning recommended-cache workflow are
+implemented. The published pair result does not claim a four-framework winner.
+Asset-pack and recommended-cache evidence remain separate from the zero-cache
+publication.
 
 ## Published Velox-Wails Result
 
@@ -96,6 +97,22 @@ measurement. Every measurement job must match that fingerprint
 before framework toolchain setup starts. Weekly and `benchmark-v*` tag runs execute ten isolated samples per
 framework. Raw results remain available when an individual measurement reports
 failure.
+
+## Recommended-Cache Suite
+
+The manual `Recommended-cache benchmark` workflow runs prime and warm phases on
+different Windows runners. Velox remains cache-free. Wails saves its Go module
+and build caches, Neutralinojs saves the npm download cache, and Tauri saves its
+Cargo home and target tree. Explicit restore and save steps make restore time,
+save time, and the GitHub API `size_in_bytes` value part of the result contract
+instead of inferring an archive size from a local directory.
+
+Every framework and sample receives a run-owned exact cache key. Prime must
+miss, warm must hit, and an always-running cleanup job deletes those exact keys
+after summary generation. The workflow is manual or benchmark-tag-only so it
+does not fill cache storage on pull requests or a schedule. One or three
+samples can establish that the path works, but the v1 summary keeps
+`comparativeClaimAllowed` false and cannot replace the zero-cache headline.
 
 All-framework summary v3 preserves explicit fixture identity and every observed
 compatible environment tuple and refuses publication
