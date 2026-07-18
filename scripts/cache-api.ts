@@ -48,9 +48,13 @@ async function inspect(owner: string, repository: string, key: string, ref: stri
   throw lastError instanceof Error ? lastError : new Error("cache did not become visible");
 }
 
+export function isDeleteSuccessStatus(status: number): boolean {
+  return status === 200 || status === 204 || status === 404;
+}
+
 async function remove(owner: string, repository: string, key: string, ref: string): Promise<void> {
   const response = await fetch(endpoint(owner, repository, key, ref), { method: "DELETE", headers: headers() });
-  if (response.status !== 204 && response.status !== 404) throw new Error(`cache delete returned ${response.status}`);
+  if (!isDeleteSuccessStatus(response.status)) throw new Error(`cache delete returned ${response.status}`);
 }
 
 function cacheKey(runId: string, runAttempt: string, framework: string, sample: number): string {
