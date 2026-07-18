@@ -36,6 +36,10 @@
       "repository": "jchv/go-webview2",
       "version": "v0.0.0-20260205173254-56598839c808",
       "commit": "56598839c808a2340edee99204db479f410e9bf4"
+    },
+    "xsys": {
+      "repository": "golang/sys",
+      "version": "v0.47.0"
     }
   },
   "frameworks": {

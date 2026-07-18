@@ -51,8 +51,9 @@ if (assetPackDescription.treeSha256 !== lock.assetPack.expectedTreeSha256) {
 if (JSON.stringify(Object.keys(lock.frameworks).sort()) !== JSON.stringify(["neutralino", "tauri", "velox", "wails"])) {
   throw new Error("framework lock must contain exactly neutralino, tauri, velox, and wails");
 }
-if (Object.keys(lock.controls).length !== 1 || !lock.controls.webview2Binding || !commitPattern.test(lock.controls.webview2Binding.commit)) {
-  throw new Error("WebView2 control binding must be pinned to one immutable revision");
+if (Object.keys(lock.controls).length !== 2 || !lock.controls.webview2Binding || !commitPattern.test(lock.controls.webview2Binding.commit) ||
+    !lock.controls.xsys || !/^v\d+\.\d+\.\d+$/.test(lock.controls.xsys.version)) {
+  throw new Error("WebView2 binding and x/sys control dependencies must be pinned");
 }
 if (lock.publication.scope !== "velox-wails" || !/^\d+$/.test(lock.publication.runId) ||
     !Number.isSafeInteger(lock.publication.runAttempt) || lock.publication.runAttempt < 1 ||
@@ -294,6 +295,16 @@ const controlVersion = lock.controls.webview2Binding.version.replace(/^v/, "");
 for (const moduleFile of [join(root, "apps", "webview2-control", "go.mod"), join(root, "harness", "relaunch", "go.mod")]) {
   const module = await readFile(moduleFile, "utf8");
   if (!module.includes(`github.com/jchv/go-webview2 v${controlVersion}`)) throw new Error(`${moduleFile} does not use the pinned WebView2 control binding`);
+}
+for (const moduleFile of [
+  join(root, "apps", "webview2-control", "go.mod"),
+  join(root, "apps", "webview2-transport-control", "go.mod"),
+  join(root, "harness", "relaunch", "go.mod"),
+]) {
+  const module = await readFile(moduleFile, "utf8");
+  if (!module.includes(`golang.org/x/sys ${lock.controls.xsys.version}`)) {
+    throw new Error(`${moduleFile} does not use pinned controls.xsys.version`);
+  }
 }
 const relaunchWorkflow = await readFile(join(root, ".github", "workflows", "relaunch-controls.yml"), "utf8");
 for (const action of ["checkout", "setupBun", "setupGo", "setupNode", "uploadArtifact", "downloadArtifact"] as const) {

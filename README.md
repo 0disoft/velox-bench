@@ -44,6 +44,7 @@ Workflow wall time and aggregate job runtime come from GitHub's wall-clock times
 
 - Velox: commit `ae7a819f0ef9b22cb4f959451d0189d699c6e546`
 - Raw WebView2 control binding: commit `56598839c808a2340edee99204db479f410e9bf4`
+- Windows control system calls: `golang.org/x/sys v0.47.0`
 - Wails: `v2.13.0`
 - Neutralinojs core: `v6.8.0`
 - Neutralinojs CLI: `v11.7.2`
