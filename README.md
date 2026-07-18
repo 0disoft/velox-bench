@@ -114,6 +114,13 @@ does not fill cache storage on pull requests or a schedule. One or three
 samples can establish that the path works, but the v1 summary keeps
 `comparativeClaimAllowed` false and cannot replace the zero-cache headline.
 
+[Run 29631255241](https://github.com/0disoft/velox-bench/actions/runs/29631255241)
+completed the one-sample Velox-Wails diagnostic on separate prime and warm
+runners. All four raw results and the summary passed their schemas, the summary
+reported complete evidence while retaining `comparativeClaimAllowed: false`,
+and the post-run API check found no remaining run-owned cache entry. Numeric
+values remain in the workflow artifacts rather than a hand-edited README table.
+
 All-framework summary v3 preserves explicit fixture identity and every observed
 compatible environment tuple and refuses publication
 when more than one tuple is present. Exact memory bytes and CPU models remain recorded separately;
