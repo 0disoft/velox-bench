@@ -43,6 +43,13 @@ dependency resolution, native compilation, asset copying, and deterministic
 ZIP packaging. It excludes repository checkout and Bun harness setup because
 those are shared measurement infrastructure.
 
+When a framework build already emits both the required portable directory and
+an unsigned portable ZIP, the harness uses that ZIP as the final archive. It
+does not create a second archive and misclassify the framework's declared ZIP
+as an intermediate. For Velox, deterministic packaging is therefore included
+inside `buildMs` and harness `packageMs` is zero. Frameworks that emit only a
+portable directory receive one deterministic harness ZIP after their build.
+
 ## Required Suites
 
 - `zero-cache`: no GitHub Actions cache, package-manager cache restore, or

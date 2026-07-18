@@ -14,6 +14,7 @@ import {
 } from "./contracts";
 import { currentBenchmarkEnvironment } from "./environment";
 import { materializeAssetPackIntoProject } from "./fixture-materialization";
+import { resolveVeloxOutput } from "./framework-output";
 import { createDeterministicZip } from "./zip";
 
 const root = resolve(import.meta.dir, "..");
@@ -39,7 +40,7 @@ const work = join(root, ".bench", "work", `${framework}-${sample}`);
 const project = join(work, "project");
 const tooling = join(work, "tooling");
 const cache = join(work, "cache");
-const archive = join(work, `${framework}-${sample}.zip`);
+let archive = join(work, `${framework}-${sample}.zip`);
 const deadlineMs = startedAtMs + 40 * 60 * 1000;
 let phase = "prepare";
 let setupMs = 0;
@@ -113,9 +114,9 @@ async function measureVelox(): Promise<void> {
   await copyProject(join(root, "apps", "velox"));
   const output = join(work, "velox-output");
   buildMs = await timed(() => run([executables[0], "build", "--config", join(project, "velox.json"), "--out", output, "--json"], project));
-  const directories = (await readdir(output, { withFileTypes: true })).filter((entry) => entry.isDirectory());
-  if (directories.length !== 1) throw new Error("Velox output must contain one portable directory");
-  portable = join(output, directories[0].name);
+  const resolvedOutput = await resolveVeloxOutput(output);
+  portable = resolvedOutput.portable;
+  archive = resolvedOutput.archive;
 }
 
 async function measureWails(): Promise<void> {
@@ -174,7 +175,9 @@ try {
   else await measureTauri();
 
   phase = "package";
-  packageMs = await timed(() => createDeterministicZip(portable, archive));
+  if (framework !== "velox") {
+    packageMs = await timed(() => createDeterministicZip(portable, archive));
+  }
   const output = await treeStats(portable);
   const intermediate = await treeStats(work);
   const toolingStats = await treeStats(tooling);

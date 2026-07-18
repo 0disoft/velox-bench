@@ -98,3 +98,7 @@
   generation happens before the clock; adapter materialization happens inside
   it. A one-sample run proves workflow integration only. The published table
   still uses `hello`, and no asset-pack winner claim exists.
+- Velox already emits its declared portable ZIP during `velox build`; result v2
+  reuses that archive. Its packaging cost is included in `buildMs`, while
+  harness `packageMs` is zero. Re-zipping it would add duplicate work and report
+  a valid product output as a surviving intermediate.
