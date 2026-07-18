@@ -4,12 +4,12 @@ import { buildPairSummary } from "./pair-summary";
 
 function result(framework: Framework, sample: number, duration: number, cpuModel = "EPYC 7763", outcome: Result["outcome"] = "success"): Result {
   return {
-    schemaVersion: "velox.bench-result/v1",
+    schemaVersion: "velox.bench-result/v2",
     suite: "zero-cache",
     framework,
     frameworkRevision: framework.charCodeAt(0).toString(16).padStart(40, "0"),
     sample,
-    fixtureSha256: "b".repeat(64),
+    fixture: { name: "hello", sha256: "b".repeat(64), generatedFiles: 0, generatedBytes: 0 },
     outcome,
     startedAtUtc: framework === "velox" ? "2026-07-17T00:00:00.000Z" : "2026-07-17T00:00:02.000Z",
     finishedAtUtc: framework === "velox" ? "2026-07-17T00:00:01.000Z" : "2026-07-17T00:00:03.000Z",
@@ -83,4 +83,12 @@ test("pair summary rejects overlapping execution intervals", () => {
   const wails = results.find((entry) => entry.framework === "wails" && entry.sample === 0)!;
   wails.startedAtUtc = "2026-07-17T00:00:00.500Z";
   expect(() => buildPairSummary(results, 10)).toThrow("execution intervals overlap");
+});
+
+test("pair summary rejects asset-pack evidence", () => {
+  const results = pair(10);
+  for (const entry of results) {
+    entry.fixture = { name: "asset-pack", sha256: "d".repeat(64), generatedFiles: 1000, generatedBytes: 10 * 1024 * 1024 };
+  }
+  expect(() => buildPairSummary(results, 10)).toThrow("hello fixture");
 });

@@ -1,0 +1,127 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.velox.invalid/bench-summary/v3.json",
+  "title": "Velox cross-framework benchmark summary v3",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "suite", "expectedPerFramework", "fixture", "frameworkRevisions", "uploadedCacheBytes", "environmentCount", "environments", "hardwareBalanced", "hardwareVariants", "publishable", "rows"],
+  "properties": {
+    "schemaVersion": { "const": "velox.bench-summary/v3" },
+    "suite": { "const": "zero-cache" },
+    "expectedPerFramework": { "enum": [1, 3, 10] },
+    "fixture": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "sha256", "generatedFiles", "generatedBytes"],
+      "properties": {
+        "name": { "enum": ["hello", "asset-pack"] },
+        "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+        "generatedFiles": { "enum": [0, 1000] },
+        "generatedBytes": { "enum": [0, 10485760] }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "name": { "const": "hello" } } },
+          "then": { "properties": { "generatedFiles": { "const": 0 }, "generatedBytes": { "const": 0 } } },
+          "else": { "properties": { "generatedFiles": { "const": 1000 }, "generatedBytes": { "const": 10485760 } } }
+        }
+      ]
+    },
+    "frameworkRevisions": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["velox", "wails", "neutralino", "tauri"],
+      "properties": {
+        "velox": { "type": "string", "pattern": "^[0-9a-f]{40}$" },
+        "wails": { "type": "string", "pattern": "^[0-9a-f]{40}$" },
+        "neutralino": { "type": "string", "pattern": "^[0-9a-f]{40}$" },
+        "tauri": { "type": "string", "pattern": "^[0-9a-f]{40}$" }
+      }
+    },
+    "uploadedCacheBytes": { "const": 0 },
+    "environmentCount": { "type": "integer", "minimum": 1, "maximum": 40 },
+    "environments": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 40,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["runner", "runnerImageVersion", "os", "architecture", "windowsVersion", "logicalProcessors", "memoryClassBytes", "bunVersion", "observed"],
+        "properties": {
+          "runner": { "const": "windows-2025" },
+          "runnerImageVersion": { "type": "string", "minLength": 1 },
+          "os": { "const": "windows" },
+          "architecture": { "const": "amd64" },
+          "windowsVersion": { "type": "string", "minLength": 1 },
+          "logicalProcessors": { "type": "integer", "minimum": 1 },
+          "memoryClassBytes": { "type": "integer", "minimum": 1073741824, "multipleOf": 1073741824 },
+          "bunVersion": { "const": "1.3.14" },
+          "observed": { "type": "integer", "minimum": 1, "maximum": 40 }
+        }
+      }
+    },
+    "hardwareBalanced": { "type": "boolean" },
+    "hardwareVariants": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 40,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["cpuModel", "observed", "frameworks"],
+        "properties": {
+          "cpuModel": { "type": "string", "minLength": 1 },
+          "observed": { "type": "integer", "minimum": 1, "maximum": 40 },
+          "frameworks": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["velox", "wails", "neutralino", "tauri"],
+            "properties": {
+              "velox": { "type": "integer", "minimum": 0, "maximum": 10 },
+              "wails": { "type": "integer", "minimum": 0, "maximum": 10 },
+              "neutralino": { "type": "integer", "minimum": 0, "maximum": 10 },
+              "tauri": { "type": "integer", "minimum": 0, "maximum": 10 }
+            }
+          }
+        }
+      }
+    },
+    "publishable": { "type": "boolean" },
+    "rows": {
+      "type": "array",
+      "minItems": 4,
+      "maxItems": 4,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["framework", "expected", "observed", "missing", "successful", "failed", "timedOut", "endToEndMs"],
+        "properties": {
+          "framework": { "enum": ["velox", "wails", "neutralino", "tauri"] },
+          "expected": { "enum": [1, 3, 10] },
+          "observed": { "type": "integer", "minimum": 0 },
+          "missing": { "type": "integer", "minimum": 0 },
+          "successful": { "type": "integer", "minimum": 0 },
+          "failed": { "type": "integer", "minimum": 0 },
+          "timedOut": { "type": "integer", "minimum": 0 },
+          "endToEndMs": {
+            "oneOf": [
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["min", "p50", "p95", "max"],
+                "properties": {
+                  "min": { "type": "number", "minimum": 0 },
+                  "p50": { "type": "number", "minimum": 0 },
+                  "p95": { "type": "number", "minimum": 0 },
+                  "max": { "type": "number", "minimum": 0 }
+                }
+              },
+              { "type": "null" }
+            ]
+          }
+        }
+      }
+    }
+  }
+}

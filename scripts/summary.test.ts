@@ -4,12 +4,12 @@ import { buildSummary } from "./summary";
 
 function result(framework: Framework, sample: number, outcome: Result["outcome"] = "success", image = "x", duration = sample + 1, cpuModel = "test"): Result {
   return {
-    schemaVersion: "velox.bench-result/v1",
+    schemaVersion: "velox.bench-result/v2",
     suite: "zero-cache",
     framework,
     frameworkRevision: framework.charCodeAt(0).toString(16).padStart(40, "0"),
     sample,
-    fixtureSha256: "b".repeat(64),
+    fixture: { name: "hello", sha256: "b".repeat(64), generatedFiles: 0, generatedBytes: 0 },
     outcome,
     startedAtUtc: "2026-07-13T00:00:00.000Z",
     finishedAtUtc: "2026-07-13T00:00:01.000Z",
@@ -23,6 +23,7 @@ test("one sample per framework is diagnostic, not publishable", () => {
   const summary = buildSummary((["velox", "wails", "neutralino", "tauri"] as Framework[]).map((framework) => result(framework, 0)), 1);
   expect(summary.publishable).toBe(false);
   expect(summary.rows.every((row) => row.successful === 1)).toBe(true);
+  expect(summary.fixture.name).toBe("hello");
 });
 
 test("three samples per framework are a diagnostic pilot, not publishable", () => {
@@ -73,4 +74,10 @@ test("failures remain counted and prevent publication", () => {
 
 test("duplicate sample IDs are rejected", () => {
   expect(() => buildSummary([result("velox", 0), result("velox", 0)], 1)).toThrow("duplicate sample");
+});
+
+test("mixed fixture identities are rejected", () => {
+  const results = (["velox", "wails", "neutralino", "tauri"] as Framework[]).map((framework) => result(framework, 0));
+  results[3].fixture = { name: "asset-pack", sha256: "d".repeat(64), generatedFiles: 1000, generatedBytes: 10 * 1024 * 1024 };
+  expect(() => buildSummary(results, 1)).toThrow("mixed fixture identities");
 });

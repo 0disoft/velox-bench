@@ -6,10 +6,10 @@ Tauri.
 The zero-cache hosted workflow, versioned raw-result contract,
 failure-preserving summary, environment-consistency gate, machine-derived
 go-or-kill decision, byte-identical adapters, and machine-generated public
-result publication, and deterministic asset-pack contract are implemented. The
-published pair result does not claim a four-framework winner. The asset-pack is
-not yet wired into hosted measurement jobs, and the recommended-cache execution
-path remains unimplemented.
+result publication, deterministic asset-pack contract, and hosted asset-pack
+diagnostic path are implemented. The published pair result does not claim a
+four-framework winner. The asset-pack is not publication evidence, and the
+recommended-cache execution path remains unimplemented.
 
 ## Published Velox-Wails Result
 
@@ -74,14 +74,19 @@ bun scripts/generate-asset-pack.ts .bench/fixtures/asset-pack --json
 
 `bench.lock.json` pins the expected tree digest. `bun run check` computes the
 full 10 MiB contract in memory, while unit tests materialize smaller trees to
-exercise filesystem behavior. Hosted framework adapters still use `hello`
-until the asset-pack workflow input and raw-result identity contract are added.
+exercise filesystem behavior. A manual hosted run can select `asset-pack`; the
+workflow generates it before the benchmark clock, then measures copying the
+generated tree into each framework adapter. Raw result v2 and all-framework
+summary v3 identify the selected fixture by name, digest, file count, and byte
+count. One-sample asset-pack runs are diagnostics, not winner evidence.
 
 ## Hosted Suites
 
 Pull requests and ordinary main pushes run contract checks only. A manual run
 can target one framework, the `velox-wails` product gate, or all four with one,
-three, or ten isolated samples. Single-framework runs upload raw evidence only.
+three, or ten isolated samples and can select `hello` or `asset-pack`.
+Single-framework runs upload raw evidence only. The publication-bound
+`velox-wails` scope remains `hello`-only.
 The pair scope uses ten paired runner jobs. Each job measures Velox and Wails on
 the same machine, with five samples in each execution order, and uploads a
 dedicated pair summary and decision without scheduling Neutralinojs or Tauri.
@@ -92,7 +97,8 @@ before framework toolchain setup starts. Weekly and `benchmark-v*` tag runs exec
 framework. Raw results remain available when an individual measurement reports
 failure.
 
-Summary v2 preserves every observed compatible environment tuple and refuses publication
+All-framework summary v3 preserves explicit fixture identity and every observed
+compatible environment tuple and refuses publication
 when more than one tuple is present. Exact memory bytes and CPU models remain recorded separately;
 their per-framework sample counts must be balanced even though normal hosted
 CPU variation does not fail the preflight. A three-sample decision can be `promising`,

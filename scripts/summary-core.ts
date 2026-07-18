@@ -1,4 +1,4 @@
-import { percentile, validateResult, type Framework, type Result } from "./contracts";
+import { percentile, validateResult, type FixtureIdentity, type Framework, type Result } from "./contracts";
 import { comparableEnvironment, environmentKey, type ComparableEnvironmentIdentity } from "./environment";
 
 export type SummaryRow = {
@@ -21,7 +21,7 @@ export type SummaryHardwareVariant = {
 };
 
 export type ScopedSummaryData = {
-  fixtureSha256: string;
+  fixture: FixtureIdentity;
   frameworkRevisions: Partial<Record<Framework, string>>;
   uploadedCacheBytes: 0;
   environmentCount: number;
@@ -47,7 +47,7 @@ export function buildScopedSummary(
 
   const allowed = new Set<Framework>(selectedFrameworks);
   const keys = new Set<string>();
-  const fixtureDigests = new Set<string>();
+  const fixtureIdentities = new Map<string, FixtureIdentity>();
   const revisions: Partial<Record<Framework, string>> = {};
   for (const result of results) {
     validateResult(result);
@@ -55,12 +55,12 @@ export function buildScopedSummary(
     const key = `${result.framework}:${result.sample}`;
     if (keys.has(key)) throw new Error(`duplicate sample ${key}`);
     keys.add(key);
-    fixtureDigests.add(result.fixtureSha256);
+    fixtureIdentities.set(JSON.stringify(result.fixture), result.fixture);
     const previous = revisions[result.framework];
     if (previous && previous !== result.frameworkRevision) throw new Error(`mixed revisions for ${result.framework}`);
     revisions[result.framework] = result.frameworkRevision;
   }
-  if (fixtureDigests.size !== 1) throw new Error("mixed fixture digests");
+  if (fixtureIdentities.size !== 1) throw new Error("mixed fixture identities");
   for (const framework of selectedFrameworks) {
     if (!revisions[framework]) throw new Error(`missing raw result for ${framework}`);
   }
@@ -121,7 +121,7 @@ export function buildScopedSummary(
   const publishable = completeSampleSet && environments.length === 1 && hardwareBalanced && rows.every((row) => row.successful === expectedPerFramework);
 
   return {
-    fixtureSha256: [...fixtureDigests][0],
+    fixture: [...fixtureIdentities.values()][0],
     frameworkRevisions: revisions,
     uploadedCacheBytes: 0,
     environmentCount: environments.length,

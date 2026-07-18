@@ -174,7 +174,7 @@ for (const marker of [
   "bun scripts/summarize-pair.ts",
   "bun scripts/decide-pair.ts",
   "Validate summary and decision schemas",
-  "schema/summary-v2.schema.json",
+  "schema/summary-v3.schema.json",
   "schema/decision-v1.schema.json",
   "schema/pair-summary-v1.schema.json",
   "schema/pair-decision-v1.schema.json",
@@ -193,7 +193,7 @@ for (const marker of [
   "inputs.sample_count == '3'",
   "'[0,1,2]'",
   "inputs.framework == 'all'",
-  "raw-${{ matrix.framework }}-${{ matrix.sample }}-${{ github.run_attempt }}",
+  "raw-${{ github.event_name == 'workflow_dispatch' && inputs.fixture || 'hello' }}-${{ matrix.framework }}-${{ matrix.sample }}-${{ github.run_attempt }}",
   "pattern: raw-*-${{ github.run_attempt }}",
   "Validate public result schemas",
   "schema/github-run-metadata-v1.schema.json",
@@ -202,10 +202,17 @@ for (const marker of [
   "Validate asset-pack manifest schema",
   "schema/asset-pack-v1.schema.json",
   "fixtures/asset-pack/fixture.json",
+  "fixture:",
+  "- asset-pack",
+  "Validate dispatch scope and fixture",
+  "Materialize selected asset-pack fixture",
+  "bun scripts/generate-asset-pack.ts .bench/generated-fixture --json",
+  "VELOX_BENCH_FIXTURE:",
+  "VELOX_BENCH_ASSET_PACK_ROOT:",
 ]) {
   if (!workflow.includes(marker)) throw new Error(`zero-cache diagnostic matrix is missing ${marker}`);
 }
-for (const schema of ["asset-pack-v1.schema.json", "result-v1.schema.json", "summary-v1.schema.json", "summary-v2.schema.json", "environment-v1.schema.json", "decision-v1.schema.json", "pair-summary-v1.schema.json", "pair-decision-v1.schema.json"]) {
+for (const schema of ["asset-pack-v1.schema.json", "result-v1.schema.json", "result-v2.schema.json", "summary-v1.schema.json", "summary-v2.schema.json", "summary-v3.schema.json", "environment-v1.schema.json", "decision-v1.schema.json", "pair-summary-v1.schema.json", "pair-decision-v1.schema.json"]) {
   JSON.parse(await readFile(join(root, "schema", schema), "utf8"));
 }
 

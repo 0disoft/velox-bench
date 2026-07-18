@@ -5,9 +5,9 @@ import type { Framework, Result } from "./contracts";
 
 function result(framework: Framework, sample: number, duration: number, image = "stable", cpuModel = "test"): Result {
   return {
-    schemaVersion: "velox.bench-result/v1", suite: "zero-cache", framework,
+    schemaVersion: "velox.bench-result/v2", suite: "zero-cache", framework,
     frameworkRevision: framework.charCodeAt(0).toString(16).padStart(40, "0"), sample,
-    fixtureSha256: "b".repeat(64), outcome: "success",
+    fixture: { name: "hello", sha256: "b".repeat(64), generatedFiles: 0, generatedBytes: 0 }, outcome: "success",
     startedAtUtc: "2026-07-17T00:00:00.000Z", finishedAtUtc: "2026-07-17T00:00:01.000Z",
     environment: { runner: "windows-2025", runnerImageVersion: image, os: "windows", architecture: "amd64", windowsVersion: "10.0", cpuModel, logicalProcessors: 4, memoryBytes: 1024, bunVersion: "1.3.14", repositoryCommit: "c", runId: "1", runAttempt: "1" },
     measurement: { endToEndMs: duration, frameworkSetupMs: 1, buildMs: 1, packageMs: 1, acquisitionWorkingSetBytes: 1, outputFiles: 1, outputBytes: 1, outputArchiveBytes: 1, outputArchiveSha256: "c".repeat(64), intermediateFiles: 0, intermediateBytes: 0, uploadedCacheBytes: 0, cacheEvidence: "workflow-source-audit" },

@@ -1,8 +1,19 @@
 import { createHash } from "node:crypto";
 import { cp, mkdir, readFile, readdir, rm } from "node:fs/promises";
 import { basename, dirname, join, resolve } from "node:path";
-import { fixtureDigest, frameworks, loadLock, treeStats, validateResult, type Framework, type Result } from "./contracts";
+import {
+  fixtureIdentity,
+  fixtureNames,
+  frameworks,
+  loadLock,
+  treeStats,
+  validateResult,
+  type FixtureName,
+  type Framework,
+  type Result,
+} from "./contracts";
 import { currentBenchmarkEnvironment } from "./environment";
+import { materializeAssetPackIntoProject } from "./fixture-materialization";
 import { createDeterministicZip } from "./zip";
 
 const root = resolve(import.meta.dir, "..");
@@ -17,6 +28,11 @@ const resultPath = resolve(resultArgument);
 const clockPath = resolve(clockArgument);
 
 const lock = await loadLock(root);
+const fixtureName = (process.env.VELOX_BENCH_FIXTURE || "hello") as FixtureName;
+if (!fixtureNames.includes(fixtureName)) throw new Error("VELOX_BENCH_FIXTURE must be hello or asset-pack");
+const fixture = await fixtureIdentity(root, lock, fixtureName);
+const assetPackRoot = fixtureName === "asset-pack" ? process.env.VELOX_BENCH_ASSET_PACK_ROOT : undefined;
+if (fixtureName === "asset-pack" && !assetPackRoot) throw new Error("VELOX_BENCH_ASSET_PACK_ROOT is required for asset-pack");
 const startedAtMs = Number(await readFile(clockPath, "utf8"));
 if (!Number.isFinite(startedAtMs)) throw new Error("invalid benchmark start clock");
 const work = join(root, ".bench", "work", `${framework}-${sample}`);
@@ -82,6 +98,11 @@ async function findFiles(directory: string, predicate: (path: string) => boolean
 
 async function copyProject(source: string): Promise<void> {
   await cp(source, project, { recursive: true });
+  if (fixtureName === "asset-pack") {
+    phase = "fixture-materialization";
+    await materializeAssetPackIntoProject(project, framework, resolve(assetPackRoot!));
+    phase = "framework-setup-and-build";
+  }
   sourceBaseline = await treeStats(project);
 }
 
@@ -161,12 +182,12 @@ try {
   const archiveData = await readFile(archive);
   const finishedAtMs = Date.now();
   result = {
-    schemaVersion: "velox.bench-result/v1",
+    schemaVersion: "velox.bench-result/v2",
     suite: "zero-cache",
     framework,
     frameworkRevision: lock.frameworks[framework].commit,
     sample,
-    fixtureSha256: await fixtureDigest(root, lock),
+    fixture,
     outcome: "success",
     startedAtUtc: new Date(startedAtMs).toISOString(),
     finishedAtUtc: new Date(finishedAtMs).toISOString(),
@@ -191,12 +212,12 @@ try {
 } catch (error) {
   const timedOut = error instanceof BenchmarkTimeout;
   result = {
-    schemaVersion: "velox.bench-result/v1",
+    schemaVersion: "velox.bench-result/v2",
     suite: "zero-cache",
     framework,
     frameworkRevision: lock.frameworks[framework].commit,
     sample,
-    fixtureSha256: await fixtureDigest(root, lock),
+    fixture,
     outcome: timedOut ? "timeout" : "failure",
     startedAtUtc: new Date(startedAtMs).toISOString(),
     finishedAtUtc: new Date().toISOString(),

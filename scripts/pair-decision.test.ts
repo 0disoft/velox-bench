@@ -5,12 +5,12 @@ import { buildPairSummary } from "./pair-summary";
 
 function result(framework: Framework, sample: number, duration: number): Result {
   return {
-    schemaVersion: "velox.bench-result/v1",
+    schemaVersion: "velox.bench-result/v2",
     suite: "zero-cache",
     framework,
     frameworkRevision: framework.charCodeAt(0).toString(16).padStart(40, "0"),
     sample,
-    fixtureSha256: "b".repeat(64),
+    fixture: { name: "hello", sha256: "b".repeat(64), generatedFiles: 0, generatedBytes: 0 },
     outcome: "success",
     startedAtUtc: framework === "velox" ? "2026-07-17T00:00:00.000Z" : "2026-07-17T00:00:02.000Z",
     finishedAtUtc: framework === "velox" ? "2026-07-17T00:00:01.000Z" : "2026-07-17T00:00:03.000Z",

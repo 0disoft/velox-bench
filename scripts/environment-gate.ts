@@ -1,6 +1,6 @@
 import { appendFile, mkdir } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
-import { fixtureDigest, frameworks, loadLock, validateResult, type Framework, type Result } from "./contracts";
+import { fixtureIdentity, fixtureNames, frameworks, loadLock, validateResult, type FixtureName, type Framework, type Result } from "./contracts";
 import { assertHostedEnvironment, currentBenchmarkEnvironment, environmentFingerprint } from "./environment";
 
 const mode = process.argv[2];
@@ -22,6 +22,9 @@ if (mode === "capture") {
   await appendFile(githubOutput, `fingerprint=${fingerprint}\n`, "utf8");
   console.log(JSON.stringify({ output, fingerprint, environment }));
 } else {
+  const fixtureName = (process.env.VELOX_BENCH_FIXTURE || "hello") as FixtureName;
+  if (!fixtureNames.includes(fixtureName)) throw new Error("VELOX_BENCH_FIXTURE must be hello or asset-pack");
+  if (mode === "verify-pair" && fixtureName !== "hello") throw new Error("paired Velox-Wails evidence is hello-only");
   if (!/^[0-9a-f]{64}$/.test(argument)) throw new Error("expected environment fingerprint is invalid");
   if (fingerprint !== argument) {
     const resultArgument = process.argv[4];
@@ -33,15 +36,15 @@ if (mode === "capture") {
     const root = resolve(import.meta.dir, "..");
     const lock = await loadLock(root);
     const now = new Date().toISOString();
-    const digest = await fixtureDigest(root, lock);
+    const fixture = await fixtureIdentity(root, lock, fixtureName);
     for (const framework of selectedFrameworks) {
       const result: Result = {
-        schemaVersion: "velox.bench-result/v1",
+        schemaVersion: "velox.bench-result/v2",
         suite: "zero-cache",
         framework,
         frameworkRevision: lock.frameworks[framework].commit,
         sample,
-        fixtureSha256: digest,
+        fixture,
         outcome: "failure",
         startedAtUtc: now,
         finishedAtUtc: now,

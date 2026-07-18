@@ -94,5 +94,7 @@
   time. Retention expiry can later change remote availability without changing
   the preserved publication evidence.
 - The deterministic asset-pack generator has a pinned 1,000-file, 10 MiB tree
-  contract, but current hosted measurements and the published table still use
-  only `hello`. Generator correctness is not asset-pack performance evidence.
+  contract and is available to manual hosted all-framework diagnostics. Fixture
+  generation happens before the clock; adapter materialization happens inside
+  it. A one-sample run proves workflow integration only. The published table
+  still uses `hello`, and no asset-pack winner claim exists.

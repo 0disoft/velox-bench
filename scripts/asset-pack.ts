@@ -29,6 +29,12 @@ export type AssetPackEntry = {
   bytes: Uint8Array;
 };
 
+export async function loadAssetPackManifest(path: string): Promise<AssetPackManifest> {
+  const manifest = JSON.parse(await readFile(path, "utf8")) as unknown;
+  validateAssetPackManifest(manifest);
+  return manifest;
+}
+
 function exactKeys(value: Record<string, unknown>, expected: string[], label: string): void {
   const actual = Object.keys(value).sort();
   if (JSON.stringify(actual) !== JSON.stringify([...expected].sort())) {

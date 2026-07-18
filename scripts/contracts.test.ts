@@ -7,12 +7,12 @@ import { createDeterministicZip } from "./zip";
 
 function result(): Result {
   return {
-    schemaVersion: "velox.bench-result/v1",
+    schemaVersion: "velox.bench-result/v2",
     suite: "zero-cache",
     framework: "velox",
     frameworkRevision: "a".repeat(40),
     sample: 0,
-    fixtureSha256: "b".repeat(64),
+    fixture: { name: "hello", sha256: "b".repeat(64), generatedFiles: 0, generatedBytes: 0 },
     outcome: "success",
     startedAtUtc: "2026-07-13T00:00:00.000Z",
     finishedAtUtc: "2026-07-13T00:00:01.000Z",
@@ -28,6 +28,11 @@ describe("benchmark result contract", () => {
     const candidate = result() as Result & { measurement: NonNullable<Result["measurement"]> & { uploadedCacheBytes: number } };
     candidate.measurement.uploadedCacheBytes = 1;
     expect(() => validateResult(candidate)).toThrow("zero-cache evidence");
+  });
+  test("rejects fixture metadata that disagrees with its name", () => {
+    const candidate = result();
+    candidate.fixture = { name: "asset-pack", sha256: "b".repeat(64), generatedFiles: 0, generatedBytes: 0 };
+    expect(() => validateResult(candidate)).toThrow("generated-size contract");
   });
   test("uses nearest-rank percentiles", () => {
     expect(percentile([1, 2, 3, 4, 5], 0.5)).toBe(3);

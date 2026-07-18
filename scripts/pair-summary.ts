@@ -48,6 +48,9 @@ export function validatePairSummary(value: unknown): asserts value is PairSummar
 }
 
 export function buildPairSummary(results: Result[], expectedPerFramework: number): PairSummary {
+  if (results.some((result) => result.fixture.name !== "hello")) {
+    throw new Error("Velox-Wails pair publication accepts only the hello fixture");
+  }
   for (let sample = 0; sample < expectedPerFramework; sample += 1) {
     const velox = results.find((result) => result.framework === "velox" && result.sample === sample);
     const wails = results.find((result) => result.framework === "wails" && result.sample === sample);
@@ -74,7 +77,7 @@ export function buildPairSummary(results: Result[], expectedPerFramework: number
     suite: "zero-cache",
     scope: "velox-wails",
     expectedPerFramework,
-    fixtureSha256: core.fixtureSha256,
+    fixtureSha256: core.fixture.sha256,
     frameworkRevisions: core.frameworkRevisions as Record<PairFramework, string>,
     uploadedCacheBytes: core.uploadedCacheBytes,
     environmentCount: core.environmentCount,
