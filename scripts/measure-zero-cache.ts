@@ -14,7 +14,7 @@ import {
 } from "./contracts";
 import { currentBenchmarkEnvironment } from "./environment";
 import { materializeAssetPackIntoProject } from "./fixture-materialization";
-import { resolveVeloxOutput } from "./framework-output";
+import { resolveActutumOutput } from "./framework-output";
 import { createDeterministicZip } from "./zip";
 
 const root = resolve(import.meta.dir, "..");
@@ -29,11 +29,11 @@ const resultPath = resolve(resultArgument);
 const clockPath = resolve(clockArgument);
 
 const lock = await loadLock(root);
-const fixtureName = (process.env.VELOX_BENCH_FIXTURE || "hello") as FixtureName;
-if (!fixtureNames.includes(fixtureName)) throw new Error("VELOX_BENCH_FIXTURE must be hello or asset-pack");
+const fixtureName = (process.env.ACTUTUM_BENCH_FIXTURE || "hello") as FixtureName;
+if (!fixtureNames.includes(fixtureName)) throw new Error("ACTUTUM_BENCH_FIXTURE must be hello or asset-pack");
 const fixture = await fixtureIdentity(root, lock, fixtureName);
-const assetPackRoot = fixtureName === "asset-pack" ? process.env.VELOX_BENCH_ASSET_PACK_ROOT : undefined;
-if (fixtureName === "asset-pack" && !assetPackRoot) throw new Error("VELOX_BENCH_ASSET_PACK_ROOT is required for asset-pack");
+const assetPackRoot = fixtureName === "asset-pack" ? process.env.ACTUTUM_BENCH_ASSET_PACK_ROOT : undefined;
+if (fixtureName === "asset-pack" && !assetPackRoot) throw new Error("ACTUTUM_BENCH_ASSET_PACK_ROOT is required for asset-pack");
 const startedAtMs = Number(await readFile(clockPath, "utf8"));
 if (!Number.isFinite(startedAtMs)) throw new Error("invalid benchmark start clock");
 const work = join(root, ".bench", "work", `${framework}-${sample}`);
@@ -107,14 +107,14 @@ async function copyProject(source: string): Promise<void> {
   sourceBaseline = await treeStats(project);
 }
 
-async function measureVelox(): Promise<void> {
-  const acquired = resolve(process.env.VELOX_RELEASE_ROOT || "");
-  const executables = await findFiles(acquired, (path) => basename(path).toLowerCase() === "velox.exe");
-  if (executables.length !== 1) throw new Error("Velox release must contain exactly one velox.exe");
-  await copyProject(join(root, "apps", "velox"));
-  const output = join(work, "velox-output");
-  buildMs = await timed(() => run([executables[0], "build", "--config", join(project, "velox.json"), "--out", output, "--json"], project));
-  const resolvedOutput = await resolveVeloxOutput(output);
+async function measureActutum(): Promise<void> {
+  const acquired = resolve(process.env.ACTUTUM_RELEASE_ROOT || "");
+  const executables = await findFiles(acquired, (path) => basename(path).toLowerCase() === "actutum.exe");
+  if (executables.length !== 1) throw new Error("Actutum release must contain exactly one actutum.exe");
+  await copyProject(join(root, "apps", "actutum"));
+  const output = join(work, "actutum-output");
+  buildMs = await timed(() => run([executables[0], "build", "--config", join(project, "actutum.json"), "--out", output, "--json"], project));
+  const resolvedOutput = await resolveActutumOutput(output);
   portable = resolvedOutput.portable;
   archive = resolvedOutput.archive;
 }
@@ -158,7 +158,7 @@ async function measureTauri(): Promise<void> {
     await run(["cargo", `+${lock.toolchains.rust}`, "install", "tauri-cli", "--version", lock.frameworks.tauri.version.slice(1), "--locked", "--root", cliRoot], work, env);
   });
   buildMs = await timed(() => run([join(cliRoot, "bin", "cargo-tauri.exe"), "build", "--no-bundle"], join(project, "src-tauri"), env));
-  const executable = join(target, "release", "velox-bench-tauri.exe");
+  const executable = join(target, "release", "actutum-bench-tauri.exe");
   portable = join(work, "portable");
   await mkdir(portable, { recursive: true });
   await cp(executable, join(portable, basename(executable)));
@@ -169,13 +169,13 @@ try {
   await rm(work, { recursive: true, force: true });
   await mkdir(work, { recursive: true });
   phase = "framework-setup-and-build";
-  if (framework === "velox") await measureVelox();
+  if (framework === "actutum") await measureActutum();
   else if (framework === "wails") await measureWails();
   else if (framework === "neutralino") await measureNeutralino();
   else await measureTauri();
 
   phase = "package";
-  if (framework !== "velox") {
+  if (framework !== "actutum") {
     packageMs = await timed(() => createDeterministicZip(portable, archive));
   }
   const output = await treeStats(portable);
@@ -185,7 +185,7 @@ try {
   const archiveData = await readFile(archive);
   const finishedAtMs = Date.now();
   result = {
-    schemaVersion: "velox.bench-result/v2",
+    schemaVersion: "actutum.bench-result/v3",
     suite: "zero-cache",
     framework,
     frameworkRevision: lock.frameworks[framework].commit,
@@ -215,7 +215,7 @@ try {
 } catch (error) {
   const timedOut = error instanceof BenchmarkTimeout;
   result = {
-    schemaVersion: "velox.bench-result/v2",
+    schemaVersion: "actutum.bench-result/v3",
     suite: "zero-cache",
     framework,
     frameworkRevision: lock.frameworks[framework].commit,

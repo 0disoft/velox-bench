@@ -1,19 +1,19 @@
 import type { FixtureIdentity, Framework, Result as ZeroCacheResult } from "./contracts";
 
-export const recommendedCacheSchemaVersion = "velox.recommended-cache-result/v1" as const;
-export const recommendedCacheSummarySchemaVersion = "velox.recommended-cache-summary/v1" as const;
+export const recommendedCacheSchemaVersion = "actutum.recommended-cache-result/v2" as const;
+export const recommendedCacheSummarySchemaVersion = "actutum.recommended-cache-summary/v2" as const;
 export const recommendedCachePhases = ["prime", "warm"] as const;
 export type RecommendedCachePhase = (typeof recommendedCachePhases)[number];
 
 export const cachePolicies = {
-  velox: { id: "none", paths: [] },
+  actutum: { id: "none", paths: [] },
   wails: { id: "go-module-build", paths: ["go-mod", "go-build"] },
   neutralino: { id: "npm-download", paths: ["npm"] },
   tauri: { id: "cargo-registry-target", paths: ["cargo-home", "tauri-target"] },
 } as const satisfies Record<Framework, { id: string; paths: readonly string[] }>;
 
 export type RecommendedCacheDraft = {
-  schemaVersion: "velox.recommended-cache-draft/v1";
+  schemaVersion: "actutum.recommended-cache-draft/v1";
   suite: "recommended-cache";
   phase: RecommendedCachePhase;
   framework: Framework;
@@ -96,8 +96,8 @@ export function validateRecommendedCacheResult(value: unknown): asserts value is
   const expected = cachePolicies[result.framework];
   if (result.cache.policy !== expected.id || JSON.stringify(result.cache.paths) !== JSON.stringify(expected.paths)) throw new Error("cache policy differs from framework contract");
   for (const field of ["restoreMs", "saveMs", "archiveBytes", "uploadedCacheBytes", "restoredCacheBytes"] as const) finiteNonNegative(result.cache[field], `cache.${field}`);
-  if (result.framework === "velox") {
-    if (result.cache.key !== null || result.cache.restoreHit !== null || result.cache.archiveBytes !== 0 || result.cache.uploadedCacheBytes !== 0 || result.cache.restoredCacheBytes !== 0 || result.cache.evidence !== "not-applicable") throw new Error("Velox must remain cache-free");
+  if (result.framework === "actutum") {
+    if (result.cache.key !== null || result.cache.restoreHit !== null || result.cache.archiveBytes !== 0 || result.cache.uploadedCacheBytes !== 0 || result.cache.restoredCacheBytes !== 0 || result.cache.evidence !== "not-applicable") throw new Error("Actutum must remain cache-free");
   } else {
     if (!result.cache.key || !["github-actions-api", "workflow-action-output"].includes(result.cache.evidence)) throw new Error("hosted cache identity is incomplete");
     if (result.phase === "prime" && result.cache.restoreHit !== false) throw new Error("prime cache must start from a miss");
@@ -108,16 +108,16 @@ export function validateRecommendedCacheResult(value: unknown): asserts value is
     if (!result.measurement || result.failure !== null) throw new Error("successful result is incomplete");
     for (const field of ["endToEndMs", "frameworkSetupMs", "buildMs", "packageMs", "cacheWorkingSetFiles", "cacheWorkingSetBytes", "outputFiles", "outputBytes", "outputArchiveBytes", "intermediateFiles", "intermediateBytes"] as const) finiteNonNegative(result.measurement[field], `measurement.${field}`);
     if (!/^[0-9a-f]{64}$/.test(result.measurement.outputArchiveSha256)) throw new Error("invalid output digest");
-    if (result.framework !== "velox" && result.phase === "prime" && (result.cache.evidence !== "github-actions-api" || result.cache.uploadedCacheBytes !== result.cache.archiveBytes || result.cache.restoredCacheBytes !== 0 || result.cache.archiveBytes < 1)) throw new Error("successful prime cache evidence is invalid");
-    if (result.framework !== "velox" && result.phase === "warm" && (result.cache.evidence !== "github-actions-api" || result.cache.uploadedCacheBytes !== 0 || result.cache.restoredCacheBytes !== result.cache.archiveBytes || result.cache.archiveBytes < 1 || result.cache.saveMs !== 0)) throw new Error("successful warm cache evidence is invalid");
+    if (result.framework !== "actutum" && result.phase === "prime" && (result.cache.evidence !== "github-actions-api" || result.cache.uploadedCacheBytes !== result.cache.archiveBytes || result.cache.restoredCacheBytes !== 0 || result.cache.archiveBytes < 1)) throw new Error("successful prime cache evidence is invalid");
+    if (result.framework !== "actutum" && result.phase === "warm" && (result.cache.evidence !== "github-actions-api" || result.cache.uploadedCacheBytes !== 0 || result.cache.restoredCacheBytes !== result.cache.archiveBytes || result.cache.archiveBytes < 1 || result.cache.saveMs !== 0)) throw new Error("successful warm cache evidence is invalid");
   } else if (result.measurement !== null || !result.failure) {
     throw new Error("failed result is incomplete");
   }
 }
 
 export function frameworksForScope(scope: string): Framework[] {
-  if (scope === "all") return ["velox", "wails", "neutralino", "tauri"];
-  if (scope === "velox-wails") return ["velox", "wails"];
+  if (scope === "all") return ["actutum", "wails", "neutralino", "tauri"];
+  if (scope === "actutum-wails") return ["actutum", "wails"];
   if (scope in cachePolicies) return [scope as Framework];
   throw new Error(`unsupported recommended-cache scope: ${scope}`);
 }

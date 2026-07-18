@@ -1,4 +1,4 @@
-module github.com/0disoft/velox-bench/harness/relaunch
+module github.com/0disoft/actutum-bench/harness/relaunch
 
 go 1.26.0
 

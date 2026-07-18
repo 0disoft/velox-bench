@@ -7,9 +7,9 @@ import { createDeterministicZip } from "./zip";
 
 function result(): Result {
   return {
-    schemaVersion: "velox.bench-result/v2",
+    schemaVersion: "actutum.bench-result/v3",
     suite: "zero-cache",
-    framework: "velox",
+    framework: "actutum",
     frameworkRevision: "a".repeat(40),
     sample: 0,
     fixture: { name: "hello", sha256: "b".repeat(64), generatedFiles: 0, generatedBytes: 0 },
@@ -41,7 +41,7 @@ describe("benchmark result contract", () => {
 });
 
 test("deterministic zip bytes do not depend on source mtime", async () => {
-  const root = await mkdtemp(join(tmpdir(), "velox-bench-zip-"));
+  const root = await mkdtemp(join(tmpdir(), "actutum-bench-zip-"));
   const source = join(root, "source");
   await Bun.write(join(source, "b.txt"), "b");
   await Bun.write(join(source, "a.txt"), "a");

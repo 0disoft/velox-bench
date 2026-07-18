@@ -23,7 +23,7 @@ function headers(): Record<string, string> {
   return {
     Accept: "application/vnd.github+json",
     Authorization: `Bearer ${token}`,
-    "User-Agent": "velox-bench-cache-evidence",
+    "User-Agent": "actutum-bench-cache-evidence",
     "X-GitHub-Api-Version": "2026-03-10",
   };
 }
@@ -58,7 +58,7 @@ async function remove(owner: string, repository: string, key: string, ref: strin
 }
 
 function cacheKey(runId: string, runAttempt: string, framework: string, sample: number): string {
-  return `velox-bench-recommended-${runId}-${runAttempt}-${framework}-${sample}`;
+  return `actutum-bench-recommended-${runId}-${runAttempt}-${framework}-${sample}`;
 }
 
 export async function runCacheAPI(args: string[]): Promise<void> {
@@ -75,7 +75,7 @@ if (command === "inspect") {
   if (!Number.isInteger(samples) || samples < 1 || samples > 3) throw new Error("sample count must be 1 or 3");
   const removed: string[] = [];
   for (const framework of frameworksForScope(keyOrScope)) {
-    if (framework === "velox") continue;
+    if (framework === "actutum") continue;
     for (let sample = 0; sample < samples; sample++) {
       const key = cacheKey(outputOrRunId, maybeAttempt, framework, sample);
       await remove(owner, repository, key, maybeRef);

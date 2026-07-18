@@ -1,4 +1,4 @@
-module github.com/0disoft/velox-bench/apps/webview2-transport-control
+module github.com/0disoft/actutum-bench/apps/webview2-transport-control
 
 go 1.26.0
 
@@ -9,4 +9,4 @@ require (
 	golang.org/x/sys v0.47.0 // indirect
 )
 
-replace github.com/jchv/go-webview2 => ../../.bench/velox-source/third_party/go-webview2
+replace github.com/jchv/go-webview2 => ../../.bench/actutum-source/third_party/go-webview2

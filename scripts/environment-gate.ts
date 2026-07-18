@@ -16,19 +16,19 @@ const fingerprint = environmentFingerprint(environment);
 if (mode === "capture") {
   const output = resolve(argument);
   await mkdir(dirname(output), { recursive: true });
-  await Bun.write(output, `${JSON.stringify({ schemaVersion: "velox.bench-environment/v1", fingerprint, environment }, null, 2)}\n`);
+  await Bun.write(output, `${JSON.stringify({ schemaVersion: "actutum.bench-environment/v2", fingerprint, environment }, null, 2)}\n`);
   const githubOutput = process.env.GITHUB_OUTPUT;
   if (!githubOutput) throw new Error("GITHUB_OUTPUT is unavailable");
   await appendFile(githubOutput, `fingerprint=${fingerprint}\n`, "utf8");
   console.log(JSON.stringify({ output, fingerprint, environment }));
 } else {
-  const fixtureName = (process.env.VELOX_BENCH_FIXTURE || "hello") as FixtureName;
-  if (!fixtureNames.includes(fixtureName)) throw new Error("VELOX_BENCH_FIXTURE must be hello or asset-pack");
-  if (mode === "verify-pair" && fixtureName !== "hello") throw new Error("paired Velox-Wails evidence is hello-only");
+  const fixtureName = (process.env.ACTUTUM_BENCH_FIXTURE || "hello") as FixtureName;
+  if (!fixtureNames.includes(fixtureName)) throw new Error("ACTUTUM_BENCH_FIXTURE must be hello or asset-pack");
+  if (mode === "verify-pair" && fixtureName !== "hello") throw new Error("paired Actutum-Wails evidence is hello-only");
   if (!/^[0-9a-f]{64}$/.test(argument)) throw new Error("expected environment fingerprint is invalid");
   if (fingerprint !== argument) {
     const resultArgument = process.argv[4];
-    const selectedFrameworks: Framework[] = mode === "verify-pair" ? ["velox", "wails"] : [process.argv[5] as Framework];
+    const selectedFrameworks: Framework[] = mode === "verify-pair" ? ["actutum", "wails"] : [process.argv[5] as Framework];
     const sample = Number(mode === "verify-pair" ? process.argv[5] : process.argv[6]);
     if (!resultArgument || selectedFrameworks.some((framework) => !frameworks.includes(framework)) || !Number.isInteger(sample) || sample < 0 || sample > 9) {
       throw new Error("environment mismatch result identity is invalid");
@@ -39,7 +39,7 @@ if (mode === "capture") {
     const fixture = await fixtureIdentity(root, lock, fixtureName);
     for (const framework of selectedFrameworks) {
       const result: Result = {
-        schemaVersion: "velox.bench-result/v2",
+        schemaVersion: "actutum.bench-result/v3",
         suite: "zero-cache",
         framework,
         frameworkRevision: lock.frameworks[framework].commit,

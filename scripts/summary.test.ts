@@ -4,7 +4,7 @@ import { buildSummary } from "./summary";
 
 function result(framework: Framework, sample: number, outcome: Result["outcome"] = "success", image = "x", duration = sample + 1, cpuModel = "test"): Result {
   return {
-    schemaVersion: "velox.bench-result/v2",
+    schemaVersion: "actutum.bench-result/v3",
     suite: "zero-cache",
     framework,
     frameworkRevision: framework.charCodeAt(0).toString(16).padStart(40, "0"),
@@ -20,14 +20,14 @@ function result(framework: Framework, sample: number, outcome: Result["outcome"]
 }
 
 test("one sample per framework is diagnostic, not publishable", () => {
-  const summary = buildSummary((["velox", "wails", "neutralino", "tauri"] as Framework[]).map((framework) => result(framework, 0)), 1);
+  const summary = buildSummary((["actutum", "wails", "neutralino", "tauri"] as Framework[]).map((framework) => result(framework, 0)), 1);
   expect(summary.publishable).toBe(false);
   expect(summary.rows.every((row) => row.successful === 1)).toBe(true);
   expect(summary.fixture.name).toBe("hello");
 });
 
 test("three samples per framework are a diagnostic pilot, not publishable", () => {
-  const results = (["velox", "wails", "neutralino", "tauri"] as Framework[]).flatMap((framework) =>
+  const results = (["actutum", "wails", "neutralino", "tauri"] as Framework[]).flatMap((framework) =>
     Array.from({ length: 3 }, (_, sample) => result(framework, sample)),
   );
   const summary = buildSummary(results, 3);
@@ -36,14 +36,14 @@ test("three samples per framework are a diagnostic pilot, not publishable", () =
 });
 
 test("ten complete successful samples per framework are publishable", () => {
-  const results = (["velox", "wails", "neutralino", "tauri"] as Framework[]).flatMap((framework) =>
+  const results = (["actutum", "wails", "neutralino", "tauri"] as Framework[]).flatMap((framework) =>
     Array.from({ length: 10 }, (_, sample) => result(framework, sample)),
   );
   expect(buildSummary(results, 10).publishable).toBe(true);
 });
 
 test("mixed hosted environments prevent publication and remain visible", () => {
-  const results = (["velox", "wails", "neutralino", "tauri"] as Framework[]).flatMap((framework) =>
+  const results = (["actutum", "wails", "neutralino", "tauri"] as Framework[]).flatMap((framework) =>
     Array.from({ length: 10 }, (_, sample) => result(framework, sample, "success", framework === "tauri" && sample === 9 ? "rollout" : "stable")),
   );
   const summary = buildSummary(results, 10);
@@ -53,7 +53,7 @@ test("mixed hosted environments prevent publication and remain visible", () => {
 });
 
 test("balanced hosted CPU variation remains publishable and visible", () => {
-  const results = (["velox", "wails", "neutralino", "tauri"] as Framework[]).flatMap((framework) =>
+  const results = (["actutum", "wails", "neutralino", "tauri"] as Framework[]).flatMap((framework) =>
     Array.from({ length: 10 }, (_, sample) => result(framework, sample, "success", "stable", sample % 2 === 0 ? 100 : 101, sample % 2 === 0 ? "EPYC 7763" : "EPYC 9V74")),
   );
   const summary = buildSummary(results, 10);
@@ -64,7 +64,7 @@ test("balanced hosted CPU variation remains publishable and visible", () => {
 });
 
 test("failures remain counted and prevent publication", () => {
-  const results = (["velox", "wails", "neutralino", "tauri"] as Framework[]).flatMap((framework) =>
+  const results = (["actutum", "wails", "neutralino", "tauri"] as Framework[]).flatMap((framework) =>
     Array.from({ length: 10 }, (_, sample) => result(framework, sample, framework === "wails" && sample === 3 ? "failure" : "success")),
   );
   const summary = buildSummary(results, 10);
@@ -73,11 +73,11 @@ test("failures remain counted and prevent publication", () => {
 });
 
 test("duplicate sample IDs are rejected", () => {
-  expect(() => buildSummary([result("velox", 0), result("velox", 0)], 1)).toThrow("duplicate sample");
+  expect(() => buildSummary([result("actutum", 0), result("actutum", 0)], 1)).toThrow("duplicate sample");
 });
 
 test("mixed fixture identities are rejected", () => {
-  const results = (["velox", "wails", "neutralino", "tauri"] as Framework[]).map((framework) => result(framework, 0));
+  const results = (["actutum", "wails", "neutralino", "tauri"] as Framework[]).map((framework) => result(framework, 0));
   results[3].fixture = { name: "asset-pack", sha256: "d".repeat(64), generatedFiles: 1000, generatedBytes: 10 * 1024 * 1024 };
   expect(() => buildSummary(results, 1)).toThrow("mixed fixture identities");
 });

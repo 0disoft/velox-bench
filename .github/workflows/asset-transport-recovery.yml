@@ -48,12 +48,12 @@ jobs:
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           persist-credentials: false
-      - name: Check out pinned Velox
+      - name: Check out pinned Actutum
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           repository: 0disoft/velox
-          ref: ae7a819f0ef9b22cb4f959451d0189d699c6e546
-          path: .bench/velox-source
+          ref: f6e7677f77abf60eb22af2f273d80727aacdc18f
+          path: .bench/actutum-source
           persist-credentials: false
       - name: Set up Go
         uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
@@ -86,15 +86,15 @@ jobs:
             Copy-Item -LiteralPath 'fixtures/hello' -Destination (Join-Path $output 'web') -Recurse
           }
 
-          $velox = Join-Path $built 'velox'
-          New-Item -ItemType Directory -Path $velox -Force | Out-Null
-          Push-Location '.bench/velox-source'
-          go build -mod=readonly -trimpath -o (Join-Path $velox 'app.exe') ./cmd/velox-host
+          $actutum = Join-Path $built 'actutum'
+          New-Item -ItemType Directory -Path $actutum -Force | Out-Null
+          Push-Location '.bench/actutum-source'
+          go build -mod=readonly -trimpath -o (Join-Path $actutum 'app.exe') ./cmd/actutum-host
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          Copy-Item -LiteralPath 'examples/hello/velox.runtime.json' -Destination (Join-Path $velox 'velox.runtime.json')
-          Copy-Item -LiteralPath 'examples/hello/web' -Destination (Join-Path $velox 'web') -Recurse
+          Copy-Item -LiteralPath 'examples/hello/actutum.runtime.json' -Destination (Join-Path $actutum 'actutum.runtime.json')
+          Copy-Item -LiteralPath 'examples/hello/web' -Destination (Join-Path $actutum 'web') -Recurse
           Pop-Location
-          Copy-Item -LiteralPath (Join-Path $built 'relaunch-harness.exe') -Destination $velox
+          Copy-Item -LiteralPath (Join-Path $built 'relaunch-harness.exe') -Destination $actutum
       - name: Upload file URL host
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
@@ -109,11 +109,11 @@ jobs:
           path: .bench/built-recovery/fork-virtual-host
           retention-days: 3
           if-no-files-found: error
-      - name: Upload Velox host
+      - name: Upload Actutum host
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: asset-recovery-velox-${{ github.run_id }}-${{ github.run_attempt }}
-          path: .bench/built-recovery/velox
+          name: asset-recovery-actutum-${{ github.run_id }}-${{ github.run_attempt }}
+          path: .bench/built-recovery/actutum
           retention-days: 3
           if-no-files-found: error
 
@@ -124,8 +124,8 @@ jobs:
       fail-fast: false
       matrix:
         scenario:
-          - velox-same-profile
-          - velox-fresh-profile
+          - actutum-same-profile
+          - actutum-fresh-profile
           - file-url-same-profile
           - file-url-fresh-profile
           - virtual-host-same-profile
@@ -145,8 +145,8 @@ jobs:
         env:
           SCENARIO: ${{ matrix.scenario }}
         run: |
-          $framework = if ($env:SCENARIO.StartsWith('velox-')) {
-            'velox'
+          $framework = if ($env:SCENARIO.StartsWith('actutum-')) {
+            'actutum'
           } elseif ($env:SCENARIO.StartsWith('file-url-')) {
             'fork-file-url'
           } elseif ($env:SCENARIO.StartsWith('virtual-host-')) {
@@ -181,10 +181,10 @@ jobs:
             $result = Join-Path $raw "$env:SCENARIO-$env:SAMPLE-$delay.json"
             $profile = Join-Path $env:GITHUB_WORKSPACE ".bench/profiles-recovery/$env:SCENARIO-$env:SAMPLE-$delay"
             & (Join-Path $root 'relaunch-harness.exe') `
-              --schema-version velox.asset-transport-recovery/v1 `
+              --schema-version actutum.asset-transport-recovery/v2 `
               --suite asset-transport-recovery-boundary `
               --framework $env:FRAMEWORK `
-              --revision ae7a819f0ef9b22cb4f959451d0189d699c6e546 `
+              --revision f6e7677f77abf60eb22af2f273d80727aacdc18f `
               --executable (Join-Path $root 'app.exe') `
               --workdir $root `
               --profile $profile `
@@ -195,7 +195,7 @@ jobs:
               --relaunch-delay-ms $delay
             if ($LASTEXITCODE -ne 0) { $failed = $true }
             if (-not (Test-Path -LiteralPath $result -PathType Leaf)) { throw "Recovery result was not written: $delay" }
-            $schema = Get-Content -LiteralPath 'schema/asset-transport-recovery-v1.schema.json' -Raw
+            $schema = Get-Content -LiteralPath 'schema/asset-transport-recovery-v2.schema.json' -Raw
             $body = Get-Content -LiteralPath $result -Raw
             if (-not ($body | Test-Json -Schema $schema)) { throw "Recovery result failed JSON Schema validation: $delay" }
           }
@@ -239,7 +239,7 @@ jobs:
       - name: Validate recovery summary schema
         shell: pwsh
         run: |
-          $schema = Get-Content -LiteralPath 'schema/asset-transport-recovery-summary-v1.schema.json' -Raw
+          $schema = Get-Content -LiteralPath 'schema/asset-transport-recovery-summary-v2.schema.json' -Raw
           $summary = Get-Content -LiteralPath '.bench/summary/asset-recovery.json' -Raw
           if (-not ($summary | Test-Json -Schema $schema)) { throw 'Recovery summary failed JSON Schema validation.' }
       - name: Upload recovery summary

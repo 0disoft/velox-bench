@@ -41,7 +41,7 @@ func TestTransportHostnameScopesOriginVariant(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if host != "transport-relaunch.velox.invalid" {
+	if host != "transport-relaunch.actutum.invalid" {
 		t.Fatalf("host = %q", host)
 	}
 	if _, err := transportHostname("../escape"); err == nil {

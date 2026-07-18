@@ -1,7 +1,7 @@
 {
   "$schema": "https://wails.io/schemas/config.v2.json",
-  "name": "velox-bench-wails",
-  "outputfilename": "velox-bench-wails",
+  "name": "actutum-bench-wails",
+  "outputfilename": "actutum-bench-wails",
   "frontend:install": "",
   "frontend:build": "",
   "frontend:dev:watcher": "",

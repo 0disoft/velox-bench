@@ -1,5 +1,5 @@
 {
-  "schemaVersion": "velox.asset-pack-fixture/v1",
+  "schemaVersion": "actutum.asset-pack-fixture/v2",
   "algorithm": "xorshift32-v1",
   "seed": 1447383631,
   "layout": {

@@ -1,6 +1,6 @@
 import { validateStartupSummary, type StartupSummary } from "./startup-contracts";
 
-export const startupHistorySchemaVersion = "velox.startup-history/v1" as const;
+export const startupHistorySchemaVersion = "actutum.startup-history/v2" as const;
 export const maximumHistoryPoints = 12;
 
 export type StartupHistoryCandidate = {
@@ -18,7 +18,7 @@ export type StartupHistoryIssue = {
 
 export type StartupHistory = {
   schemaVersion: typeof startupHistorySchemaVersion;
-  suite: "velox-startup";
+  suite: "actutum-startup";
   outcome: "complete" | "partial";
   generatedAtUtc: string;
   points: StartupHistoryCandidate[];
@@ -60,7 +60,7 @@ export function buildStartupHistory(candidates: StartupHistoryCandidate[], issue
   const collectionIssues = [...issues].sort((left, right) => Number(left.runId) - Number(right.runId) || left.code.localeCompare(right.code));
   return {
     schemaVersion: startupHistorySchemaVersion,
-    suite: "velox-startup",
+    suite: "actutum-startup",
     outcome: collectionIssues.length === 0 ? "complete" : "partial",
     generatedAtUtc,
     points,

@@ -13,13 +13,13 @@ async function optionalJSON<T>(path: string): Promise<T | null> {
 }
 
 const draft = JSON.parse(await readFile(resolve(draftArgument), "utf8")) as RecommendedCacheDraft;
-if (draft.schemaVersion !== "velox.recommended-cache-draft/v1" || draft.suite !== "recommended-cache") throw new Error("invalid recommended-cache draft");
+if (draft.schemaVersion !== "actutum.recommended-cache-draft/v1" || draft.suite !== "recommended-cache") throw new Error("invalid recommended-cache draft");
 const restoreTiming = await optionalJSON<{ durationMs: number }>(restoreTimingArgument);
 const saveTiming = await optionalJSON<{ durationMs: number }>(saveTimingArgument);
 const metadata = await optionalJSON<CacheRecord>(metadataArgument);
 const policy = cachePolicies[draft.framework];
-const cacheFree = draft.framework === "velox";
-const hitValue = process.env.VELOX_CACHE_HIT;
+const cacheFree = draft.framework === "actutum";
+const hitValue = process.env.ACTUTUM_CACHE_HIT;
 const restoreHit = cacheFree ? null : hitValue === "true" ? true : hitValue === "false" ? false : null;
 const archiveBytes = metadata?.sizeBytes ?? 0;
 

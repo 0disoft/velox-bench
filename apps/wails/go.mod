@@ -1,4 +1,4 @@
-module github.com/0disoft/velox-bench/apps/wails
+module github.com/0disoft/actutum-bench/apps/wails
 
 go 1.26
 

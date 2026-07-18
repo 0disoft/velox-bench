@@ -6,7 +6,7 @@ import { frameworks } from "./contracts";
 import { frameworkAssetRoot, materializeAssetPackIntoProject } from "./fixture-materialization";
 
 test("materializes generated assets into every framework web root", async () => {
-  const root = await mkdtemp(join(tmpdir(), "velox-fixture-materialization-"));
+  const root = await mkdtemp(join(tmpdir(), "actutum-fixture-materialization-"));
   const generated = join(root, "generated");
   await Bun.write(join(generated, "assets", "sample.bin"), "fixture");
 

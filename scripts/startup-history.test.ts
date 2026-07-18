@@ -6,7 +6,7 @@ function summary(environmentKey = "runner|windows|webview|cpu|4|16000000000"): S
   return {
     schemaVersion: startupSummarySchemaVersion,
     suite: startupSuite,
-    framework: "velox",
+    framework: "actutum",
     expected: 3,
     observed: 3,
     missing: 0,

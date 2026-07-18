@@ -14,8 +14,8 @@ func TestRecoveryScenariosKeepFrameworkOwnership(t *testing.T) {
 		freshProfile bool
 		freshOrigin  bool
 	}{
-		"velox-same-profile":        {framework: "velox"},
-		"velox-fresh-profile":       {framework: "velox", freshProfile: true},
+		"actutum-same-profile":        {framework: "actutum"},
+		"actutum-fresh-profile":       {framework: "actutum", freshProfile: true},
 		"file-url-fresh-profile":    {framework: "fork-file-url", freshProfile: true},
 		"virtual-host-fresh-origin": {framework: "fork-virtual-host", freshOrigin: true},
 	}
@@ -31,32 +31,32 @@ func TestRecoveryScenariosKeepFrameworkOwnership(t *testing.T) {
 }
 
 func TestReadyTitleCarriesBrowserProcessIDOnlyAsSuffix(t *testing.T) {
-	if !titleMatches("Velox Bench Ready", readyTitle, false) {
+	if !titleMatches("Actutum Bench Ready", readyTitle, false) {
 		t.Fatal("exact ready title did not match")
 	}
-	if titleMatches("Velox Bench Ready 42", readyTitle, false) {
+	if titleMatches("Actutum Bench Ready 42", readyTitle, false) {
 		t.Fatal("diagnostic title matched without suffix permission")
 	}
-	if !titleMatches("Velox Bench Ready 42", readyTitle, true) {
+	if !titleMatches("Actutum Bench Ready 42", readyTitle, true) {
 		t.Fatal("diagnostic title did not match")
 	}
-	processID, err := browserProcessIDFromTitle("Velox Bench Ready 42")
+	processID, err := browserProcessIDFromTitle("Actutum Bench Ready 42")
 	if err != nil || processID != 42 {
 		t.Fatalf("browser process = %d, err = %v", processID, err)
 	}
-	if _, err := browserProcessIDFromTitle("Velox Bench Ready nope"); err == nil {
+	if _, err := browserProcessIDFromTitle("Actutum Bench Ready nope"); err == nil {
 		t.Fatal("invalid browser process ID was accepted")
 	}
 }
 
 func TestParseProcessTimelineRejectsReorderedPhases(t *testing.T) {
-	valid := startupTimelinePrefix + `{"schemaVersion":"velox.host-startup-timeline/v1","clock":"time-since-host-entry-monotonic","phases":[{"name":"host-entry","elapsedMs":0},{"name":"environment-created","elapsedMs":2.5}]}`
-	timeline, err := parseProcessTimeline(valid, startupTimelinePrefix, "velox.host-startup-timeline/v1", "time-since-host-entry-monotonic")
+	valid := startupTimelinePrefix + `{"schemaVersion":"actutum.host-startup-timeline/v1","clock":"time-since-host-entry-monotonic","phases":[{"name":"host-entry","elapsedMs":0},{"name":"environment-created","elapsedMs":2.5}]}`
+	timeline, err := parseProcessTimeline(valid, startupTimelinePrefix, "actutum.host-startup-timeline/v1", "time-since-host-entry-monotonic")
 	if err != nil || len(timeline.Phases) != 2 {
 		t.Fatalf("valid timeline = %#v, err = %v", timeline, err)
 	}
-	invalid := startupTimelinePrefix + `{"schemaVersion":"velox.host-startup-timeline/v1","clock":"time-since-host-entry-monotonic","phases":[{"name":"late","elapsedMs":2},{"name":"early","elapsedMs":1}]}`
-	if _, err := parseProcessTimeline(invalid, startupTimelinePrefix, "velox.host-startup-timeline/v1", "time-since-host-entry-monotonic"); err == nil {
+	invalid := startupTimelinePrefix + `{"schemaVersion":"actutum.host-startup-timeline/v1","clock":"time-since-host-entry-monotonic","phases":[{"name":"late","elapsedMs":2},{"name":"early","elapsedMs":1}]}`
+	if _, err := parseProcessTimeline(invalid, startupTimelinePrefix, "actutum.host-startup-timeline/v1", "time-since-host-entry-monotonic"); err == nil {
 		t.Fatal("reordered timeline was accepted")
 	}
 }

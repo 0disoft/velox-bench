@@ -1,7 +1,7 @@
-export const transportSchemaVersion = "velox.asset-transport-relaunch/v1" as const;
-export const transportSummarySchemaVersion = "velox.asset-transport-relaunch-summary/v1" as const;
+export const transportSchemaVersion = "actutum.asset-transport-relaunch/v2" as const;
+export const transportSummarySchemaVersion = "actutum.asset-transport-relaunch-summary/v2" as const;
 export const transportSuite = "asset-transport-immediate-relaunch" as const;
-export const transports = ["velox", "fork-file-url", "fork-virtual-host", "fork-web-resource"] as const;
+export const transports = ["actutum", "fork-file-url", "fork-virtual-host", "fork-web-resource"] as const;
 
 export type Transport = typeof transports[number];
 export type Statistics = { minMs: number; p50Ms: number; p95Ms: number; maxMs: number };
@@ -41,7 +41,7 @@ export type TransportSummary = {
   expectedPerTransport: 1 | 3 | 10;
   observed: number;
   publishable: boolean;
-  transportClassification: "virtual-host-mapping-delay" | "velox-only-delay" | "virtual-host-control-delay" | "web-resource-delay" | "shared-delay" | "not-observed" | "insufficient-evidence" | "mixed-delay";
+  transportClassification: "virtual-host-mapping-delay" | "actutum-only-delay" | "virtual-host-control-delay" | "web-resource-delay" | "shared-delay" | "not-observed" | "insufficient-evidence" | "mixed-delay";
   rows: Array<{
     transport: Transport;
     revision: string;
@@ -139,8 +139,8 @@ export function buildTransportSummary(results: TransportResult[], expected: 1 | 
   if (complete) {
     if (delayed.size === 0) classification = "not-observed";
     else if (delayed.size === 4) classification = "shared-delay";
-    else if (delayed.size === 2 && delayed.has("velox") && delayed.has("fork-virtual-host")) classification = "virtual-host-mapping-delay";
-    else if (delayed.size === 1 && delayed.has("velox")) classification = "velox-only-delay";
+    else if (delayed.size === 2 && delayed.has("actutum") && delayed.has("fork-virtual-host")) classification = "virtual-host-mapping-delay";
+    else if (delayed.size === 1 && delayed.has("actutum")) classification = "actutum-only-delay";
     else if (delayed.size === 1 && delayed.has("fork-virtual-host")) classification = "virtual-host-control-delay";
     else if (delayed.size === 1 && delayed.has("fork-web-resource")) classification = "web-resource-delay";
     else classification = "mixed-delay";

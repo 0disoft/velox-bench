@@ -1,0 +1,107 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.actutum.invalid/bench-pair-summary/v2.json",
+  "title": "Actutum and Wails pair benchmark summary v2",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "suite", "scope", "expectedPerFramework", "fixtureSha256", "frameworkRevisions", "uploadedCacheBytes", "environmentCount", "environments", "hardwareBalanced", "hardwareVariants", "publishable", "rows"],
+  "properties": {
+    "schemaVersion": { "const": "actutum.bench-pair-summary/v2" },
+    "suite": { "const": "zero-cache" },
+    "scope": { "const": "actutum-wails" },
+    "expectedPerFramework": { "enum": [1, 3, 10] },
+    "fixtureSha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "frameworkRevisions": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["actutum", "wails"],
+      "properties": {
+        "actutum": { "type": "string", "pattern": "^[0-9a-f]{40}$" },
+        "wails": { "type": "string", "pattern": "^[0-9a-f]{40}$" }
+      }
+    },
+    "uploadedCacheBytes": { "const": 0 },
+    "environmentCount": { "type": "integer", "minimum": 1, "maximum": 20 },
+    "environments": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 20,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["runner", "runnerImageVersion", "os", "architecture", "windowsVersion", "logicalProcessors", "memoryClassBytes", "bunVersion", "observed"],
+        "properties": {
+          "runner": { "const": "windows-2025" },
+          "runnerImageVersion": { "type": "string", "minLength": 1 },
+          "os": { "const": "windows" },
+          "architecture": { "const": "amd64" },
+          "windowsVersion": { "type": "string", "minLength": 1 },
+          "logicalProcessors": { "type": "integer", "minimum": 1 },
+          "memoryClassBytes": { "type": "integer", "minimum": 1073741824, "multipleOf": 1073741824 },
+          "bunVersion": { "const": "1.3.14" },
+          "observed": { "type": "integer", "minimum": 1, "maximum": 20 }
+        }
+      }
+    },
+    "hardwareBalanced": { "type": "boolean" },
+    "hardwareVariants": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 20,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["cpuModel", "observed", "frameworks"],
+        "properties": {
+          "cpuModel": { "type": "string", "minLength": 1 },
+          "observed": { "type": "integer", "minimum": 1, "maximum": 20 },
+          "frameworks": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["actutum", "wails"],
+            "properties": {
+              "actutum": { "type": "integer", "minimum": 0, "maximum": 10 },
+              "wails": { "type": "integer", "minimum": 0, "maximum": 10 }
+            }
+          }
+        }
+      }
+    },
+    "publishable": { "type": "boolean" },
+    "rows": {
+      "type": "array",
+      "minItems": 2,
+      "maxItems": 2,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["framework", "expected", "observed", "missing", "successful", "failed", "timedOut", "endToEndMs"],
+        "properties": {
+          "framework": { "enum": ["actutum", "wails"] },
+          "expected": { "enum": [1, 3, 10] },
+          "observed": { "type": "integer", "minimum": 0, "maximum": 10 },
+          "missing": { "type": "integer", "minimum": 0, "maximum": 10 },
+          "successful": { "type": "integer", "minimum": 0, "maximum": 10 },
+          "failed": { "type": "integer", "minimum": 0, "maximum": 10 },
+          "timedOut": { "type": "integer", "minimum": 0, "maximum": 10 },
+          "endToEndMs": {
+            "oneOf": [
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["min", "p50", "p95", "max"],
+                "properties": {
+                  "min": { "type": "number", "minimum": 0 },
+                  "p50": { "type": "number", "minimum": 0 },
+                  "p95": { "type": "number", "minimum": 0 },
+                  "max": { "type": "number", "minimum": 0 }
+                }
+              },
+              { "type": "null" }
+            ]
+          }
+        }
+      }
+    }
+  }
+}

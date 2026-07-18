@@ -2,11 +2,11 @@ import { describe, expect, test } from "bun:test";
 import { buildRecommendedCacheSummary } from "./summarize-recommended-cache";
 import { cachePolicies, validateRecommendedCacheResult, type RecommendedCacheResult } from "./recommended-cache-contracts";
 
-function result(framework: "velox" | "wails", phase: "prime" | "warm", sample = 0): RecommendedCacheResult {
-  const cacheFree = framework === "velox";
+function result(framework: "actutum" | "wails", phase: "prime" | "warm", sample = 0): RecommendedCacheResult {
+  const cacheFree = framework === "actutum";
   const archiveBytes = cacheFree ? 0 : 100;
   return {
-    schemaVersion: "velox.recommended-cache-result/v1",
+    schemaVersion: "actutum.recommended-cache-result/v2",
     suite: "recommended-cache",
     phase,
     framework,
@@ -51,12 +51,12 @@ function result(framework: "velox" | "wails", phase: "prime" | "warm", sample = 
 }
 
 describe("recommended-cache contracts", () => {
-  test("accepts cache-free Velox and exact Wails restore evidence", () => {
-    for (const value of [result("velox", "prime"), result("velox", "warm"), result("wails", "prime"), result("wails", "warm")]) expect(() => validateRecommendedCacheResult(value)).not.toThrow();
+  test("accepts cache-free Actutum and exact Wails restore evidence", () => {
+    for (const value of [result("actutum", "prime"), result("actutum", "warm"), result("wails", "prime"), result("wails", "warm")]) expect(() => validateRecommendedCacheResult(value)).not.toThrow();
   });
 
-  test("summarizes a complete Velox-Wails pair without enabling a winner claim", () => {
-    const summary = buildRecommendedCacheSummary([result("velox", "prime"), result("velox", "warm"), result("wails", "prime"), result("wails", "warm")], 1, "velox-wails");
+  test("summarizes a complete Actutum-Wails pair without enabling a winner claim", () => {
+    const summary = buildRecommendedCacheSummary([result("actutum", "prime"), result("actutum", "warm"), result("wails", "prime"), result("wails", "warm")], 1, "actutum-wails");
     expect(summary.evidenceComplete).toBe(true);
     expect(summary.comparativeClaimAllowed).toBe(false);
     expect(summary.rows[1].archiveBytesP50).toBe(100);

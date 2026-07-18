@@ -1,5 +1,5 @@
 {
-  "schemaVersion": "velox-bench-lock/v2",
+  "schemaVersion": "actutum-bench-lock/v3",
   "runner": "windows-2025",
   "toolchains": {
     "bun": "1.3.14",
@@ -43,9 +43,9 @@
     }
   },
   "frameworks": {
-    "velox": {
+    "actutum": {
       "repository": "0disoft/velox",
-      "commit": "ae7a819f0ef9b22cb4f959451d0189d699c6e546"
+      "commit": "f6e7677f77abf60eb22af2f273d80727aacdc18f"
     },
     "wails": {
       "repository": "wailsapp/wails",

@@ -3,7 +3,7 @@ import { buildTransportSummary, transports, type Transport, type TransportResult
 
 function result(transport: Transport, sample: number, first = 500, immediate = 600): TransportResult {
   return {
-    schemaVersion: "velox.asset-transport-relaunch/v1", suite: "asset-transport-immediate-relaunch", framework: transport,
+    schemaVersion: "actutum.asset-transport-relaunch/v2", suite: "asset-transport-immediate-relaunch", framework: transport,
     frameworkRevision: "a".repeat(40), profileControl: "explicit-udf", sample, outcome: "success",
     startedAtUtc: "2026-07-15T00:00:00Z", finishedAtUtc: "2026-07-15T00:00:01Z",
     environment: { os: "windows", architecture: "amd64", runnerImage: "windows2025", runnerImageVersion: "1", webView2Version: "1", repositoryCommit: "b".repeat(40), runId: "1", runAttempt: "1" },
@@ -12,9 +12,9 @@ function result(transport: Transport, sample: number, first = 500, immediate = 6
   };
 }
 
-test("attributes paired tails shared by Velox and the virtual-host control", () => {
+test("attributes paired tails shared by Actutum and the virtual-host control", () => {
   const results = transports.flatMap((transport) => [0, 1, 2].map((sample) =>
-    result(transport, sample, 500, transport === "velox" || transport === "fork-virtual-host" ? 6000 : 600),
+    result(transport, sample, 500, transport === "actutum" || transport === "fork-virtual-host" ? 6000 : 600),
   ));
   const summary = buildTransportSummary(results, 3);
   expect(summary.transportClassification).toBe("virtual-host-mapping-delay");
@@ -22,7 +22,7 @@ test("attributes paired tails shared by Velox and the virtual-host control", () 
 });
 
 test("does not make a transport attribution from incomplete controls", () => {
-  const summary = buildTransportSummary([result("velox", 0, 500, 6000)], 1);
+  const summary = buildTransportSummary([result("actutum", 0, 500, 6000)], 1);
   expect(summary.transportClassification).toBe("insufficient-evidence");
   expect(summary.publishable).toBeFalse();
 });
@@ -41,7 +41,7 @@ test("preserves an intermittent virtual-host tail", () => {
 
 test("keeps multi-transport tails mixed instead of blaming WebResourceRequested", () => {
   const results = transports.map((transport) =>
-    result(transport, 0, 500, transport === "velox" || transport === "fork-web-resource" ? 6000 : 600),
+    result(transport, 0, 500, transport === "actutum" || transport === "fork-web-resource" ? 6000 : 600),
   );
   expect(buildTransportSummary(results, 1).transportClassification).toBe("mixed-delay");
 });

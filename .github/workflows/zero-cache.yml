@@ -16,8 +16,8 @@ on:
         type: choice
         options:
           - all
-          - velox-wails
-          - velox
+          - actutum-wails
+          - actutum
           - wails
           - neutralino
           - tauri
@@ -72,8 +72,8 @@ jobs:
           BENCHMARK_SCOPE: ${{ inputs.framework }}
           BENCHMARK_FIXTURE: ${{ inputs.fixture }}
         run: |
-          if ($env:BENCHMARK_SCOPE -eq 'velox-wails' -and $env:BENCHMARK_FIXTURE -ne 'hello') {
-            throw 'The Velox-Wails publication scope accepts only the hello fixture.'
+          if ($env:BENCHMARK_SCOPE -eq 'actutum-wails' -and $env:BENCHMARK_FIXTURE -ne 'hello') {
+            throw 'The Actutum-Wails product-gate scope accepts only the hello fixture.'
           }
       - name: Validate public result schemas
         shell: pwsh
@@ -90,7 +90,7 @@ jobs:
         shell: pwsh
         run: |
           $manifest = Get-Content -LiteralPath 'fixtures/asset-pack/fixture.json' -Raw
-          $schema = Get-Content -LiteralPath 'schema/asset-pack-v1.schema.json' -Raw
+          $schema = Get-Content -LiteralPath 'schema/asset-pack-v2.schema.json' -Raw
           if (-not ($manifest | Test-Json -Schema $schema)) { throw 'Asset-pack manifest failed JSON Schema validation.' }
 
   environment-baseline:
@@ -123,7 +123,7 @@ jobs:
       - name: Validate environment baseline schema
         shell: pwsh
         run: |
-          $schema = Get-Content -LiteralPath 'schema/environment-v1.schema.json' -Raw
+          $schema = Get-Content -LiteralPath 'schema/environment-v2.schema.json' -Raw
           $baseline = Get-Content -LiteralPath '.bench/environment/baseline.json' -Raw
           if (-not ($baseline | Test-Json -Schema $schema)) { throw 'Zero-cache environment baseline failed JSON Schema validation.' }
 
@@ -135,12 +135,12 @@ jobs:
           retention-days: 30
           if-no-files-found: error
 
-  velox-release:
-    name: Build pinned Velox producer artifact
+  actutum-release:
+    name: Build pinned Actutum producer artifact
     if: >-
       github.event_name == 'schedule' ||
       startsWith(github.ref, 'refs/tags/benchmark-v') ||
-      (github.event_name == 'workflow_dispatch' && (inputs.framework == 'all' || inputs.framework == 'velox-wails' || inputs.framework == 'velox'))
+      (github.event_name == 'workflow_dispatch' && (inputs.framework == 'all' || inputs.framework == 'actutum-wails' || inputs.framework == 'actutum'))
     needs: [contracts, environment-baseline]
     runs-on: windows-2025
     timeout-minutes: 10
@@ -150,12 +150,12 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Check out pinned Velox
+      - name: Check out pinned Actutum
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           repository: 0disoft/velox
-          ref: ae7a819f0ef9b22cb4f959451d0189d699c6e546
-          path: velox-source
+          ref: f6e7677f77abf60eb22af2f273d80727aacdc18f
+          path: actutum-source
           persist-credentials: false
 
       - name: Set up Go
@@ -167,24 +167,24 @@ jobs:
 
       - name: Build unsigned release
         shell: pwsh
-        working-directory: velox-source
+        working-directory: actutum-source
         run: |
           $ErrorActionPreference = 'Stop'
-          $env:GOCACHE = Join-Path $env:RUNNER_TEMP 'velox-producer-go-build'
-          $inputRoot = Join-Path $env:RUNNER_TEMP 'velox-release-input'
+          $env:GOCACHE = Join-Path $env:RUNNER_TEMP 'actutum-producer-go-build'
+          $inputRoot = Join-Path $env:RUNNER_TEMP 'actutum-release-input'
           New-Item -ItemType Directory -Path $inputRoot -Force | Out-Null
-          go build -trimpath -ldflags='-s -w' -o (Join-Path $inputRoot 'velox.exe') ./cmd/velox
+          go build -trimpath -ldflags='-s -w' -o (Join-Path $inputRoot 'actutum.exe') ./cmd/actutum
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          go build -trimpath -ldflags='-s -w' -o (Join-Path $inputRoot 'velox-host.exe') ./cmd/velox-host
+          go build -trimpath -ldflags='-s -w' -o (Join-Path $inputRoot 'actutum-host.exe') ./cmd/actutum-host
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          go run ./cmd/velox-release --cli (Join-Path $inputRoot 'velox.exe') --host (Join-Path $inputRoot 'velox-host.exe') --source-root $env:GITHUB_WORKSPACE/velox-source --out dist/release --json
+          go run ./cmd/actutum-release --cli (Join-Path $inputRoot 'actutum.exe') --host (Join-Path $inputRoot 'actutum-host.exe') --source-root $env:GITHUB_WORKSPACE/actutum-source --out dist/release --json
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
-      - name: Upload Velox producer artifact
+      - name: Upload Actutum producer artifact
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: velox-release-${{ github.run_id }}-${{ github.run_attempt }}
-          path: velox-source/dist/release/velox-windows-x64
+          name: actutum-release-${{ github.run_id }}-${{ github.run_attempt }}
+          path: actutum-source/dist/release/actutum-windows-x64
           retention-days: 3
           if-no-files-found: error
 
@@ -193,16 +193,16 @@ jobs:
     if: >-
       always() &&
       (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/tags/benchmark-v')) &&
-      !(github.event_name == 'workflow_dispatch' && inputs.framework == 'velox-wails') &&
+      !(github.event_name == 'workflow_dispatch' && inputs.framework == 'actutum-wails') &&
       needs.contracts.result == 'success' &&
       needs.environment-baseline.result == 'success' &&
-      (needs.velox-release.result == 'success' ||
-      (needs.velox-release.result == 'skipped' && github.event_name == 'workflow_dispatch' && inputs.framework != 'all' && inputs.framework != 'velox-wails' && inputs.framework != 'velox'))
-    needs: [contracts, environment-baseline, velox-release]
+      (needs.actutum-release.result == 'success' ||
+      (needs.actutum-release.result == 'skipped' && github.event_name == 'workflow_dispatch' && inputs.framework != 'all' && inputs.framework != 'actutum-wails' && inputs.framework != 'actutum'))
+    needs: [contracts, environment-baseline, actutum-release]
     strategy:
       fail-fast: false
       matrix:
-        framework: ${{ fromJSON(github.event_name == 'workflow_dispatch' && inputs.framework == 'velox-wails' && '["velox","wails"]' || github.event_name == 'workflow_dispatch' && inputs.framework != 'all' && format('["{0}"]', inputs.framework) || '["velox","wails","neutralino","tauri"]') }}
+        framework: ${{ fromJSON(github.event_name == 'workflow_dispatch' && inputs.framework == 'actutum-wails' && '["actutum","wails"]' || github.event_name == 'workflow_dispatch' && inputs.framework != 'all' && format('["{0}"]', inputs.framework) || '["actutum","wails","neutralino","tauri"]') }}
         sample: ${{ fromJSON(github.event_name == 'workflow_dispatch' && inputs.sample_count == '1' && '[0]' || github.event_name == 'workflow_dispatch' && inputs.sample_count == '3' && '[0,1,2]' || '[0,1,2,3,4,5,6,7,8,9]') }}
     runs-on: windows-2025
     timeout-minutes: 45
@@ -220,7 +220,7 @@ jobs:
 
       - name: Verify benchmark environment baseline
         env:
-          VELOX_BENCH_FIXTURE: ${{ github.event_name == 'workflow_dispatch' && inputs.fixture || 'hello' }}
+          ACTUTUM_BENCH_FIXTURE: ${{ github.event_name == 'workflow_dispatch' && inputs.fixture || 'hello' }}
         run: bun scripts/environment-gate.ts verify '${{ needs.environment-baseline.outputs.fingerprint }}' .bench/raw/${{ matrix.framework }}-${{ matrix.sample }}.json ${{ matrix.framework }} ${{ matrix.sample }}
 
       - name: Materialize selected asset-pack fixture
@@ -246,19 +246,19 @@ jobs:
           check-latest: false
           package-manager-cache: false
 
-      - name: Download Velox producer artifact
-        if: matrix.framework == 'velox'
+      - name: Download Actutum producer artifact
+        if: matrix.framework == 'actutum'
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
-          name: velox-release-${{ github.run_id }}-${{ github.run_attempt }}
-          path: .bench/acquired/velox
+          name: actutum-release-${{ github.run_id }}-${{ github.run_attempt }}
+          path: .bench/acquired/actutum
 
       - name: Measure acquisition, build, and packaging
         id: measure
         continue-on-error: true
         env:
-          VELOX_BENCH_FIXTURE: ${{ github.event_name == 'workflow_dispatch' && inputs.fixture || 'hello' }}
-          VELOX_BENCH_ASSET_PACK_ROOT: ${{ github.workspace }}/.bench/generated-fixture
+          ACTUTUM_BENCH_FIXTURE: ${{ github.event_name == 'workflow_dispatch' && inputs.fixture || 'hello' }}
+          ACTUTUM_BENCH_ASSET_PACK_ROOT: ${{ github.workspace }}/.bench/generated-fixture
         run: bun scripts/measure-zero-cache.ts ${{ matrix.framework }} ${{ matrix.sample }} .bench/raw/${{ matrix.framework }}-${{ matrix.sample }}.json .bench/clock/${{ matrix.framework }}-${{ matrix.sample }}.txt
 
       - name: Upload raw result
@@ -278,24 +278,24 @@ jobs:
     name: paired sample ${{ matrix.sample }} (${{ matrix.first }} first)
     if: >-
       github.event_name == 'workflow_dispatch' &&
-      inputs.framework == 'velox-wails' &&
+      inputs.framework == 'actutum-wails' &&
       needs.contracts.result == 'success' &&
       needs.environment-baseline.result == 'success' &&
-      needs.velox-release.result == 'success'
-    needs: [contracts, environment-baseline, velox-release]
+      needs.actutum-release.result == 'success'
+    needs: [contracts, environment-baseline, actutum-release]
     strategy:
       fail-fast: false
       matrix:
         include:
-          - { sample: 0, first: velox }
+          - { sample: 0, first: actutum }
           - { sample: 1, first: wails }
-          - { sample: 2, first: velox }
+          - { sample: 2, first: actutum }
           - { sample: 3, first: wails }
-          - { sample: 4, first: velox }
+          - { sample: 4, first: actutum }
           - { sample: 5, first: wails }
-          - { sample: 6, first: velox }
+          - { sample: 6, first: actutum }
           - { sample: 7, first: wails }
-          - { sample: 8, first: velox }
+          - { sample: 8, first: actutum }
           - { sample: 9, first: wails }
     runs-on: windows-2025
     timeout-minutes: 15
@@ -314,25 +314,25 @@ jobs:
       - name: Verify paired benchmark environment baseline
         id: preflight
         env:
-          VELOX_BENCH_FIXTURE: hello
+          ACTUTUM_BENCH_FIXTURE: hello
         run: bun scripts/environment-gate.ts verify-pair '${{ needs.environment-baseline.outputs.fingerprint }}' .bench/raw ${{ matrix.sample }}
 
-      - name: Start first Velox clock
-        if: matrix.first == 'velox'
-        run: bun scripts/start-clock.ts .bench/clock/velox-${{ matrix.sample }}.txt
+      - name: Start first Actutum clock
+        if: matrix.first == 'actutum'
+        run: bun scripts/start-clock.ts .bench/clock/actutum-${{ matrix.sample }}.txt
 
-      - name: Download first Velox producer artifact
-        if: matrix.first == 'velox'
+      - name: Download first Actutum producer artifact
+        if: matrix.first == 'actutum'
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
-          name: velox-release-${{ github.run_id }}-${{ github.run_attempt }}
-          path: .bench/acquired/velox
+          name: actutum-release-${{ github.run_id }}-${{ github.run_attempt }}
+          path: .bench/acquired/actutum
 
-      - name: Measure first Velox build
-        if: matrix.first == 'velox'
-        id: velox-first
+      - name: Measure first Actutum build
+        if: matrix.first == 'actutum'
+        id: actutum-first
         continue-on-error: true
-        run: bun scripts/measure-zero-cache.ts velox ${{ matrix.sample }} .bench/raw/velox-${{ matrix.sample }}.json .bench/clock/velox-${{ matrix.sample }}.txt
+        run: bun scripts/measure-zero-cache.ts actutum ${{ matrix.sample }} .bench/raw/actutum-${{ matrix.sample }}.json .bench/clock/actutum-${{ matrix.sample }}.txt
 
       - name: Start first Wails clock
         if: matrix.first == 'wails'
@@ -352,29 +352,29 @@ jobs:
         continue-on-error: true
         run: bun scripts/measure-zero-cache.ts wails ${{ matrix.sample }} .bench/raw/wails-${{ matrix.sample }}.json .bench/clock/wails-${{ matrix.sample }}.txt
 
-      - name: Start second Velox clock
+      - name: Start second Actutum clock
         if: matrix.first == 'wails'
-        run: bun scripts/start-clock.ts .bench/clock/velox-${{ matrix.sample }}.txt
+        run: bun scripts/start-clock.ts .bench/clock/actutum-${{ matrix.sample }}.txt
 
-      - name: Download second Velox producer artifact
+      - name: Download second Actutum producer artifact
         if: matrix.first == 'wails'
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
-          name: velox-release-${{ github.run_id }}-${{ github.run_attempt }}
-          path: .bench/acquired/velox
+          name: actutum-release-${{ github.run_id }}-${{ github.run_attempt }}
+          path: .bench/acquired/actutum
 
-      - name: Measure second Velox build
+      - name: Measure second Actutum build
         if: matrix.first == 'wails'
-        id: velox-second
+        id: actutum-second
         continue-on-error: true
-        run: bun scripts/measure-zero-cache.ts velox ${{ matrix.sample }} .bench/raw/velox-${{ matrix.sample }}.json .bench/clock/velox-${{ matrix.sample }}.txt
+        run: bun scripts/measure-zero-cache.ts actutum ${{ matrix.sample }} .bench/raw/actutum-${{ matrix.sample }}.json .bench/clock/actutum-${{ matrix.sample }}.txt
 
       - name: Start second Wails clock
-        if: matrix.first == 'velox'
+        if: matrix.first == 'actutum'
         run: bun scripts/start-clock.ts .bench/clock/wails-${{ matrix.sample }}.txt
 
       - name: Set up Go for second Wails build
-        if: matrix.first == 'velox'
+        if: matrix.first == 'actutum'
         uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version: 1.26.4
@@ -382,7 +382,7 @@ jobs:
           cache: false
 
       - name: Measure second Wails build
-        if: matrix.first == 'velox'
+        if: matrix.first == 'actutum'
         id: wails-second
         continue-on-error: true
         run: bun scripts/measure-zero-cache.ts wails ${{ matrix.sample }} .bench/raw/wails-${{ matrix.sample }}.json .bench/clock/wails-${{ matrix.sample }}.txt
@@ -393,7 +393,7 @@ jobs:
         with:
           name: raw-pair-${{ matrix.sample }}-${{ github.run_attempt }}
           path: |
-            .bench/raw/velox-${{ matrix.sample }}.json
+            .bench/raw/actutum-${{ matrix.sample }}.json
             .bench/raw/wails-${{ matrix.sample }}.json
           retention-days: 30
           if-no-files-found: error
@@ -402,8 +402,8 @@ jobs:
         if: >-
           always() &&
           (steps.preflight.outcome == 'failure' ||
-          steps.velox-first.outcome == 'failure' ||
-          steps.velox-second.outcome == 'failure' ||
+          steps.actutum-first.outcome == 'failure' ||
+          steps.actutum-second.outcome == 'failure' ||
           steps.wails-first.outcome == 'failure' ||
           steps.wails-second.outcome == 'failure')
         run: exit 1
@@ -413,7 +413,7 @@ jobs:
     if: >-
       always() &&
       (github.event_name == 'schedule' || startsWith(github.ref, 'refs/tags/benchmark-v') ||
-      (github.event_name == 'workflow_dispatch' && (inputs.framework == 'all' || inputs.framework == 'velox-wails')))
+      (github.event_name == 'workflow_dispatch' && (inputs.framework == 'all' || inputs.framework == 'actutum-wails')))
     needs: [environment-baseline, measure, pair-measure]
     runs-on: windows-2025
     timeout-minutes: 10
@@ -437,35 +437,35 @@ jobs:
           merge-multiple: true
 
       - name: Build summary
-        if: github.event_name != 'workflow_dispatch' || inputs.framework != 'velox-wails'
+        if: github.event_name != 'workflow_dispatch' || inputs.framework != 'actutum-wails'
         run: bun scripts/summarize.ts .bench/downloaded .bench/summary/zero-cache.json ${{ github.event_name == 'workflow_dispatch' && inputs.sample_count || '10' }}
 
       - name: Build go-or-kill decision
-        if: github.event_name != 'workflow_dispatch' || inputs.framework != 'velox-wails'
+        if: github.event_name != 'workflow_dispatch' || inputs.framework != 'actutum-wails'
         run: bun scripts/decide.ts .bench/summary/zero-cache.json .bench/summary/go-or-kill.json
 
-      - name: Build Velox and Wails pair summary
-        if: github.event_name == 'workflow_dispatch' && inputs.framework == 'velox-wails'
-        run: bun scripts/summarize-pair.ts .bench/downloaded .bench/summary/velox-wails.json ${{ inputs.sample_count }}
+      - name: Build Actutum and Wails pair summary
+        if: github.event_name == 'workflow_dispatch' && inputs.framework == 'actutum-wails'
+        run: bun scripts/summarize-pair.ts .bench/downloaded .bench/summary/actutum-wails.json ${{ inputs.sample_count }}
 
-      - name: Build Velox and Wails pair decision
-        if: github.event_name == 'workflow_dispatch' && inputs.framework == 'velox-wails'
-        run: bun scripts/decide-pair.ts .bench/summary/velox-wails.json .bench/summary/velox-wails-decision.json
+      - name: Build Actutum and Wails pair decision
+        if: github.event_name == 'workflow_dispatch' && inputs.framework == 'actutum-wails'
+        run: bun scripts/decide-pair.ts .bench/summary/actutum-wails.json .bench/summary/actutum-wails-decision.json
 
       - name: Validate summary and decision schemas
         shell: pwsh
         env:
-          BENCHMARK_SCOPE: ${{ github.event_name == 'workflow_dispatch' && inputs.framework == 'velox-wails' && 'velox-wails' || 'all' }}
+          BENCHMARK_SCOPE: ${{ github.event_name == 'workflow_dispatch' && inputs.framework == 'actutum-wails' && 'actutum-wails' || 'all' }}
         run: |
-          if ($env:BENCHMARK_SCOPE -eq 'velox-wails') {
-            $summarySchemaPath = 'schema/pair-summary-v1.schema.json'
-            $summaryPath = '.bench/summary/velox-wails.json'
-            $decisionSchemaPath = 'schema/pair-decision-v1.schema.json'
-            $decisionPath = '.bench/summary/velox-wails-decision.json'
+          if ($env:BENCHMARK_SCOPE -eq 'actutum-wails') {
+            $summarySchemaPath = 'schema/pair-summary-v2.schema.json'
+            $summaryPath = '.bench/summary/actutum-wails.json'
+            $decisionSchemaPath = 'schema/pair-decision-v2.schema.json'
+            $decisionPath = '.bench/summary/actutum-wails-decision.json'
           } else {
-            $summarySchemaPath = 'schema/summary-v3.schema.json'
+            $summarySchemaPath = 'schema/summary-v4.schema.json'
             $summaryPath = '.bench/summary/zero-cache.json'
-            $decisionSchemaPath = 'schema/decision-v1.schema.json'
+            $decisionSchemaPath = 'schema/decision-v2.schema.json'
             $decisionPath = '.bench/summary/go-or-kill.json'
           }
           $summarySchema = Get-Content -LiteralPath $summarySchemaPath -Raw
@@ -478,7 +478,7 @@ jobs:
       - name: Upload summary
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: ${{ github.event_name == 'workflow_dispatch' && inputs.framework == 'velox-wails' && 'zero-cache-velox-wails-summary' || format('zero-cache-{0}-summary', github.event_name == 'workflow_dispatch' && inputs.fixture || 'hello') }}-${{ github.run_id }}-${{ github.run_attempt }}
+          name: ${{ github.event_name == 'workflow_dispatch' && inputs.framework == 'actutum-wails' && 'zero-cache-actutum-wails-summary' || format('zero-cache-{0}-summary', github.event_name == 'workflow_dispatch' && inputs.fixture || 'hello') }}-${{ github.run_id }}-${{ github.run_attempt }}
           path: .bench/summary/*.json
           retention-days: 90
           if-no-files-found: error

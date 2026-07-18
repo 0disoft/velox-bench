@@ -1,8 +1,8 @@
-export const delaySchemaVersion = "velox.asset-transport-delay/v1" as const;
-export const delaySummarySchemaVersion = "velox.asset-transport-delay-summary/v1" as const;
+export const delaySchemaVersion = "actutum.asset-transport-delay/v2" as const;
+export const delaySummarySchemaVersion = "actutum.asset-transport-delay-summary/v2" as const;
 export const delaySuite = "asset-transport-relaunch-delay-sweep" as const;
 export const delayValues = [0, 100, 250, 500, 1000] as const;
-export const delayTransports = ["velox", "fork-file-url", "fork-virtual-host", "fork-web-resource"] as const;
+export const delayTransports = ["actutum", "fork-file-url", "fork-virtual-host", "fork-web-resource"] as const;
 
 export type DelayValue = typeof delayValues[number];
 export type DelayTransport = typeof delayTransports[number];

@@ -24,12 +24,12 @@ import (
 )
 
 const (
-	readyTitle                    = "Velox Bench Ready"
-	delaySchemaVersion            = "velox.asset-transport-delay/v1"
-	recoverySchemaVersion         = "velox.asset-transport-recovery/v1"
+	readyTitle                    = "Actutum Bench Ready"
+	delaySchemaVersion            = "actutum.asset-transport-delay/v2"
+	recoverySchemaVersion         = "actutum.asset-transport-recovery/v2"
 	wmClose                       = 0x0010
-	startupTimelinePrefix         = "velox-bench-timeline "
-	shutdownTimelinePrefix        = "velox-bench-shutdown-timeline "
+	startupTimelinePrefix         = "actutum-bench-timeline "
+	shutdownTimelinePrefix        = "actutum-bench-shutdown-timeline "
 	browserExitObservationTimeout = 15 * time.Second
 
 	pipeAccessInbound = 0x00000001
@@ -164,8 +164,8 @@ type runFailure struct {
 func (e runFailure) Error() string { return e.phase + ": " + e.err.Error() }
 
 var recoveryScenarios = map[string]recoveryScenario{
-	"velox-same-profile":         {ID: "velox-same-profile", Framework: "velox"},
-	"velox-fresh-profile":        {ID: "velox-fresh-profile", Framework: "velox", FreshRelaunchProfile: true},
+	"actutum-same-profile":         {ID: "actutum-same-profile", Framework: "actutum"},
+	"actutum-fresh-profile":        {ID: "actutum-fresh-profile", Framework: "actutum", FreshRelaunchProfile: true},
 	"file-url-same-profile":      {ID: "file-url-same-profile", Framework: "fork-file-url"},
 	"file-url-fresh-profile":     {ID: "file-url-fresh-profile", Framework: "fork-file-url", FreshRelaunchProfile: true},
 	"virtual-host-same-profile":  {ID: "virtual-host-same-profile", Framework: "fork-virtual-host"},
@@ -181,7 +181,7 @@ func main() {
 }
 
 func run() error {
-	schemaVersion := flag.String("schema-version", "velox.relaunch-control/v1", "result schema version")
+	schemaVersion := flag.String("schema-version", "actutum.relaunch-control/v2", "result schema version")
 	suite := flag.String("suite", "same-profile-immediate-relaunch", "measurement suite identifier")
 	framework := flag.String("framework", "", "framework identifier")
 	revision := flag.String("revision", "", "immutable framework revision")
@@ -299,8 +299,8 @@ func run() error {
 func runLaunch(framework, executable, workdir, profile, originSuffix string, captureDiagnostics bool) (observedLaunch, error) {
 	var pipe windows.Handle
 	var pipeName string
-	if framework == "velox" {
-		pipeName = fmt.Sprintf(`\\.\pipe\velox-relaunch-%d`, time.Now().UnixNano())
+	if framework == "actutum" {
+		pipeName = fmt.Sprintf(`\\.\pipe\actutum-relaunch-%d`, time.Now().UnixNano())
 		var err error
 		pipe, err = createPipe(pipeName)
 		if err != nil {
@@ -312,15 +312,15 @@ func runLaunch(framework, executable, workdir, profile, originSuffix string, cap
 	started := time.Now()
 	command := exec.Command(executable)
 	command.Dir = workdir
-	command.Env = append(os.Environ(), "VELOX_BENCH_PROFILE="+profile, "VELOX_DATA_DIR="+profile)
+	command.Env = append(os.Environ(), "ACTUTUM_BENCH_PROFILE="+profile, "ACTUTUM_DATA_DIR="+profile)
 	if captureDiagnostics {
-		command.Env = append(command.Env, "VELOX_BENCH_CAPTURE_TIMELINE=1")
+		command.Env = append(command.Env, "ACTUTUM_BENCH_CAPTURE_TIMELINE=1")
 	}
 	if originSuffix != "" {
-		command.Env = append(command.Env, "VELOX_BENCH_ORIGIN_SUFFIX="+originSuffix)
+		command.Env = append(command.Env, "ACTUTUM_BENCH_ORIGIN_SUFFIX="+originSuffix)
 	}
 	if pipeName != "" {
-		command.Env = append(command.Env, "VELOX_BENCH_PIPE="+pipeName)
+		command.Env = append(command.Env, "ACTUTUM_BENCH_PIPE="+pipeName)
 	}
 	command.Stdin = nil
 	command.Stdout = os.Stdout
@@ -335,7 +335,7 @@ func runLaunch(framework, executable, workdir, profile, originSuffix string, cap
 	var hwnd uintptr
 	var readyAt time.Time
 	if pipe != 0 {
-		readyAt, browserProcessID, err = waitForVeloxReady(pipe, 15*time.Second)
+		readyAt, browserProcessID, err = waitForActutumReady(pipe, 15*time.Second)
 		if err == nil {
 			hwnd, _, _, err = waitForWindow(processID, "", false, 5*time.Second)
 		}
@@ -392,11 +392,11 @@ func runLaunch(framework, executable, workdir, profile, originSuffix string, cap
 		HostProcessID: processID, BrowserProcessID: browserProcessID, HostExitedAt: exitedAt, BrowserExit: browserExit,
 	}
 	if captureDiagnostics {
-		observation.StartupTimeline, err = parseProcessTimeline(stderr.String(), startupTimelinePrefix, "velox.host-startup-timeline/v1", "time-since-host-entry-monotonic")
+		observation.StartupTimeline, err = parseProcessTimeline(stderr.String(), startupTimelinePrefix, "actutum.host-startup-timeline/v1", "time-since-host-entry-monotonic")
 		if err != nil {
 			return observedLaunch{}, runFailure{phase: "startup-timeline", err: err}
 		}
-		observation.ShutdownTimeline, err = parseProcessTimeline(stderr.String(), shutdownTimelinePrefix, "velox.host-shutdown-timeline/v1", "time-since-shutdown-request-monotonic")
+		observation.ShutdownTimeline, err = parseProcessTimeline(stderr.String(), shutdownTimelinePrefix, "actutum.host-shutdown-timeline/v1", "time-since-shutdown-request-monotonic")
 		if err != nil {
 			return observedLaunch{}, runFailure{phase: "shutdown-timeline", err: err}
 		}
@@ -461,7 +461,7 @@ func createPipe(name string) (windows.Handle, error) {
 	return windows.Handle(handle), nil
 }
 
-func waitForVeloxReady(pipe windows.Handle, timeout time.Duration) (time.Time, uint32, error) {
+func waitForActutumReady(pipe windows.Handle, timeout time.Duration) (time.Time, uint32, error) {
 	type readyResult struct {
 		at               time.Time
 		browserProcessID uint32
@@ -482,12 +482,12 @@ func waitForVeloxReady(pipe windows.Handle, timeout time.Duration) (time.Time, u
 		}
 		fields := strings.Fields(string(buffer[:n]))
 		if len(fields) != 3 || fields[0] != "ready" || fields[1] != "dom-2raf" {
-			done <- readyResult{err: fmt.Errorf("unexpected Velox ready marker %q", buffer[:n])}
+			done <- readyResult{err: fmt.Errorf("unexpected Actutum ready marker %q", buffer[:n])}
 			return
 		}
 		processID, err := strconv.ParseUint(fields[2], 10, 32)
 		if err != nil || processID == 0 {
-			done <- readyResult{err: fmt.Errorf("invalid Velox browser process ID %q", fields[2])}
+			done <- readyResult{err: fmt.Errorf("invalid Actutum browser process ID %q", fields[2])}
 			return
 		}
 		done <- readyResult{at: time.Now(), browserProcessID: uint32(processID)}
@@ -497,7 +497,7 @@ func waitForVeloxReady(pipe windows.Handle, timeout time.Duration) (time.Time, u
 		return result.at, result.browserProcessID, result.err
 	case <-time.After(timeout):
 		cancelIoEx.Call(uintptr(pipe), 0)
-		return time.Time{}, 0, errors.New("Velox ready marker timeout")
+		return time.Time{}, 0, errors.New("Actutum ready marker timeout")
 	}
 }
 
