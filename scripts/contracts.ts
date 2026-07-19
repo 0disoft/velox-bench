@@ -4,7 +4,7 @@ import { join } from "node:path";
 import { loadAssetPackManifest } from "./asset-pack";
 import type { BenchmarkEnvironmentIdentity } from "./environment";
 
-export const frameworks = ["actutum", "wails", "neutralino", "tauri"] as const;
+export const frameworks = ["velox", "wails", "neutralino", "tauri"] as const;
 export type Framework = (typeof frameworks)[number];
 export const fixtureNames = ["hello", "asset-pack"] as const;
 export type FixtureName = (typeof fixtureNames)[number];
@@ -17,7 +17,7 @@ export type FixtureIdentity = {
 };
 
 export type Lock = {
-  schemaVersion: "actutum-bench-lock/v3";
+  schemaVersion: "velox-bench-lock/v2";
   runner: "windows-2025";
   toolchains: Record<"bun" | "go" | "node" | "rust", string>;
   actions: Record<string, string>;
@@ -27,7 +27,7 @@ export type Lock = {
 };
 
 export type Result = {
-  schemaVersion: "actutum.bench-result/v3";
+  schemaVersion: "velox.bench-result/v2";
   suite: "zero-cache";
   framework: Framework;
   frameworkRevision: string;
@@ -81,7 +81,7 @@ export async function fixtureIdentity(root: string, lock: Lock, name: FixtureNam
 
   const manifest = await loadAssetPackManifest(join(root, lock.assetPack.manifest));
   const digest = createHash("sha256");
-  for (const value of ["actutum.fixture/v1", "hello", helloSha256, "asset-pack", lock.assetPack.expectedTreeSha256]) {
+  for (const value of ["velox.fixture/v1", "hello", helloSha256, "asset-pack", lock.assetPack.expectedTreeSha256]) {
     digest.update(value, "utf8");
     digest.update(new Uint8Array([0]));
   }
@@ -113,7 +113,7 @@ export function validateFixtureIdentity(value: unknown): asserts value is Fixtur
 export function validateResult(value: unknown): asserts value is Result {
   if (!value || typeof value !== "object") throw new Error("result must be an object");
   const result = value as Partial<Result>;
-  if (result.schemaVersion !== "actutum.bench-result/v3" || result.suite !== "zero-cache") {
+  if (result.schemaVersion !== "velox.bench-result/v2" || result.suite !== "zero-cache") {
     throw new Error("unsupported result contract");
   }
   if (!frameworks.includes(result.framework as Framework)) throw new Error("unknown framework");

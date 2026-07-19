@@ -22,21 +22,6 @@ const lock = JSON.parse(await readFile(join(root, "bench.lock.json"), "utf8")) a
 const commitPattern = /^[0-9a-f]{40}$/;
 const exactVersionPattern = /^\d+\.\d+\.\d+$/;
 
-for (const path of [
-  ".github/workflows/actutum-startup.yml",
-  "apps/actutum/actutum.json",
-  "scripts/measure-actutum-startup.ts",
-]) {
-  if (!(await Bun.file(join(root, path)).exists())) throw new Error(`active Actutum surface is missing: ${path}`);
-}
-for (const path of [
-  ".github/workflows/velox-startup.yml",
-  "apps/velox/velox.json",
-  "scripts/measure-velox-startup.ts",
-]) {
-  if (await Bun.file(join(root, path)).exists()) throw new Error(`retired active Velox surface still exists: ${path}`);
-}
-
 function assertExactKeys(value: unknown, keys: string[], label: string): asserts value is Record<string, unknown> {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
     throw new Error(`${label} must be an object`);
@@ -44,18 +29,11 @@ function assertExactKeys(value: unknown, keys: string[], label: string): asserts
   const actual = Object.keys(value).sort();
   const expected = [...keys].sort();
   if (JSON.stringify(actual) !== JSON.stringify(expected)) {
-    throw new Error(`${label} keys differ from the pinned Actutum manifest v1 contract`);
+    throw new Error(`${label} keys differ from the pinned Velox manifest v1 contract`);
   }
 }
 
-function assertActutumSource(workflow: string, label: string): void {
-  if (!workflow.includes(`repository: ${lock.frameworks.actutum.repository}`) ||
-      !workflow.includes(`ref: ${lock.frameworks.actutum.commit}`)) {
-    throw new Error(`${label} Actutum repository or ref differs from frameworks.actutum`);
-  }
-}
-
-if (lock.schemaVersion !== "actutum-bench-lock/v3" || lock.runner !== "windows-2025") {
+if (lock.schemaVersion !== "velox-bench-lock/v2" || lock.runner !== "windows-2025") {
   throw new Error("unsupported benchmark lock contract");
 }
 if (lock.assetPack.manifest !== "fixtures/asset-pack/fixture.json" || !/^[0-9a-f]{64}$/.test(lock.assetPack.expectedTreeSha256)) {
@@ -70,8 +48,8 @@ const assetPackDescription = describeAssetPack(assetPackManifest);
 if (assetPackDescription.treeSha256 !== lock.assetPack.expectedTreeSha256) {
   throw new Error("asset-pack generator digest differs from bench.lock.json");
 }
-if (JSON.stringify(Object.keys(lock.frameworks).sort()) !== JSON.stringify(["actutum", "neutralino", "tauri", "wails"])) {
-  throw new Error("framework lock must contain exactly actutum, neutralino, tauri, and wails");
+if (JSON.stringify(Object.keys(lock.frameworks).sort()) !== JSON.stringify(["neutralino", "tauri", "velox", "wails"])) {
+  throw new Error("framework lock must contain exactly neutralino, tauri, velox, and wails");
 }
 if (Object.keys(lock.controls).length !== 2 || !lock.controls.webview2Binding || !commitPattern.test(lock.controls.webview2Binding.commit) ||
     !lock.controls.xsys || !/^v\d+\.\d+\.\d+$/.test(lock.controls.xsys.version)) {
@@ -81,7 +59,7 @@ if (lock.publication.scope !== "velox-wails" || !/^\d+$/.test(lock.publication.r
     !Number.isSafeInteger(lock.publication.runAttempt) || lock.publication.runAttempt < 1 ||
     !commitPattern.test(lock.publication.benchmarkCommit) ||
     lock.publication.directory !== `results/velox-wails/run-${lock.publication.runId}`) {
-  throw new Error("publication lock must preserve the historical Velox-Wails run and benchmark revision");
+  throw new Error("publication lock must pin one Velox-Wails run and benchmark revision");
 }
 
 for (const [name, value] of Object.entries(lock.actions)) {
@@ -105,19 +83,19 @@ for (const [framework, values] of Object.entries(lock.frameworks)) {
   }
 }
 
-const actutumManifest = JSON.parse(await readFile(join(root, "apps", "actutum", "actutum.json"), "utf8")) as unknown;
-assertExactKeys(actutumManifest, ["$schema", "schemaVersion", "app", "assets", "window", "security"], "Actutum manifest");
-assertExactKeys(actutumManifest.app, ["id", "name", "version"], "Actutum manifest app");
-assertExactKeys(actutumManifest.assets, ["root", "entry"], "Actutum manifest assets");
-assertExactKeys(actutumManifest.window, ["width", "height"], "Actutum manifest window");
-assertExactKeys(actutumManifest.security, ["permissions"], "Actutum manifest security");
+const veloxManifest = JSON.parse(await readFile(join(root, "apps", "velox", "velox.json"), "utf8")) as unknown;
+assertExactKeys(veloxManifest, ["$schema", "schemaVersion", "app", "assets", "window", "security"], "Velox manifest");
+assertExactKeys(veloxManifest.app, ["id", "name", "version"], "Velox manifest app");
+assertExactKeys(veloxManifest.assets, ["root", "entry"], "Velox manifest assets");
+assertExactKeys(veloxManifest.window, ["width", "height"], "Velox manifest window");
+assertExactKeys(veloxManifest.security, ["permissions"], "Velox manifest security");
 if (
-  actutumManifest.schemaVersion !== 1 ||
-  actutumManifest.assets.root !== "web" ||
-  actutumManifest.assets.entry !== "index.html" ||
-  !Array.isArray(actutumManifest.security.permissions)
+  veloxManifest.schemaVersion !== 1 ||
+  veloxManifest.assets.root !== "web" ||
+  veloxManifest.assets.entry !== "index.html" ||
+  !Array.isArray(veloxManifest.security.permissions)
 ) {
-  throw new Error("Actutum adapter does not satisfy the pinned manifest v1 values");
+  throw new Error("Velox adapter does not satisfy the pinned manifest v1 values");
 }
 
 const neutralinoConfig = JSON.parse(await readFile(join(root, "apps", "neutralino", "neutralino.config.json"), "utf8")) as {
@@ -138,7 +116,7 @@ if (!committedTauriIcon.equals(createTauriIcon())) {
 }
 
 const adapters = [
-  join(root, "apps", "actutum", "web"),
+  join(root, "apps", "velox", "web"),
   join(root, "apps", "wails", "frontend", "dist"),
   join(root, "apps", "neutralino", "resources"),
   join(root, "apps", "tauri", "frontend", "dist"),
@@ -158,7 +136,9 @@ for (const file of lock.fixture.files) {
 }
 
 const workflow = await readFile(join(root, ".github", "workflows", "zero-cache.yml"), "utf8");
-assertActutumSource(workflow, "zero-cache workflow");
+if (!workflow.includes(`ref: ${lock.frameworks.velox.commit}`)) {
+  throw new Error("zero-cache workflow Velox ref differs from frameworks.velox.commit");
+}
 for (const name of ["checkout", "setupBun", "setupGo", "setupNode", "uploadArtifact", "downloadArtifact"] as const) {
   const commit = lock.actions[name];
   if (!workflow.includes(`@${commit}`)) {
@@ -191,23 +171,23 @@ for (const marker of [
   "bun scripts/environment-gate.ts capture",
   "bun scripts/environment-gate.ts verify",
   "Validate environment baseline schema",
-  "needs: [contracts, environment-baseline, actutum-release]",
+  "needs: [contracts, environment-baseline, velox-release]",
   "bun scripts/decide.ts",
   "bun scripts/summarize-pair.ts",
   "bun scripts/decide-pair.ts",
   "Validate summary and decision schemas",
-  "schema/summary-v4.schema.json",
-  "schema/decision-v2.schema.json",
-  "schema/pair-summary-v2.schema.json",
-  "schema/pair-decision-v2.schema.json",
+  "schema/summary-v3.schema.json",
+  "schema/decision-v1.schema.json",
+  "schema/pair-summary-v1.schema.json",
+  "schema/pair-decision-v1.schema.json",
   ".bench/summary/go-or-kill.json",
   "inputs.framework != 'all'",
-  "inputs.framework == 'actutum'",
-  "inputs.framework == 'actutum-wails'",
-  "'[\"actutum\",\"wails\"]'",
+  "inputs.framework == 'velox'",
+  "inputs.framework == 'velox-wails'",
+  "'[\"velox\",\"wails\"]'",
   "pair-measure:",
   "verify-pair",
-  "first: actutum",
+  "first: velox",
   "first: wails",
   "raw-pair-${{ matrix.sample }}-${{ github.run_attempt }}",
   "needs: [environment-baseline, measure, pair-measure]",
@@ -222,24 +202,23 @@ for (const marker of [
   "schema/publication-v1.schema.json",
   "$lock.publication.directory",
   "Validate asset-pack manifest schema",
-  "schema/asset-pack-v2.schema.json",
+  "schema/asset-pack-v1.schema.json",
   "fixtures/asset-pack/fixture.json",
   "fixture:",
   "- asset-pack",
   "Validate dispatch scope and fixture",
   "Materialize selected asset-pack fixture",
   "bun scripts/generate-asset-pack.ts .bench/generated-fixture --json",
-  "ACTUTUM_BENCH_FIXTURE:",
-  "ACTUTUM_BENCH_ASSET_PACK_ROOT:",
+  "VELOX_BENCH_FIXTURE:",
+  "VELOX_BENCH_ASSET_PACK_ROOT:",
 ]) {
   if (!workflow.includes(marker)) throw new Error(`zero-cache diagnostic matrix is missing ${marker}`);
 }
-for (const schema of ["asset-pack-v2.schema.json", "result-v3.schema.json", "summary-v4.schema.json", "environment-v2.schema.json", "decision-v2.schema.json", "pair-summary-v2.schema.json", "pair-decision-v2.schema.json"]) {
+for (const schema of ["asset-pack-v1.schema.json", "result-v1.schema.json", "result-v2.schema.json", "summary-v1.schema.json", "summary-v2.schema.json", "summary-v3.schema.json", "environment-v1.schema.json", "decision-v1.schema.json", "pair-summary-v1.schema.json", "pair-decision-v1.schema.json"]) {
   JSON.parse(await readFile(join(root, "schema", schema), "utf8"));
 }
 
 const recommendedCacheWorkflow = await readFile(join(root, ".github", "workflows", "recommended-cache.yml"), "utf8");
-assertActutumSource(recommendedCacheWorkflow, "recommended-cache workflow");
 for (const action of ["cache", "checkout", "setupBun", "setupGo", "setupNode", "uploadArtifact", "downloadArtifact"] as const) {
   if (!recommendedCacheWorkflow.includes(`@${lock.actions[action]}`)) {
     throw new Error(`recommended-cache workflow does not use pinned actions.${action}`);
@@ -260,8 +239,8 @@ for (const marker of [
   "bun scripts/cache-api.ts delete-scope",
   "bun scripts/finalize-recommended-cache.ts",
   "bun scripts/summarize-recommended-cache.ts",
-  "schema/recommended-cache-result-v2.schema.json",
-  "schema/recommended-cache-summary-v2.schema.json",
+  "schema/recommended-cache-result-v1.schema.json",
+  "schema/recommended-cache-summary-v1.schema.json",
   "permissions:",
   "actions: write",
 ]) {
@@ -270,12 +249,14 @@ for (const marker of [
 if (/^\s{2}(pull_request|schedule):/m.test(recommendedCacheWorkflow)) {
   throw new Error("recommended-cache workflow must not consume cache quota on pull requests or a schedule");
 }
-for (const schema of ["recommended-cache-result-v2.schema.json", "recommended-cache-summary-v2.schema.json"]) {
+for (const schema of ["recommended-cache-result-v1.schema.json", "recommended-cache-summary-v1.schema.json"]) {
   JSON.parse(await readFile(join(root, "schema", schema), "utf8"));
 }
 
-const startupWorkflow = await readFile(join(root, ".github", "workflows", "actutum-startup.yml"), "utf8");
-assertActutumSource(startupWorkflow, "startup workflow");
+const startupWorkflow = await readFile(join(root, ".github", "workflows", "velox-startup.yml"), "utf8");
+if (!startupWorkflow.includes(`ref: ${lock.frameworks.velox.commit}`)) {
+  throw new Error("startup workflow Velox ref differs from frameworks.velox.commit");
+}
 for (const action of ["checkout", "setupBun", "setupGo", "uploadArtifact", "downloadArtifact"] as const) {
   if (!startupWorkflow.includes(`@${lock.actions[action]}`)) {
     throw new Error(`startup workflow does not use pinned actions.${action}`);
@@ -291,11 +272,11 @@ for (const marker of [
   "workflow_dispatch:",
   "inputs.sample_count == '3'",
   "'[0,1,2]'",
-  "measure-actutum-startup.ts",
+  "measure-velox-startup.ts",
   "summarize-startup.ts",
   "collect-startup-history.ts",
   "startup-history-",
-  "ACTUTUM_STARTUP_EVIDENCE_LEVEL: hosted-pinned-source",
+  "VELOX_STARTUP_EVIDENCE_LEVEL: hosted-pinned-source",
   "no-cache: true",
   "cache: false",
   "startup-raw-${{ matrix.sample }}-${{ github.run_attempt }}",
@@ -306,7 +287,7 @@ for (const marker of [
 if (/^\s{2}(push|pull_request|schedule):/m.test(startupWorkflow)) {
   throw new Error("startup workflow must remain manual-only until its cost is measured");
 }
-for (const schema of ["startup-v3.schema.json", "startup-summary-v2.schema.json", "startup-history-v2.schema.json"]) {
+for (const schema of ["startup-v1.schema.json", "startup-v2.schema.json", "startup-summary-v1.schema.json", "startup-history-v1.schema.json"]) {
   JSON.parse(await readFile(join(root, "schema", schema), "utf8"));
 }
 
@@ -326,11 +307,10 @@ for (const moduleFile of [
   }
 }
 const relaunchWorkflow = await readFile(join(root, ".github", "workflows", "relaunch-controls.yml"), "utf8");
-assertActutumSource(relaunchWorkflow, "relaunch workflow");
 for (const action of ["checkout", "setupBun", "setupGo", "setupNode", "uploadArtifact", "downloadArtifact"] as const) {
   if (!relaunchWorkflow.includes(`@${lock.actions[action]}`)) throw new Error(`relaunch workflow does not use pinned actions.${action}`);
 }
-for (const revision of [lock.frameworks.actutum.commit, lock.controls.webview2Binding.commit, lock.frameworks.wails.commit, lock.frameworks.neutralino.commit]) {
+for (const revision of [lock.frameworks.velox.commit, lock.controls.webview2Binding.commit, lock.frameworks.wails.commit, lock.frameworks.neutralino.commit]) {
   if (!relaunchWorkflow.includes(revision)) throw new Error(`relaunch workflow does not pin revision ${revision}`);
 }
 if (/actions\/cache@/.test(relaunchWorkflow) || /^\s*cache:\s*true\s*$/m.test(relaunchWorkflow)) throw new Error("relaunch workflow enables a GitHub Actions cache");
@@ -338,35 +318,34 @@ for (const match of relaunchWorkflow.matchAll(/^\s*uses:\s*[^@\s]+@([^\s#]+)/gm)
   if (!commitPattern.test(match[1])) throw new Error(`relaunch workflow action is not pinned to a commit: ${match[0].trim()}`);
 }
 for (const marker of [
-  "actutum", "webview2-control", "framework-managed-app-directory", "summarize-relaunch.ts",
-  "relaunch-control-v2.schema.json", "relaunch-control-summary-v3.schema.json",
+  "velox", "webview2-control", "framework-managed-app-directory", "summarize-relaunch.ts",
+  "relaunch-control-v1.schema.json", "relaunch-control-summary-v2.schema.json",
   "relaunch-raw-${{ matrix.framework }}-${{ matrix.sample }}-${{ github.run_attempt }}",
   "pattern: relaunch-raw-*-${{ github.run_attempt }}",
 ]) {
   if (!relaunchWorkflow.includes(marker)) throw new Error(`relaunch workflow is missing ${marker}`);
 }
-for (const schema of ["relaunch-control-v2.schema.json", "relaunch-control-summary-v3.schema.json"]) {
+for (const schema of ["relaunch-control-v1.schema.json", "relaunch-control-summary-v1.schema.json", "relaunch-control-summary-v2.schema.json"]) {
   JSON.parse(await readFile(join(root, "schema", schema), "utf8"));
 }
 
 const transportModule = await readFile(join(root, "apps", "webview2-transport-control", "go.mod"), "utf8");
-if (!transportModule.includes("replace github.com/jchv/go-webview2 => ../../.bench/actutum-source/third_party/go-webview2")) {
-  throw new Error("asset transport control must use the pinned Actutum WebView2 fork checkout");
+if (!transportModule.includes("replace github.com/jchv/go-webview2 => ../../.bench/velox-source/third_party/go-webview2")) {
+  throw new Error("asset transport control must use the pinned Velox WebView2 fork checkout");
 }
 const transportSource = await readFile(join(root, "apps", "webview2-transport-control", "main.go"), "utf8");
 for (const marker of ["file-url", "virtual-host", "web-resource", "SetVirtualHostNameToFolderMapping", "SetWebResourceRequestHandler"]) {
   if (!transportSource.includes(marker)) throw new Error(`asset transport control source is missing ${marker}`);
 }
 const transportWorkflow = await readFile(join(root, ".github", "workflows", "asset-transport-controls.yml"), "utf8");
-assertActutumSource(transportWorkflow, "asset transport workflow");
 for (const action of ["checkout", "setupBun", "setupGo", "uploadArtifact", "downloadArtifact"] as const) {
   if (!transportWorkflow.includes(`@${lock.actions[action]}`)) {
     throw new Error(`asset transport workflow does not use pinned actions.${action}`);
   }
 }
-if (!transportWorkflow.includes(`ref: ${lock.frameworks.actutum.commit}`) ||
-    !transportWorkflow.includes(`--revision ${lock.frameworks.actutum.commit}`)) {
-  throw new Error("asset transport workflow Actutum revision differs from frameworks.actutum.commit");
+if (!transportWorkflow.includes(`ref: ${lock.frameworks.velox.commit}`) ||
+    !transportWorkflow.includes(`--revision ${lock.frameworks.velox.commit}`)) {
+  throw new Error("asset transport workflow Velox revision differs from frameworks.velox.commit");
 }
 if (/actions\/cache@/.test(transportWorkflow) || /^\s*cache:\s*true\s*$/m.test(transportWorkflow)) {
   throw new Error("asset transport workflow enables a GitHub Actions cache");
@@ -379,10 +358,10 @@ for (const marker of [
   "fork-file-url",
   "fork-virtual-host",
   "fork-web-resource",
-  "actutum.asset-transport-relaunch/v2",
+  "velox.asset-transport-relaunch/v1",
   "summarize-transport.ts",
-  "asset-transport-relaunch-v2.schema.json",
-  "asset-transport-relaunch-summary-v2.schema.json",
+  "asset-transport-relaunch-v1.schema.json",
+  "asset-transport-relaunch-summary-v1.schema.json",
   "inputs.sample_count == '3'",
   "'[0,1,2]'",
   "'[0,1,2,3,4,5,6,7,8,9]'",
@@ -396,20 +375,19 @@ for (const marker of [
 if (/^\s{2}(push|pull_request|schedule):/m.test(transportWorkflow)) {
   throw new Error("asset transport workflow must remain manual-only");
 }
-for (const schema of ["asset-transport-relaunch-v2.schema.json", "asset-transport-relaunch-summary-v2.schema.json"]) {
+for (const schema of ["asset-transport-relaunch-v1.schema.json", "asset-transport-relaunch-summary-v1.schema.json"]) {
   JSON.parse(await readFile(join(root, "schema", schema), "utf8"));
 }
 
 const delayWorkflow = await readFile(join(root, ".github", "workflows", "asset-transport-delay-sweep.yml"), "utf8");
-assertActutumSource(delayWorkflow, "asset transport delay workflow");
 for (const action of ["checkout", "setupBun", "setupGo", "uploadArtifact", "downloadArtifact"] as const) {
   if (!delayWorkflow.includes(`@${lock.actions[action]}`)) {
     throw new Error(`asset transport delay workflow does not use pinned actions.${action}`);
   }
 }
-if (!delayWorkflow.includes(`ref: ${lock.frameworks.actutum.commit}`) ||
-    !delayWorkflow.includes(`--revision ${lock.frameworks.actutum.commit}`)) {
-  throw new Error("asset transport delay workflow Actutum revision differs from frameworks.actutum.commit");
+if (!delayWorkflow.includes(`ref: ${lock.frameworks.velox.commit}`) ||
+    !delayWorkflow.includes(`--revision ${lock.frameworks.velox.commit}`)) {
+  throw new Error("asset transport delay workflow Velox revision differs from frameworks.velox.commit");
 }
 if (/actions\/cache@/.test(delayWorkflow) || /^\s*cache:\s*true\s*$/m.test(delayWorkflow)) {
   throw new Error("asset transport delay workflow enables a GitHub Actions cache");
@@ -422,11 +400,11 @@ for (const marker of [
   "$delays = @(0, 100, 250, 500, 1000)",
   "$offset = ([int] $env:SAMPLE) % $delays.Count",
   ".bench/profiles-delay/$env:TRANSPORT-$env:SAMPLE-$delay",
-  "actutum.asset-transport-delay/v2",
+  "velox.asset-transport-delay/v1",
   "asset-transport-relaunch-delay-sweep",
   "summarize-delay-sweep.ts",
-  "asset-transport-delay-v2.schema.json",
-  "asset-transport-delay-summary-v2.schema.json",
+  "asset-transport-delay-v1.schema.json",
+  "asset-transport-delay-summary-v1.schema.json",
   "asset-delay-raw-${{ matrix.transport }}-${{ matrix.sample }}-${{ github.run_attempt }}",
   "asset-delay-raw-*-${{ github.run_attempt }}",
   "inputs.sample_count == '3'",
@@ -440,18 +418,17 @@ for (const marker of [
 if (/^\s{2}(push|pull_request|schedule):/m.test(delayWorkflow)) {
   throw new Error("asset transport delay workflow must remain manual-only");
 }
-for (const schema of ["asset-transport-delay-v2.schema.json", "asset-transport-delay-summary-v2.schema.json"]) {
+for (const schema of ["asset-transport-delay-v1.schema.json", "asset-transport-delay-summary-v1.schema.json"]) {
   JSON.parse(await readFile(join(root, "schema", schema), "utf8"));
 }
 
 const recoveryWorkflow = await readFile(join(root, ".github", "workflows", "asset-transport-recovery.yml"), "utf8");
-assertActutumSource(recoveryWorkflow, "asset recovery workflow");
 for (const action of ["checkout", "setupBun", "setupGo", "uploadArtifact", "downloadArtifact"] as const) {
   if (!recoveryWorkflow.includes(`@${lock.actions[action]}`)) throw new Error(`asset recovery workflow does not use pinned actions.${action}`);
 }
-if (!recoveryWorkflow.includes(`ref: ${lock.frameworks.actutum.commit}`) ||
-    !recoveryWorkflow.includes(`--revision ${lock.frameworks.actutum.commit}`)) {
-  throw new Error("asset recovery workflow Actutum revision differs from frameworks.actutum.commit");
+if (!recoveryWorkflow.includes(`ref: ${lock.frameworks.velox.commit}`) ||
+    !recoveryWorkflow.includes(`--revision ${lock.frameworks.velox.commit}`)) {
+  throw new Error("asset recovery workflow Velox revision differs from frameworks.velox.commit");
 }
 if (/actions\/cache@/.test(recoveryWorkflow) || /^\s*cache:\s*true\s*$/m.test(recoveryWorkflow)) {
   throw new Error("asset recovery workflow enables a GitHub Actions cache");
@@ -462,18 +439,18 @@ for (const match of recoveryWorkflow.matchAll(/^\s*uses:\s*[^@\s]+@([^\s#]+)/gm)
 for (const marker of [
   "workflow_dispatch:",
   "$delays = @(0, 1000, 2000, 4000, 6000, 7000)",
-  "actutum-same-profile",
-  "actutum-fresh-profile",
+  "velox-same-profile",
+  "velox-fresh-profile",
   "file-url-same-profile",
   "file-url-fresh-profile",
   "virtual-host-same-profile",
   "virtual-host-fresh-profile",
   "virtual-host-fresh-origin",
-  "actutum.asset-transport-recovery/v2",
+  "velox.asset-transport-recovery/v1",
   "asset-transport-recovery-boundary",
   "summarize-recovery.ts",
-  "asset-transport-recovery-v2.schema.json",
-  "asset-transport-recovery-summary-v2.schema.json",
+  "asset-transport-recovery-v1.schema.json",
+  "asset-transport-recovery-summary-v1.schema.json",
   "asset-recovery-raw-${{ matrix.scenario }}-${{ matrix.sample }}-${{ github.run_attempt }}",
   "pattern: asset-recovery-raw-*-${{ github.run_attempt }}",
   "inputs.sample_count == '3'",
@@ -485,14 +462,14 @@ for (const marker of [
   if (!recoveryWorkflow.includes(marker)) throw new Error(`asset recovery workflow is missing ${marker}`);
 }
 if (/^\s{2}(push|pull_request|schedule):/m.test(recoveryWorkflow)) throw new Error("asset recovery workflow must remain manual-only");
-for (const schema of ["asset-transport-recovery-v2.schema.json", "asset-transport-recovery-summary-v2.schema.json"]) {
+for (const schema of ["asset-transport-recovery-v1.schema.json", "asset-transport-recovery-summary-v1.schema.json"]) {
   JSON.parse(await readFile(join(root, "schema", schema), "utf8"));
 }
 
 const relaunchHarness = await readFile(join(root, "harness", "relaunch", "main.go"), "utf8");
 for (const [name, value] of [
-  ["delaySchemaVersion", "actutum.asset-transport-delay/v2"],
-  ["recoverySchemaVersion", "actutum.asset-transport-recovery/v2"],
+  ["delaySchemaVersion", "velox.asset-transport-delay/v1"],
+  ["recoverySchemaVersion", "velox.asset-transport-recovery/v1"],
 ]) {
   if (!new RegExp(`${name}\\s*=\\s*"${value}"`).test(relaunchHarness)) {
     throw new Error(`relaunch harness is missing schema constant ${name}`);

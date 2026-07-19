@@ -11,8 +11,8 @@ import (
 )
 
 const (
-	startupTimelinePrefix  = "actutum-bench-timeline "
-	shutdownTimelinePrefix = "actutum-bench-shutdown-timeline "
+	startupTimelinePrefix  = "velox-bench-timeline "
+	shutdownTimelinePrefix = "velox-bench-shutdown-timeline "
 )
 
 type timelinePhase struct {
@@ -40,7 +40,7 @@ type timelineRecorder struct {
 func newStartupTimeline(enabled bool) *timelineRecorder {
 	recorder := &timelineRecorder{
 		enabled: enabled, prefix: startupTimelinePrefix,
-		schemaVersion: "actutum.host-startup-timeline/v1", clock: "time-since-host-entry-monotonic",
+		schemaVersion: "velox.host-startup-timeline/v1", clock: "time-since-host-entry-monotonic",
 		started: time.Now(),
 	}
 	if enabled {
@@ -52,7 +52,7 @@ func newStartupTimeline(enabled bool) *timelineRecorder {
 func newShutdownTimeline(enabled bool) *timelineRecorder {
 	return &timelineRecorder{
 		enabled: enabled, prefix: shutdownTimelinePrefix,
-		schemaVersion: "actutum.host-shutdown-timeline/v1", clock: "time-since-shutdown-request-monotonic",
+		schemaVersion: "velox.host-shutdown-timeline/v1", clock: "time-since-shutdown-request-monotonic",
 	}
 }
 

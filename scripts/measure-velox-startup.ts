@@ -21,7 +21,7 @@ const sample = Number(process.argv[2]);
 const releaseArgument = process.argv[3];
 const resultArgument = process.argv[4];
 if (!Number.isInteger(sample) || sample < 0 || sample > 9 || !releaseArgument || !resultArgument) {
-  throw new Error("usage: measure-actutum-startup.ts <sample> <release-root> <result>");
+  throw new Error("usage: measure-velox-startup.ts <sample> <release-root> <result>");
 }
 
 const releaseRoot = resolve(releaseArgument);
@@ -107,22 +107,22 @@ function milliseconds(value: number): number {
 function webViewVersionFromDoctor(stdout: string): string {
   const envelope = JSON.parse(stdout) as { ok?: boolean; result?: { checks?: Array<{ name?: string; status?: string; actual?: string }> } };
   const check = envelope.result?.checks?.find((candidate) => candidate.name === "webview2");
-  if (envelope.ok !== true || check?.status !== "pass" || !check.actual) throw new Error("Actutum doctor did not report an installed WebView2 runtime");
+  if (envelope.ok !== true || check?.status !== "pass" || !check.actual) throw new Error("Velox doctor did not report an installed WebView2 runtime");
   return check.actual;
 }
 
 async function hostFromBuildResult(outputRoot: string): Promise<{ host: string; config: string }> {
   const reports = await findFiles(outputRoot, "build-result.json");
-  if (reports.length !== 1) throw new Error("Actutum build must contain exactly one build-result.json");
+  if (reports.length !== 1) throw new Error("Velox build must contain exactly one build-result.json");
   const portable = dirname(reports[0]);
   const report = JSON.parse(await readFile(reports[0], "utf8")) as { schemaVersion?: string; host?: { file?: string } };
   const hostFile = report.host?.file;
-  if (report.schemaVersion !== "actutum.build-result/v1" || !hostFile || isAbsolute(hostFile) || normalize(hostFile) !== basename(hostFile)) {
-    throw new Error("Actutum build result contains an invalid host path");
+  if (report.schemaVersion !== "velox.build-result/v1" || !hostFile || isAbsolute(hostFile) || normalize(hostFile) !== basename(hostFile)) {
+    throw new Error("Velox build result contains an invalid host path");
   }
   const host = resolve(portable, hostFile);
-  if (!host.startsWith(`${resolve(portable)}${sep}`)) throw new Error("Actutum build host escapes the portable directory");
-  return { host, config: join(portable, "actutum.runtime.json") };
+  if (!host.startsWith(`${resolve(portable)}${sep}`)) throw new Error("Velox build host escapes the portable directory");
+  return { host, config: join(portable, "velox.runtime.json") };
 }
 
 async function waitForProcessExit(processId: number): Promise<void> {
@@ -159,7 +159,7 @@ async function waitForProfileRelease(profile: string): Promise<void> {
 }
 
 async function runHost(host: string, config: string, profile: string): Promise<StartupLaunch> {
-  const pipePath = `\\\\.\\pipe\\actutum-bench-${process.pid}-${randomUUID()}`;
+  const pipePath = `\\\\.\\pipe\\velox-bench-${process.pid}-${randomUUID()}`;
   let markerResolve!: (value: { receivedAt: number; browserProcessId: number }) => void;
   let markerReject!: (reason: unknown) => void;
   const marker = new Promise<{ receivedAt: number; browserProcessId: number }>((resolvePromise, rejectPromise) => {
@@ -174,7 +174,7 @@ async function runHost(host: string, config: string, profile: string): Promise<S
       const newline = body.indexOf("\n");
       if (newline < 0) return;
       const match = /^ready dom-2raf ([1-9][0-9]*)$/.exec(body.slice(0, newline).trim());
-      if (!match) markerReject(new Error("invalid Actutum ready marker"));
+      if (!match) markerReject(new Error("invalid Velox ready marker"));
       else markerResolve({ receivedAt: performance.now(), browserProcessId: Number(match[1]) });
       socket.end();
     });
@@ -186,18 +186,18 @@ async function runHost(host: string, config: string, profile: string): Promise<S
   const startedAt = performance.now();
   const child = Bun.spawn([host, "--config", config], {
     cwd: dirname(host),
-    env: { ...process.env, ACTUTUM_BENCH_PIPE: pipePath, ACTUTUM_BENCH_EXIT_AFTER_READY: "1", ACTUTUM_DATA_DIR: profile },
+    env: { ...process.env, VELOX_BENCH_PIPE: pipePath, VELOX_BENCH_EXIT_AFTER_READY: "1", VELOX_DATA_DIR: profile },
     stdin: "ignore",
     stdout: "pipe",
     stderr: "pipe",
   });
   try {
-    const ready = await withTimeout(marker, 15_000, "Actutum did not report ready");
+    const ready = await withTimeout(marker, 15_000, "Velox did not report ready");
     const readyMs = ready.receivedAt - startedAt;
-    const exitCode = await withTimeout(child.exited, 5_000, "Actutum host did not exit after ready");
+    const exitCode = await withTimeout(child.exited, 5_000, "Velox host did not exit after ready");
     const hostExitedAt = performance.now();
     const [stdout, stderr] = await Promise.all([new Response(child.stdout).text(), new Response(child.stderr).text()]);
-    if (exitCode !== 0) throw new Error(`Actutum host exited with ${exitCode}: ${(stderr || stdout).slice(-1000)}`);
+    if (exitCode !== 0) throw new Error(`Velox host exited with ${exitCode}: ${(stderr || stdout).slice(-1000)}`);
     const hostTimeline = parseHostTimelineOutput(stderr, readyMs);
     await waitForProcessExit(ready.browserProcessId);
     const browserExitedAt = performance.now();
@@ -226,17 +226,17 @@ try {
   if (process.platform !== "win32" || process.arch !== "x64") throw new Error("startup benchmark requires Windows x64");
   await rm(work, { recursive: true, force: true });
   await mkdir(work, { recursive: true });
-  const executables = await findFiles(releaseRoot, "actutum.exe");
-  if (executables.length !== 1) throw new Error("Actutum release must contain exactly one actutum.exe");
-  const actutum = executables[0];
+  const executables = await findFiles(releaseRoot, "velox.exe");
+  if (executables.length !== 1) throw new Error("Velox release must contain exactly one velox.exe");
+  const velox = executables[0];
 
   phase = "build-fixture";
-  await cp(join(root, "apps", "actutum"), project, { recursive: true });
-  await run([actutum, "build", "--config", join(project, "actutum.json"), "--out", output, "--json"], project);
+  await cp(join(root, "apps", "velox"), project, { recursive: true });
+  await run([velox, "build", "--config", join(project, "velox.json"), "--out", output, "--json"], project);
   const { host, config } = await hostFromBuildResult(output);
 
   phase = "inspect-runtime";
-  const doctor = await run([actutum, "doctor", "--config", join(project, "actutum.json"), "--out", output, "--json"], project);
+  const doctor = await run([velox, "doctor", "--config", join(project, "velox.json"), "--out", output, "--json"], project);
   webView2Version = webViewVersionFromDoctor(doctor.stdout);
 
   phase = "fresh-profile";
@@ -254,9 +254,9 @@ try {
   result = {
     schemaVersion: startupSchemaVersion,
     suite: startupSuite,
-    framework: "actutum",
-    frameworkRevision: lock.frameworks.actutum.commit,
-    evidenceLevel: process.env.ACTUTUM_STARTUP_EVIDENCE_LEVEL === "hosted-pinned-source" ? "hosted-pinned-source" : "local-unverified-release",
+    framework: "velox",
+    frameworkRevision: lock.frameworks.velox.commit,
+    evidenceLevel: process.env.VELOX_STARTUP_EVIDENCE_LEVEL === "hosted-pinned-source" ? "hosted-pinned-source" : "local-unverified-release",
     sample,
     fixtureSha256: await fixtureDigest(root, lock),
     outcome: "success",
@@ -275,9 +275,9 @@ try {
   result = {
     schemaVersion: startupSchemaVersion,
     suite: startupSuite,
-    framework: "actutum",
-    frameworkRevision: lock.frameworks.actutum.commit,
-    evidenceLevel: process.env.ACTUTUM_STARTUP_EVIDENCE_LEVEL === "hosted-pinned-source" ? "hosted-pinned-source" : "local-unverified-release",
+    framework: "velox",
+    frameworkRevision: lock.frameworks.velox.commit,
+    evidenceLevel: process.env.VELOX_STARTUP_EVIDENCE_LEVEL === "hosted-pinned-source" ? "hosted-pinned-source" : "local-unverified-release",
     sample,
     fixtureSha256: await fixtureDigest(root, lock),
     outcome: error instanceof StartupTimeout ? "timeout" : "failure",

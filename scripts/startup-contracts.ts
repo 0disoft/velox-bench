@@ -1,11 +1,11 @@
-export const startupSchemaVersion = "actutum.startup-benchmark/v3" as const;
-export const startupSummarySchemaVersion = "actutum.startup-summary/v2" as const;
-export const startupSuite = "actutum-startup" as const;
+export const startupSchemaVersion = "velox.startup-benchmark/v2" as const;
+export const startupSummarySchemaVersion = "velox.startup-summary/v1" as const;
+export const startupSuite = "velox-startup" as const;
 export const readyBoundary = "process-start-to-domcontentloaded-plus-two-animation-frames" as const;
 export const warmupCount = 5 as const;
-export const hostTimelineSchemaVersion = "actutum.host-startup-timeline/v1" as const;
+export const hostTimelineSchemaVersion = "velox.host-startup-timeline/v1" as const;
 export const hostTimelineClock = "time-since-host-entry-monotonic" as const;
-export const hostTimelinePrefix = "actutum-bench-timeline " as const;
+export const hostTimelinePrefix = "velox-bench-timeline " as const;
 export const startupPhaseNames = [
   "host-entry",
   "config-loaded",
@@ -54,7 +54,7 @@ export type StartupLaunch = {
 export type StartupResult = {
   schemaVersion: typeof startupSchemaVersion;
   suite: typeof startupSuite;
-  framework: "actutum";
+  framework: "velox";
   frameworkRevision: string;
   evidenceLevel: "hosted-pinned-source" | "local-unverified-release";
   sample: number;
@@ -77,7 +77,7 @@ export type StartupStatistics = { minMs: number; p50Ms: number; p95Ms: number; m
 export type StartupSummary = {
   schemaVersion: typeof startupSummarySchemaVersion;
   suite: typeof startupSuite;
-  framework: "actutum";
+  framework: "velox";
   expected: 1 | 3 | 10;
   observed: number;
   missing: number;
@@ -94,7 +94,7 @@ export type StartupSummary = {
 export function validateStartupSummary(value: unknown): asserts value is StartupSummary {
   if (!value || typeof value !== "object") throw new Error("startup summary must be an object");
   const summary = value as Partial<StartupSummary>;
-  if (summary.schemaVersion !== startupSummarySchemaVersion || summary.suite !== startupSuite || summary.framework !== "actutum") {
+  if (summary.schemaVersion !== startupSummarySchemaVersion || summary.suite !== startupSuite || summary.framework !== "velox") {
     throw new Error("unsupported startup summary contract");
   }
   if (![1, 3, 10].includes(summary.expected ?? 0)) throw new Error("invalid expected startup samples");
@@ -170,7 +170,7 @@ function validLaunch(value: unknown): value is StartupLaunch {
 export function validateStartupResult(value: unknown): asserts value is StartupResult {
   if (!value || typeof value !== "object") throw new Error("startup result must be an object");
   const result = value as Partial<StartupResult>;
-  if (result.schemaVersion !== startupSchemaVersion || result.suite !== startupSuite || result.framework !== "actutum") {
+  if (result.schemaVersion !== startupSchemaVersion || result.suite !== startupSuite || result.framework !== "velox") {
     throw new Error("unsupported startup result contract");
   }
   if (!/^[0-9a-f]{40}$/.test(result.frameworkRevision ?? "")) throw new Error("invalid startup framework revision");
@@ -243,7 +243,7 @@ export function buildStartupSummary(results: StartupResult[], expected: number):
   return {
     schemaVersion: startupSummarySchemaVersion,
     suite: startupSuite,
-    framework: "actutum",
+    framework: "velox",
     expected: expected as 1 | 3 | 10,
     observed: results.length,
     missing: Math.max(0, expected - results.length),

@@ -48,12 +48,12 @@ jobs:
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           persist-credentials: false
-      - name: Check out pinned Actutum fork
+      - name: Check out pinned Velox fork
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           repository: 0disoft/velox
-          ref: f6e7677f77abf60eb22af2f273d80727aacdc18f
-          path: .bench/actutum-source
+          ref: ae7a819f0ef9b22cb4f959451d0189d699c6e546
+          path: .bench/velox-source
           persist-credentials: false
       - name: Set up Go
         uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
@@ -86,15 +86,15 @@ jobs:
             Copy-Item -LiteralPath 'fixtures/hello' -Destination (Join-Path $output 'web') -Recurse
           }
 
-          $actutum = Join-Path $built 'actutum'
-          New-Item -ItemType Directory -Path $actutum -Force | Out-Null
-          Push-Location '.bench/actutum-source'
-          go build -mod=readonly -trimpath -o (Join-Path $actutum 'app.exe') ./cmd/actutum-host
+          $velox = Join-Path $built 'velox'
+          New-Item -ItemType Directory -Path $velox -Force | Out-Null
+          Push-Location '.bench/velox-source'
+          go build -mod=readonly -trimpath -o (Join-Path $velox 'app.exe') ./cmd/velox-host
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          Copy-Item -LiteralPath 'examples/hello/actutum.runtime.json' -Destination (Join-Path $actutum 'actutum.runtime.json')
-          Copy-Item -LiteralPath 'examples/hello/web' -Destination (Join-Path $actutum 'web') -Recurse
+          Copy-Item -LiteralPath 'examples/hello/velox.runtime.json' -Destination (Join-Path $velox 'velox.runtime.json')
+          Copy-Item -LiteralPath 'examples/hello/web' -Destination (Join-Path $velox 'web') -Recurse
           Pop-Location
-          Copy-Item -LiteralPath (Join-Path $built 'relaunch-harness.exe') -Destination $actutum
+          Copy-Item -LiteralPath (Join-Path $built 'relaunch-harness.exe') -Destination $velox
       - name: Upload file URL control
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
@@ -116,11 +116,11 @@ jobs:
           path: .bench/built/fork-web-resource
           retention-days: 3
           if-no-files-found: error
-      - name: Upload Actutum control
+      - name: Upload Velox control
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: asset-transport-actutum-${{ github.run_id }}-${{ github.run_attempt }}
-          path: .bench/built/actutum
+          name: asset-transport-velox-${{ github.run_id }}-${{ github.run_attempt }}
+          path: .bench/built/velox
           retention-days: 3
           if-no-files-found: error
 
@@ -130,7 +130,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        transport: [actutum, fork-file-url, fork-virtual-host, fork-web-resource]
+        transport: [velox, fork-file-url, fork-virtual-host, fork-web-resource]
         sample: ${{ fromJSON(inputs.sample_count == '1' && '[0]' || inputs.sample_count == '3' && '[0,1,2]' || '[0,1,2,3,4,5,6,7,8,9]') }}
     runs-on: windows-2025
     timeout-minutes: 5
@@ -157,10 +157,10 @@ jobs:
           $result = Join-Path $env:GITHUB_WORKSPACE ".bench/raw/$env:TRANSPORT-$env:SAMPLE.json"
           $profile = Join-Path $env:GITHUB_WORKSPACE ".bench/profiles/$env:TRANSPORT-$env:SAMPLE"
           & (Join-Path $root 'relaunch-harness.exe') `
-            --schema-version actutum.asset-transport-relaunch/v2 `
+            --schema-version velox.asset-transport-relaunch/v1 `
             --suite asset-transport-immediate-relaunch `
             --framework $env:TRANSPORT `
-            --revision f6e7677f77abf60eb22af2f273d80727aacdc18f `
+            --revision ae7a819f0ef9b22cb4f959451d0189d699c6e546 `
             --executable (Join-Path $root 'app.exe') `
             --workdir $root `
             --profile $profile `
@@ -168,7 +168,7 @@ jobs:
             --output $result `
             --sample ([int] $env:SAMPLE)
           if (-not (Test-Path -LiteralPath $result -PathType Leaf)) { throw 'Transport result was not written.' }
-          $schema = Get-Content -LiteralPath 'schema/asset-transport-relaunch-v2.schema.json' -Raw
+          $schema = Get-Content -LiteralPath 'schema/asset-transport-relaunch-v1.schema.json' -Raw
           $raw = Get-Content -LiteralPath $result -Raw
           if (-not ($raw | Test-Json -Schema $schema)) { throw 'Transport result failed JSON Schema validation.' }
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
@@ -211,7 +211,7 @@ jobs:
       - name: Validate transport summary schema
         shell: pwsh
         run: |
-          $schema = Get-Content -LiteralPath 'schema/asset-transport-relaunch-summary-v2.schema.json' -Raw
+          $schema = Get-Content -LiteralPath 'schema/asset-transport-relaunch-summary-v1.schema.json' -Raw
           $summary = Get-Content -LiteralPath '.bench/summary/asset-transport.json' -Raw
           if (-not ($summary | Test-Json -Schema $schema)) { throw 'Transport summary failed JSON Schema validation.' }
       - name: Upload transport summary

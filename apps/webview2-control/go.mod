@@ -1,4 +1,4 @@
-module github.com/0disoft/actutum-bench/apps/webview2-control
+module github.com/0disoft/velox-bench/apps/webview2-control
 
 go 1.26.0
 

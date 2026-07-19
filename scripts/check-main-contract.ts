@@ -12,13 +12,13 @@ type WorkflowRunsResponse = {
   workflow_runs: WorkflowRun[];
 };
 
-const repository = process.env.ACTUTUM_BENCH_REPOSITORY ?? "0disoft/velox-bench";
+const repository = process.env.VELOX_BENCH_REPOSITORY ?? "0disoft/velox-bench";
 const commit = process.argv[2] ?? currentCommit();
 if (!/^[0-9a-f]{40}$/.test(commit)) throw new Error(`invalid benchmark commit: ${commit}`);
 
 const headers: Record<string, string> = {
   Accept: "application/vnd.github+json",
-  "User-Agent": "actutum-bench-main-contract",
+  "User-Agent": "velox-bench-main-contract",
   "X-GitHub-Api-Version": "2022-11-28",
 };
 const token = process.env.GITHUB_TOKEN ?? process.env.GH_TOKEN;

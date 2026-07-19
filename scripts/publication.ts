@@ -1,122 +1,12 @@
 import { createHash } from "node:crypto";
+import type { PairDecision } from "./pair-decision";
+import { buildPairDecision, validatePairDecision } from "./pair-decision";
+import type { PairSummary } from "./pair-summary";
+import { validatePairSummary } from "./pair-summary";
 
 export const publicationSchemaVersion = "velox.bench-publication/v1" as const;
 export const publicationStartMarker = "<!-- BEGIN GENERATED VELOX-WAILS RESULT -->";
 export const publicationEndMarker = "<!-- END GENERATED VELOX-WAILS RESULT -->";
-
-type LegacyPairSummary = {
-  schemaVersion: "velox.bench-pair-summary/v1";
-  suite: "zero-cache";
-  scope: "velox-wails";
-  expectedPerFramework: number;
-  fixtureSha256: string;
-  uploadedCacheBytes: 0;
-  environmentCount: number;
-  environments: Array<{
-    runner: string;
-    runnerImageVersion: string;
-    windowsVersion: string;
-    architecture: string;
-    logicalProcessors: number;
-    memoryClassBytes: number;
-  }>;
-  hardwareBalanced: boolean;
-  publishable: boolean;
-  rows: Array<{
-    framework: "velox" | "wails";
-    observed: number;
-    missing: number;
-    successful: number;
-    failed: number;
-    timedOut: number;
-    endToEndMs: null | { min: number; p50: number; p95: number; max: number };
-  }>;
-};
-
-type LegacyPairDecision = {
-  schemaVersion: "velox.bench-pair-decision/v1";
-  suite: "zero-cache";
-  scope: "velox-wails";
-  evidenceLevel: "diagnostic" | "publishable";
-  status: "promising" | "below-target" | "passed" | "failed" | "insufficient-evidence";
-  target: { metric: "wails-to-velox-p50-ratio"; minimum: 3 };
-  metrics: { veloxP50Ms: number | null; wailsP50Ms: number | null; wailsToVeloxP50Ratio: number | null };
-  gates: {
-    completeSuccessfulSamples: boolean;
-    singleEnvironment: boolean;
-    hardwareBalanced: boolean;
-    zeroCacheUpload: boolean;
-    minimumSpeedup: boolean | null;
-  };
-  questionsRequired: boolean;
-};
-
-function validateLegacyPairSummary(value: unknown): asserts value is LegacyPairSummary {
-  if (!value || typeof value !== "object") throw new Error("legacy pair summary must be an object");
-  const summary = value as Partial<LegacyPairSummary>;
-  if (summary.schemaVersion !== "velox.bench-pair-summary/v1" || summary.suite !== "zero-cache" || summary.scope !== "velox-wails") {
-    throw new Error("unsupported legacy pair summary contract");
-  }
-  if (![1, 3, 10].includes(summary.expectedPerFramework ?? 0) || summary.uploadedCacheBytes !== 0) {
-    throw new Error("legacy pair summary sample or cache contract is invalid");
-  }
-  if (!Array.isArray(summary.environments) || summary.environments.length === 0 || summary.environmentCount !== summary.environments.length) {
-    throw new Error("legacy pair summary environments are invalid");
-  }
-  if (!Array.isArray(summary.rows) || summary.rows.length !== 2 || typeof summary.hardwareBalanced !== "boolean" || typeof summary.publishable !== "boolean") {
-    throw new Error("legacy pair summary rows are invalid");
-  }
-  for (const framework of ["velox", "wails"] as const) {
-    if (summary.rows.filter((row) => row.framework === framework).length !== 1) {
-      throw new Error(`legacy pair summary must contain exactly one ${framework} row`);
-    }
-  }
-}
-
-function validateLegacyPairDecision(value: unknown): asserts value is LegacyPairDecision {
-  if (!value || typeof value !== "object") throw new Error("legacy pair decision must be an object");
-  const decision = value as Partial<LegacyPairDecision>;
-  if (decision.schemaVersion !== "velox.bench-pair-decision/v1" || decision.suite !== "zero-cache" || decision.scope !== "velox-wails") {
-    throw new Error("unsupported legacy pair decision contract");
-  }
-  if (decision.target?.metric !== "wails-to-velox-p50-ratio" || decision.target.minimum !== 3 || !decision.metrics || !decision.gates ||
-      typeof decision.questionsRequired !== "boolean") {
-    throw new Error("legacy pair decision fields are invalid");
-  }
-}
-
-function buildLegacyPairDecision(summary: LegacyPairSummary): LegacyPairDecision {
-  const velox = summary.rows.find((row) => row.framework === "velox")!;
-  const wails = summary.rows.find((row) => row.framework === "wails")!;
-  const completeSuccessfulSamples = summary.rows.every((row) =>
-    row.observed === summary.expectedPerFramework && row.successful === summary.expectedPerFramework &&
-    row.failed === 0 && row.timedOut === 0 && row.missing === 0,
-  );
-  const singleEnvironment = summary.environmentCount === 1;
-  const zeroCacheUpload = summary.uploadedCacheBytes === 0;
-  const veloxP50Ms = velox.endToEndMs?.p50 ?? null;
-  const wailsP50Ms = wails.endToEndMs?.p50 ?? null;
-  const ratio = veloxP50Ms !== null && veloxP50Ms > 0 && wailsP50Ms !== null
-    ? Number((wailsP50Ms / veloxP50Ms).toFixed(3))
-    : null;
-  const comparable = completeSuccessfulSamples && singleEnvironment && summary.hardwareBalanced && zeroCacheUpload && ratio !== null;
-  const minimumSpeedup = comparable ? ratio >= 3 : null;
-  const evidenceLevel = summary.expectedPerFramework === 10 && summary.publishable ? "publishable" : "diagnostic";
-  let status: LegacyPairDecision["status"] = "insufficient-evidence";
-  if (comparable && evidenceLevel === "publishable") status = minimumSpeedup ? "passed" : "failed";
-  else if (comparable) status = minimumSpeedup ? "promising" : "below-target";
-  return {
-    schemaVersion: "velox.bench-pair-decision/v1",
-    suite: "zero-cache",
-    scope: "velox-wails",
-    evidenceLevel,
-    status,
-    target: { metric: "wails-to-velox-p50-ratio", minimum: 3 },
-    metrics: { veloxP50Ms, wailsP50Ms, wailsToVeloxP50Ratio: ratio },
-    gates: { completeSuccessfulSamples, singleEnvironment, hardwareBalanced: summary.hardwareBalanced, zeroCacheUpload, minimumSpeedup },
-    questionsRequired: status === "below-target" || status === "failed",
-  };
-}
 
 export type RunMetadata = {
   schemaVersion: "velox.github-run-metadata/v1";
@@ -294,13 +184,13 @@ export function buildPairPublication(
   metadataValue: unknown,
   expected: { runId: string; runAttempt: number; benchmarkCommit: string },
 ): PairPublication {
-  validateLegacyPairSummary(summaryValue);
-  validateLegacyPairDecision(decisionValue);
+  validatePairSummary(summaryValue);
+  validatePairDecision(decisionValue);
   validateRunMetadata(metadataValue);
-  const summary: LegacyPairSummary = summaryValue;
-  const decision: LegacyPairDecision = decisionValue;
+  const summary: PairSummary = summaryValue;
+  const decision: PairDecision = decisionValue;
   const metadata: RunMetadata = metadataValue;
-  const expectedDecision = buildLegacyPairDecision(summary);
+  const expectedDecision = buildPairDecision(summary);
 
   if (!summary.publishable || summary.expectedPerFramework !== 10 || summary.environmentCount !== 1 || !summary.hardwareBalanced) {
     throw new Error("pair summary does not satisfy the publication gate");
@@ -310,7 +200,7 @@ export function buildPairPublication(
       decision.metrics.veloxP50Ms !== expectedDecision.metrics.veloxP50Ms ||
       decision.metrics.wailsP50Ms !== expectedDecision.metrics.wailsP50Ms ||
       decision.metrics.wailsToVeloxP50Ratio !== expectedDecision.metrics.wailsToVeloxP50Ratio ||
-      Object.entries(expectedDecision.gates).some(([name, value]) => decision.gates[name as keyof LegacyPairDecision["gates"]] !== value)) {
+      Object.entries(expectedDecision.gates).some(([name, value]) => decision.gates[name as keyof PairDecision["gates"]] !== value)) {
     throw new Error("pair decision does not match the pair summary");
   }
   if (decision.evidenceLevel !== "publishable" || decision.status !== "passed" || decision.questionsRequired) {

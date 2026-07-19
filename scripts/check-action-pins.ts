@@ -32,7 +32,7 @@ if (pins.size === 0) throw new Error("no external workflow actions found");
 
 const headers: Record<string, string> = {
   Accept: "application/vnd.github+json",
-  "User-Agent": "actutum-bench-action-pins",
+  "User-Agent": "velox-bench-action-pins",
   "X-GitHub-Api-Version": "2022-11-28",
 };
 if (process.env.GITHUB_TOKEN) headers.Authorization = `Bearer ${process.env.GITHUB_TOKEN}`;

@@ -5,7 +5,7 @@ import type { Framework, Result } from "./contracts";
 
 function result(framework: Framework, sample: number, duration: number, image = "stable", cpuModel = "test"): Result {
   return {
-    schemaVersion: "actutum.bench-result/v3", suite: "zero-cache", framework,
+    schemaVersion: "velox.bench-result/v2", suite: "zero-cache", framework,
     frameworkRevision: framework.charCodeAt(0).toString(16).padStart(40, "0"), sample,
     fixture: { name: "hello", sha256: "b".repeat(64), generatedFiles: 0, generatedBytes: 0 }, outcome: "success",
     startedAtUtc: "2026-07-17T00:00:00.000Z", finishedAtUtc: "2026-07-17T00:00:01.000Z",
@@ -16,16 +16,16 @@ function result(framework: Framework, sample: number, duration: number, image = 
 }
 
 function pilot(wailsDuration: number, imageForLast = "stable") {
-  const frameworks = ["actutum", "wails", "neutralino", "tauri"] as Framework[];
+  const frameworks = ["velox", "wails", "neutralino", "tauri"] as Framework[];
   return buildSummary(frameworks.flatMap((framework) => Array.from({ length: 3 }, (_, sample) =>
-    result(framework, sample, framework === "actutum" ? 100 : framework === "wails" ? wailsDuration : 200, framework === "tauri" && sample === 2 ? imageForLast : "stable"),
+    result(framework, sample, framework === "velox" ? 100 : framework === "wails" ? wailsDuration : 200, framework === "tauri" && sample === 2 ? imageForLast : "stable"),
   )), 3);
 }
 
 test("three-sample pilot is promising at or above the speed target", () => {
   const decision = buildDecision(pilot(350));
   expect(decision.status).toBe("promising");
-  expect(decision.metrics.wailsToActutumP50Ratio).toBe(3.5);
+  expect(decision.metrics.wailsToVeloxP50Ratio).toBe(3.5);
   expect(decision.questionsRequired).toBeFalse();
 });
 
@@ -44,9 +44,9 @@ test("mixed environments remain inconclusive instead of failing the product", ()
 });
 
 test("unbalanced hosted CPU assignment remains inconclusive", () => {
-  const frameworks = ["actutum", "wails", "neutralino", "tauri"] as Framework[];
+  const frameworks = ["velox", "wails", "neutralino", "tauri"] as Framework[];
   const summary = buildSummary(frameworks.flatMap((framework) => Array.from({ length: 3 }, (_, sample) =>
-    result(framework, sample, framework === "actutum" ? 100 : framework === "wails" ? 350 : 200, "stable", framework === "tauri" ? "EPYC 9V74" : "EPYC 7763"),
+    result(framework, sample, framework === "velox" ? 100 : framework === "wails" ? 350 : 200, "stable", framework === "tauri" ? "EPYC 9V74" : "EPYC 7763"),
   )), 3);
   const decision = buildDecision(summary);
   expect(decision.status).toBe("insufficient-evidence");

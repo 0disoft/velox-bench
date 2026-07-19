@@ -3,7 +3,7 @@ import { join } from "node:path";
 import type { Framework } from "./contracts";
 
 const frameworkAssetRoots: Record<Framework, string> = {
-  actutum: "web",
+  velox: "web",
   wails: join("frontend", "dist"),
   neutralino: "resources",
   tauri: join("frontend", "dist"),

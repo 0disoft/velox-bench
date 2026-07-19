@@ -1,6 +1,6 @@
 {
   "$schema": "https://raw.githubusercontent.com/neutralinojs/neutralinojs/main/schemas/neutralino.config.schema.json",
-  "applicationId": "dev.actutum.bench.neutralino",
+  "applicationId": "dev.velox.bench.neutralino",
   "version": "0.1.0",
   "defaultMode": "window",
   "port": 0,
@@ -16,7 +16,7 @@
   "nativeAllowList": ["window.setTitle"],
   "modes": {
     "window": {
-      "title": "Actutum Bench",
+      "title": "Velox Bench",
       "width": 960,
       "height": 640,
       "center": true,
@@ -32,7 +32,7 @@
     }
   },
   "cli": {
-    "binaryName": "actutum-bench-neutralino",
+    "binaryName": "velox-bench-neutralino",
     "binaryVersion": "6.8.0",
     "clientVersion": "6.8.0",
     "resourcesPath": "/resources/",

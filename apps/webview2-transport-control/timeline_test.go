@@ -21,7 +21,7 @@ func TestTimelineRecorderEmitsOnce(t *testing.T) {
 	if strings.Count(output.String(), startupTimelinePrefix) != 1 {
 		t.Fatalf("timeline output = %q", output.String())
 	}
-	if !strings.Contains(output.String(), `"schemaVersion":"actutum.host-startup-timeline/v1"`) {
+	if !strings.Contains(output.String(), `"schemaVersion":"velox.host-startup-timeline/v1"`) {
 		t.Fatalf("timeline schema missing: %q", output.String())
 	}
 }

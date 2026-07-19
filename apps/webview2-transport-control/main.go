@@ -15,9 +15,9 @@ import (
 	webview2 "github.com/jchv/go-webview2"
 )
 
-const transportHost = "transport.actutum.invalid"
+const transportHost = "transport.velox.invalid"
 
-const readyTitle = "Actutum Bench Ready"
+const readyTitle = "Velox Bench Ready"
 
 var originSuffixPattern = regexp.MustCompile(`^[a-z0-9-]{1,32}$`)
 
@@ -31,21 +31,21 @@ func main() {
 }
 
 func run() error {
-	profile := os.Getenv("ACTUTUM_BENCH_PROFILE")
+	profile := os.Getenv("VELOX_BENCH_PROFILE")
 	if profile == "" {
-		return fmt.Errorf("ACTUTUM_BENCH_PROFILE is required")
+		return fmt.Errorf("VELOX_BENCH_PROFILE is required")
 	}
 	executable, err := os.Executable()
 	if err != nil {
 		return err
 	}
 	webRoot := filepath.Join(filepath.Dir(executable), "web")
-	captureTimeline := os.Getenv("ACTUTUM_BENCH_CAPTURE_TIMELINE") == "1"
+	captureTimeline := os.Getenv("VELOX_BENCH_CAPTURE_TIMELINE") == "1"
 	startupTimeline := newStartupTimeline(captureTimeline)
 	shutdownTimeline := newShutdownTimeline(captureTimeline)
 	view := webview2.NewWithOptions(webview2.WebViewOptions{
 		DataPath: profile, StartupPhase: startupTimeline.Mark, ShutdownPhase: shutdownTimeline.Mark,
-		WindowOptions: webview2.WindowOptions{Title: "Actutum Bench", Width: 960, Height: 640, Center: true},
+		WindowOptions: webview2.WindowOptions{Title: "Velox Bench", Width: 960, Height: 640, Center: true},
 	})
 	if view == nil {
 		return fmt.Errorf("create WebView2 transport control window")
@@ -57,7 +57,7 @@ func run() error {
 			view.Run()
 		}
 	}()
-	if err := view.Bind("__actutumReady", func(marker string) error {
+	if err := view.Bind("__veloxReady", func(marker string) error {
 		if marker != "dom-2raf" {
 			return fmt.Errorf("unexpected ready marker %q", marker)
 		}
@@ -96,7 +96,7 @@ func run() error {
 }
 
 func configureTransport(view webview2.WebView, webRoot string) (string, error) {
-	host, err := transportHostname(os.Getenv("ACTUTUM_BENCH_ORIGIN_SUFFIX"))
+	host, err := transportHostname(os.Getenv("VELOX_BENCH_ORIGIN_SUFFIX"))
 	if err != nil {
 		return "", err
 	}
@@ -126,7 +126,7 @@ func transportHostname(suffix string) (string, error) {
 	if !originSuffixPattern.MatchString(suffix) {
 		return "", fmt.Errorf("invalid origin suffix %q", suffix)
 	}
-	return "transport-" + suffix + ".actutum.invalid", nil
+	return "transport-" + suffix + ".velox.invalid", nil
 }
 
 func resourceHandler(webRoot, host string) webview2.WebResourceRequestHandler {

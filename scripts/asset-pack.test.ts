@@ -12,7 +12,7 @@ afterEach(async () => {
 
 function smallManifest(): AssetPackManifest {
   return {
-    schemaVersion: "actutum.asset-pack-fixture/v2",
+    schemaVersion: "velox.asset-pack-fixture/v1",
     algorithm: "xorshift32-v1",
     seed: 123456789,
     layout: { root: "assets", directories: 3, fileCount: 10, totalBytes: 1031, extension: ".bin" },
@@ -32,7 +32,7 @@ test("distributes the exact byte budget over stable paths", () => {
 });
 
 test("materializes byte-identical trees and refuses an existing destination", async () => {
-  const parent = await mkdtemp(join(tmpdir(), "actutum-asset-pack-"));
+  const parent = await mkdtemp(join(tmpdir(), "velox-asset-pack-"));
   roots.push(parent);
   const first = join(parent, "first");
   const second = join(parent, "second");
@@ -45,7 +45,7 @@ test("materializes byte-identical trees and refuses an existing destination", as
 });
 
 test("inspection rejects unexpected output files", async () => {
-  const parent = await mkdtemp(join(tmpdir(), "actutum-asset-pack-extra-"));
+  const parent = await mkdtemp(join(tmpdir(), "velox-asset-pack-extra-"));
   roots.push(parent);
   const output = join(parent, "output");
   const manifest = smallManifest();

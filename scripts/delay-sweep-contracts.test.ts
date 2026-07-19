@@ -3,7 +3,7 @@ import { buildDelaySummary, delayTransports, delayValues, type DelayResult, type
 
 function result(transport: DelayTransport, sample: number, delay: DelayValue, tail = false): DelayResult {
   return {
-    schemaVersion: "actutum.asset-transport-delay/v2", suite: "asset-transport-relaunch-delay-sweep", framework: transport,
+    schemaVersion: "velox.asset-transport-delay/v1", suite: "asset-transport-relaunch-delay-sweep", framework: transport,
     frameworkRevision: "a".repeat(40), profileControl: "explicit-udf", sample, requestedDelayMs: delay, outcome: "success",
     startedAtUtc: "2026-07-15T00:00:00Z", finishedAtUtc: "2026-07-15T00:00:01Z",
     environment: { os: "windows", architecture: "amd64", runnerImage: "windows2025", runnerImageVersion: "1", webView2Version: "1", repositoryCommit: "b".repeat(40), runId: "1", runAttempt: "1" },
@@ -22,21 +22,21 @@ test("finds the first tested delay after all observed tails", () => {
   ));
   const summary = buildDelaySummary(results, 1);
   expect(summary.experimentClassification).toBe("recovery-boundary-observed");
-  expect(summary.rows.find((row) => row.transport === "actutum")?.cleanFromDelayMs).toBe(100);
+  expect(summary.rows.find((row) => row.transport === "velox")?.cleanFromDelayMs).toBe(100);
   expect(summary.rows.find((row) => row.transport === "fork-file-url")?.cleanFromDelayMs).toBe(0);
 });
 
 test("does not claim recovery when the largest tested delay still tails", () => {
   const results = delayTransports.flatMap((transport) => delayValues.map((delay) =>
-    result(transport, 0, delay, transport === "actutum" && delay === 1000),
+    result(transport, 0, delay, transport === "velox" && delay === 1000),
   ));
   const summary = buildDelaySummary(results, 1);
   expect(summary.experimentClassification).toBe("not-recovered-within-range");
-  expect(summary.rows.find((row) => row.transport === "actutum")?.cleanFromDelayMs).toBeNull();
+  expect(summary.rows.find((row) => row.transport === "velox")?.cleanFromDelayMs).toBeNull();
 });
 
 test("keeps an incomplete sweep non-conclusive", () => {
-  const summary = buildDelaySummary([result("actutum", 0, 0)], 1);
+  const summary = buildDelaySummary([result("velox", 0, 0)], 1);
   expect(summary.experimentClassification).toBe("insufficient-evidence");
   expect(summary.publishable).toBeFalse();
 });

@@ -16,7 +16,7 @@ function result(sample: number, overrides: Partial<StartupResult> = {}): Startup
   return {
     schemaVersion: startupSchemaVersion,
     suite: startupSuite,
-    framework: "actutum",
+    framework: "velox",
     frameworkRevision: "a".repeat(40),
     evidenceLevel: "hosted-pinned-source",
     sample,

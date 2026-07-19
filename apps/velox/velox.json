@@ -1,9 +1,9 @@
 {
-  "$schema": "https://schemas.actutum.invalid/manifest/v1.json",
+  "$schema": "https://schemas.velox.invalid/manifest/v1.json",
   "schemaVersion": 1,
   "app": {
-    "id": "dev.actutum.bench.actutum",
-    "name": "Actutum Bench",
+    "id": "dev.velox.bench.velox",
+    "name": "Velox Bench",
     "version": "0.1.0"
   },
   "assets": {

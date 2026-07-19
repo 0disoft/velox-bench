@@ -1,11 +1,11 @@
 # Benchmark Disclosure
 
-- Actutum currently has no immutable public alpha release. Its adapter is pinned
+- Velox currently has no immutable public alpha release. Its adapter is pinned
   to a source commit. A producer job compiles that exact commit outside the
-  consumer timing boundary, matching Actutum's prebuilt-host distribution model.
+  consumer timing boundary, matching Velox's prebuilt-host distribution model.
   This is not yet a release-vs-release comparison.
 - Wails and Tauri compile application-specific native hosts. Neutralinojs and
-  Actutum acquire prebuilt native hosts. That architectural difference is part
+  Velox acquire prebuilt native hosts. That architectural difference is part
   of end-to-end cold-build cost, not something removed from the measurement.
 - All four use the operating-system WebView on Windows, but their runtime
   lifecycle and profile policies differ.
@@ -14,18 +14,18 @@
 - Startup comparison remains separate from cold-build comparison until every
   adapter exposes the same ready boundary.
 - The immediate-relaunch control suite exposes one common ready boundary for
-  Actutum, a raw WebView2 host, Wails, and Neutralinojs, but it classifies lifecycle
+  Velox, a raw WebView2 host, Wails, and Neutralinojs, but it classifies lifecycle
   behavior rather than ranking product startup speed.
-- Actutum, the raw control, and Wails use explicit UDF paths. Neutralinojs reuses an
+- Velox, the raw control, and Wails use explicit UDF paths. Neutralinojs reuses an
   isolated application directory with framework-managed profile placement, so
   a Neutralinojs difference cannot by itself prove a WebView2 controller cause.
-- Actutum uses a named-pipe ready marker while the other host bridges change the
+- Velox uses a named-pipe ready marker while the other host bridges change the
   native title. Their small signaling overhead remains inside the measured
   boundary and is disclosed. The harness closes all four hosts externally.
 - The asset-transport suite is a cause-classification experiment, not a product
-  ranking. Its three synthetic controls share one pinned Actutum fork and differ
+  ranking. Its three synthetic controls share one pinned Velox fork and differ
   only in file URL, virtual-host mapping, or synchronous web-resource response
-  delivery. The production Actutum row retains its named-pipe marker.
+  delivery. The production Velox row retains its named-pipe marker.
 - Web-resource interception blocks a matching request until the synchronous
   handler returns. The fixture is tiny and frame-free; the result does not
   establish large-asset throughput, iframe behavior, or production hardening.
@@ -44,16 +44,16 @@
   timer by itself.
 - A fresh UDF changes process and storage ownership together. A fresh virtual
   hostname changes origin identity only in the synthetic virtual-host control.
-  Neither scenario is a drop-in security-equivalent replacement for Actutum's
+  Neither scenario is a drop-in security-equivalent replacement for Velox's
   production virtual HTTPS origin.
 - Recovery jobs run six delay cells sequentially on one hosted runner. Delay
   order rotates by sample, but antivirus, runner scheduling, and machine-wide
   WebView2 state can still affect later cells. Only repeated complete evidence
   may support a boundary claim.
-- The current startup suite measures Actutum only. It can detect Actutum regressions
+- The current startup suite measures Velox only. It can detect Velox regressions
   and fresh-versus-settled-warm behavior, but it cannot support a claim that
-  Actutum starts faster than another framework.
-- Actutum raw startup v3 includes host-internal phase timing for diagnosis. Other
+  Velox starts faster than another framework.
+- Velox raw startup v2 includes host-internal phase timing for diagnosis. Other
   adapters do not yet expose equivalent phases, so those values are not a
   cross-framework comparison surface.
 - A ten-sample nearest-rank p95 equals the maximum observed sample. It preserves
@@ -73,9 +73,9 @@
   generations; an unbalanced per-framework CPU distribution still blocks the
   decision.
 - The go-or-kill decision artifact applies only the numeric cache and
-  Wails-to-Actutum cold-build gates. Structural simplicity, PWA differentiation,
+  Wails-to-Velox cold-build gates. Structural simplicity, PWA differentiation,
   security review, and external user attempts remain separate product decisions.
-- The `actutum-wails` scope intentionally omits Neutralinojs and Tauri to reduce
+- The `velox-wails` scope intentionally omits Neutralinojs and Tauri to reduce
   runner cost while validating the product's numeric Wails comparison. It runs
   both frameworks on each runner and alternates execution order, so the pair
   shares CPU hardware but can still retain order, network, and hosted-runner
@@ -98,7 +98,7 @@
   generation happens before the clock; adapter materialization happens inside
   it. A one-sample run proves workflow integration only. The published table
   still uses `hello`, and no asset-pack winner claim exists.
-- Actutum already emits its declared portable ZIP during `actutum build`; result v3
+- Velox already emits its declared portable ZIP during `velox build`; result v2
   reuses that archive. Its packaging cost is included in `buildMs`, while
   harness `packageMs` is zero. Re-zipping it would add duplicate work and report
   a valid product output as a surviving intermediate.

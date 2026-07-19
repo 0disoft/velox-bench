@@ -1,7 +1,7 @@
-export const relaunchSchemaVersion = "actutum.relaunch-control/v2" as const;
-export const relaunchSummarySchemaVersion = "actutum.relaunch-control-summary/v3" as const;
+export const relaunchSchemaVersion = "velox.relaunch-control/v1" as const;
+export const relaunchSummarySchemaVersion = "velox.relaunch-control-summary/v2" as const;
 export const relaunchSuite = "same-profile-immediate-relaunch" as const;
-export const relaunchFrameworks = ["actutum", "webview2-control", "wails", "neutralino"] as const;
+export const relaunchFrameworks = ["velox", "webview2-control", "wails", "neutralino"] as const;
 
 export type RelaunchFramework = typeof relaunchFrameworks[number];
 export type Statistics = { minMs: number; p50Ms: number; p95Ms: number; maxMs: number };
@@ -41,7 +41,7 @@ export type RelaunchSummary = {
   expectedPerFramework: 1 | 3 | 10;
   observed: number;
   publishable: boolean;
-  platformClassification: "actutum-specific-delay" | "shared-immediate-relaunch-delay" | "webview2-host-delay" | "control-specific-delay" | "mixed-or-not-observed";
+  platformClassification: "velox-specific-delay" | "shared-immediate-relaunch-delay" | "webview2-host-delay" | "control-specific-delay" | "mixed-or-not-observed";
   rows: Array<{
     framework: RelaunchFramework;
     revision: string;
@@ -146,8 +146,8 @@ export function buildRelaunchSummary(results: RelaunchResult[], expected: 1 | 3 
   let platformClassification: RelaunchSummary["platformClassification"] = "mixed-or-not-observed";
   if (completeCrossHostEvidence) {
     if (delayed.size === 4) platformClassification = "shared-immediate-relaunch-delay";
-    else if (delayed.size === 1 && delayed.has("actutum")) platformClassification = "actutum-specific-delay";
-    else if (delayed.has("actutum") && delayed.has("webview2-control") && delayed.has("wails") && !delayed.has("neutralino")) platformClassification = "webview2-host-delay";
+    else if (delayed.size === 1 && delayed.has("velox")) platformClassification = "velox-specific-delay";
+    else if (delayed.has("velox") && delayed.has("webview2-control") && delayed.has("wails") && !delayed.has("neutralino")) platformClassification = "webview2-host-delay";
     else if (delayed.size === 1 && delayed.has("webview2-control")) platformClassification = "control-specific-delay";
   }
   return {

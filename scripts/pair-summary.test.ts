@@ -4,15 +4,15 @@ import { buildPairSummary } from "./pair-summary";
 
 function result(framework: Framework, sample: number, duration: number, cpuModel = "EPYC 7763", outcome: Result["outcome"] = "success"): Result {
   return {
-    schemaVersion: "actutum.bench-result/v3",
+    schemaVersion: "velox.bench-result/v2",
     suite: "zero-cache",
     framework,
     frameworkRevision: framework.charCodeAt(0).toString(16).padStart(40, "0"),
     sample,
     fixture: { name: "hello", sha256: "b".repeat(64), generatedFiles: 0, generatedBytes: 0 },
     outcome,
-    startedAtUtc: framework === "actutum" ? "2026-07-17T00:00:00.000Z" : "2026-07-17T00:00:02.000Z",
-    finishedAtUtc: framework === "actutum" ? "2026-07-17T00:00:01.000Z" : "2026-07-17T00:00:03.000Z",
+    startedAtUtc: framework === "velox" ? "2026-07-17T00:00:00.000Z" : "2026-07-17T00:00:02.000Z",
+    finishedAtUtc: framework === "velox" ? "2026-07-17T00:00:01.000Z" : "2026-07-17T00:00:03.000Z",
     environment: {
       runner: "windows-2025",
       runnerImageVersion: "stable",
@@ -47,20 +47,20 @@ function result(framework: Framework, sample: number, duration: number, cpuModel
 }
 
 function pair(count: number): Result[] {
-  return (["actutum", "wails"] as Framework[]).flatMap((framework) =>
-    Array.from({ length: count }, (_, sample) => result(framework, sample, framework === "actutum" ? 100 : 400)),
+  return (["velox", "wails"] as Framework[]).flatMap((framework) =>
+    Array.from({ length: count }, (_, sample) => result(framework, sample, framework === "velox" ? 100 : 400)),
   );
 }
 
-test("ten complete Actutum and Wails samples form publishable pair evidence", () => {
+test("ten complete Velox and Wails samples form publishable pair evidence", () => {
   const summary = buildPairSummary(pair(10), 10);
-  expect(summary.scope).toBe("actutum-wails");
+  expect(summary.scope).toBe("velox-wails");
   expect(summary.rows).toHaveLength(2);
   expect(summary.publishable).toBeTrue();
 });
 
 test("pair summary rejects unrelated framework evidence", () => {
-  expect(() => buildPairSummary([...pair(10), result("tauri", 0, 800)], 10)).toThrow("outside actutum-wails scope");
+  expect(() => buildPairSummary([...pair(10), result("tauri", 0, 800)], 10)).toThrow("outside velox-wails scope");
 });
 
 test("pair summary preserves failures and remains non-publishable", () => {
@@ -72,8 +72,8 @@ test("pair summary preserves failures and remains non-publishable", () => {
 });
 
 test("pair summary rejects samples that do not share exact runner hardware", () => {
-  const results = (["actutum", "wails"] as Framework[]).flatMap((framework) =>
-    Array.from({ length: 10 }, (_, sample) => result(framework, sample, framework === "actutum" ? 100 : 400, framework === "actutum" ? "EPYC 7763" : "EPYC 9V74")),
+  const results = (["velox", "wails"] as Framework[]).flatMap((framework) =>
+    Array.from({ length: 10 }, (_, sample) => result(framework, sample, framework === "velox" ? 100 : 400, framework === "velox" ? "EPYC 7763" : "EPYC 9V74")),
   );
   expect(() => buildPairSummary(results, 10)).toThrow("does not share exact runner hardware");
 });

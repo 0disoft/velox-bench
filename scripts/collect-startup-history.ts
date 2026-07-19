@@ -48,7 +48,7 @@ async function findSummary(directory: string): Promise<string> {
   return matches[0];
 }
 
-const api = `repos/${repository}/actions/workflows/actutum-startup.yml/runs?branch=main&per_page=30`;
+const api = `repos/${repository}/actions/workflows/velox-startup.yml/runs?branch=main&per_page=30`;
 const response = JSON.parse(await run(["gh", "api", api], process.cwd())) as { workflow_runs?: WorkflowRun[] };
 const completed = (response.workflow_runs ?? []).filter((candidate) => candidate.event === "workflow_dispatch" && candidate.head_branch === "main" &&
   candidate.status === "completed" && candidate.conclusion === "success");

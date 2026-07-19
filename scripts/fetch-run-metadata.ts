@@ -8,12 +8,12 @@ if (!runId || !/^\d+$/.test(runId) || !outputPath) {
   throw new Error("usage: bun scripts/fetch-run-metadata.ts <run-id> <output.json>");
 }
 
-const repository = "0disoft/actutum-bench";
+const repository = "0disoft/velox-bench";
 const apiRoot = `https://api.github.com/repos/${repository}`;
 const token = process.env.GITHUB_TOKEN || process.env.GH_TOKEN;
 const headers: Record<string, string> = {
   Accept: "application/vnd.github+json",
-  "User-Agent": "actutum-bench-publication",
+  "User-Agent": "velox-bench-publication",
   "X-GitHub-Api-Version": "2022-11-28",
 };
 if (token) headers.Authorization = `Bearer ${token}`;
@@ -41,7 +41,7 @@ const [run, jobs, artifacts] = await Promise.all([
   collect(`/actions/runs/${runId}/artifacts`, "artifacts"),
 ]);
 const metadata: RunMetadata = {
-  schemaVersion: "actutum.github-run-metadata/v2",
+  schemaVersion: "velox.github-run-metadata/v1",
   repository,
   capturedAtUtc: new Date().toISOString(),
   run: {

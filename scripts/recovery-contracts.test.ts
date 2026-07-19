@@ -12,8 +12,8 @@ import {
 } from "./recovery-contracts";
 
 const scenarioFramework: Record<RecoveryScenario, RecoveryFramework> = {
-  "actutum-same-profile": "actutum",
-  "actutum-fresh-profile": "actutum",
+  "velox-same-profile": "velox",
+  "velox-fresh-profile": "velox",
   "file-url-same-profile": "fork-file-url",
   "file-url-fresh-profile": "fork-file-url",
   "virtual-host-same-profile": "fork-virtual-host",
@@ -26,7 +26,7 @@ function launch(readyMs: number, environmentCreateMs = 20, browserExitMs: number
     readyMs, hostExitMs: 40, hostProcessId: 100, browserProcessId,
     browserExitAfterHostExitMs: browserExitMs,
     startupTimeline: {
-      schemaVersion: "actutum.host-startup-timeline/v1", clock: "time-since-host-entry-monotonic",
+      schemaVersion: "velox.host-startup-timeline/v1", clock: "time-since-host-entry-monotonic",
       phases: [
         { name: "host-entry", elapsedMs: 0 },
         { name: "environment-create-started", elapsedMs: 5 },
@@ -37,7 +37,7 @@ function launch(readyMs: number, environmentCreateMs = 20, browserExitMs: number
       ],
     },
     shutdownTimeline: {
-      schemaVersion: "actutum.host-shutdown-timeline/v1", clock: "time-since-shutdown-request-monotonic",
+      schemaVersion: "velox.host-shutdown-timeline/v1", clock: "time-since-shutdown-request-monotonic",
       phases: [{ name: "window-close-dispatched", elapsedMs: 0 }, { name: "run-loop-exited", elapsedMs: 4 }],
     },
   };
@@ -46,7 +46,7 @@ function launch(readyMs: number, environmentCreateMs = 20, browserExitMs: number
 function result(scenario: RecoveryScenario, sample: number, delay: RecoveryDelay, tail = false): RecoveryResult {
   const sharedBrowserProcess = !scenario.endsWith("fresh-profile");
   return {
-    schemaVersion: "actutum.asset-transport-recovery/v2", suite: "asset-transport-recovery-boundary",
+    schemaVersion: "velox.asset-transport-recovery/v1", suite: "asset-transport-recovery-boundary",
     framework: scenarioFramework[scenario], frameworkRevision: "a".repeat(40), profileControl: "explicit-udf",
     sample, scenario, requestedDelayMs: delay, outcome: "success",
     startedAtUtc: "2026-07-15T00:00:00Z", finishedAtUtc: "2026-07-15T00:00:01Z",
@@ -69,7 +69,7 @@ function result(scenario: RecoveryScenario, sample: number, delay: RecoveryDelay
 
 test("extracts the WebView2 environment interval from lifecycle phases", () => {
   const summary = buildRecoverySummary(recoveryScenarios.flatMap((scenario) => recoveryDelays.map((delay) => result(scenario, 0, delay))), 1);
-  const cell = summary.rows.find((row) => row.scenario === "actutum-same-profile")!.cells[0];
+  const cell = summary.rows.find((row) => row.scenario === "velox-same-profile")!.cells[0];
   expect(cell.firstEnvironmentCreate?.p50Ms).toBe(20);
   expect(cell.relaunchedEnvironmentCreate?.p50Ms).toBe(25);
   expect(cell.relaunchedReadyAfterFirstBrowserExit?.p50Ms).toBe(401);
@@ -91,13 +91,13 @@ test("finds a bounded same-profile recovery while fresh profiles remain clean", 
 });
 
 test("rejects a reordered startup timeline", () => {
-  const candidate = result("actutum-same-profile", 0, 0);
+  const candidate = result("velox-same-profile", 0, 0);
   candidate.measurement!.first.startupTimeline.phases[2].elapsedMs = 1;
   expect(() => validateRecoveryResult(candidate)).toThrow("phase order");
 });
 
 test("rejects a browser sharing flag that contradicts process IDs", () => {
-  const candidate = result("actutum-same-profile", 0, 0);
+  const candidate = result("velox-same-profile", 0, 0);
   candidate.measurement!.browserProcessSharedAcrossPair = false;
   expect(() => validateRecoveryResult(candidate)).toThrow("sharing flag");
 });

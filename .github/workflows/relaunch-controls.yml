@@ -10,7 +10,7 @@ on:
         type: choice
         options:
           - all
-          - actutum
+          - velox
           - webview2-control
           - wails
           - neutralino
@@ -57,7 +57,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        framework: ${{ fromJSON(inputs.framework == 'all' && '["actutum","webview2-control","wails","neutralino"]' || format('["{0}"]', inputs.framework)) }}
+        framework: ${{ fromJSON(inputs.framework == 'all' && '["velox","webview2-control","wails","neutralino"]' || format('["{0}"]', inputs.framework)) }}
     runs-on: windows-2025
     timeout-minutes: 20
     steps:
@@ -66,13 +66,13 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Check out pinned Actutum
-        if: matrix.framework == 'actutum'
+      - name: Check out pinned Velox
+        if: matrix.framework == 'velox'
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           repository: 0disoft/velox
-          ref: f6e7677f77abf60eb22af2f273d80727aacdc18f
-          path: .bench/actutum-source
+          ref: ae7a819f0ef9b22cb4f959451d0189d699c6e546
+          path: .bench/velox-source
           persist-credentials: false
 
       - name: Set up Go
@@ -105,11 +105,11 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           Pop-Location
 
-          if ($env:FRAMEWORK -eq 'actutum') {
-            Push-Location '.bench/actutum-source'
-            go build -mod=readonly -trimpath -o (Join-Path $output 'app.exe') ./cmd/actutum-host
+          if ($env:FRAMEWORK -eq 'velox') {
+            Push-Location '.bench/velox-source'
+            go build -mod=readonly -trimpath -o (Join-Path $output 'app.exe') ./cmd/velox-host
             if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-            Copy-Item -LiteralPath 'examples/hello/actutum.runtime.json' -Destination (Join-Path $output 'actutum.runtime.json')
+            Copy-Item -LiteralPath 'examples/hello/velox.runtime.json' -Destination (Join-Path $output 'velox.runtime.json')
             Copy-Item -LiteralPath 'examples/hello/web' -Destination (Join-Path $output 'web') -Recurse
             Pop-Location
           }
@@ -128,7 +128,7 @@ jobs:
             Push-Location 'apps/wails'
             & (Join-Path $env:GOBIN 'wails.exe') build -clean -platform windows/amd64
             if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-            Copy-Item -LiteralPath 'build/bin/actutum-bench-wails.exe' -Destination (Join-Path $output 'app.exe')
+            Copy-Item -LiteralPath 'build/bin/velox-bench-wails.exe' -Destination (Join-Path $output 'app.exe')
             Pop-Location
           }
           else {
@@ -163,7 +163,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        framework: ${{ fromJSON(inputs.framework == 'all' && '["actutum","webview2-control","wails","neutralino"]' || format('["{0}"]', inputs.framework)) }}
+        framework: ${{ fromJSON(inputs.framework == 'all' && '["velox","webview2-control","wails","neutralino"]' || format('["{0}"]', inputs.framework)) }}
         sample: ${{ fromJSON(inputs.sample_count == '1' && '[0]' || inputs.sample_count == '3' && '[0,1,2]' || '[0,1,2,3,4,5,6,7,8,9]') }}
     runs-on: windows-2025
     timeout-minutes: 5
@@ -186,7 +186,7 @@ jobs:
         env:
           FRAMEWORK: ${{ matrix.framework }}
           SAMPLE: ${{ matrix.sample }}
-          FRAMEWORK_REVISION: ${{ matrix.framework == 'actutum' && 'f6e7677f77abf60eb22af2f273d80727aacdc18f' || matrix.framework == 'webview2-control' && '56598839c808a2340edee99204db479f410e9bf4' || matrix.framework == 'wails' && '474b677c9b9191d703607bea7d76143b1b2eeb0c' || 'c30cbaeb5821785c24505ab7053d7ed76699d672' }}
+          FRAMEWORK_REVISION: ${{ matrix.framework == 'velox' && 'ae7a819f0ef9b22cb4f959451d0189d699c6e546' || matrix.framework == 'webview2-control' && '56598839c808a2340edee99204db479f410e9bf4' || matrix.framework == 'wails' && '474b677c9b9191d703607bea7d76143b1b2eeb0c' || 'c30cbaeb5821785c24505ab7053d7ed76699d672' }}
           PROFILE_CONTROL: ${{ matrix.framework == 'neutralino' && 'framework-managed-app-directory' || 'explicit-udf' }}
         run: |
           $ErrorActionPreference = 'Stop'
@@ -203,7 +203,7 @@ jobs:
             --output $result `
             --sample ([int] $env:SAMPLE)
           if (-not (Test-Path -LiteralPath $result -PathType Leaf)) { throw 'Relaunch result was not written.' }
-          $schema = Get-Content -LiteralPath 'schema/relaunch-control-v2.schema.json' -Raw
+          $schema = Get-Content -LiteralPath 'schema/relaunch-control-v1.schema.json' -Raw
           $raw = Get-Content -LiteralPath $result -Raw
           if (-not ($raw | Test-Json -Schema $schema)) { throw 'Relaunch result failed JSON Schema validation.' }
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
@@ -252,7 +252,7 @@ jobs:
       - name: Validate relaunch summary schema
         shell: pwsh
         run: |
-          $schema = Get-Content -LiteralPath 'schema/relaunch-control-summary-v3.schema.json' -Raw
+          $schema = Get-Content -LiteralPath 'schema/relaunch-control-summary-v2.schema.json' -Raw
           $summary = Get-Content -LiteralPath '.bench/summary/relaunch.json' -Raw
           if (-not ($summary | Test-Json -Schema $schema)) { throw 'Relaunch summary failed JSON Schema validation.' }
 

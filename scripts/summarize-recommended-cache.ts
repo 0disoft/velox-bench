@@ -11,7 +11,7 @@ async function readResults(root: string): Promise<RecommendedCacheResult[]> {
       if (entry.isDirectory()) await walk(path);
       else if (entry.isFile() && entry.name.endsWith(".json")) {
         const value = JSON.parse(await readFile(path, "utf8"));
-        if (value?.schemaVersion === "actutum.recommended-cache-result/v2") {
+        if (value?.schemaVersion === "velox.recommended-cache-result/v1") {
           validateRecommendedCacheResult(value);
           results.push(value);
         }

@@ -2,7 +2,7 @@ import { createHash, randomUUID } from "node:crypto";
 import { mkdir, readFile, readdir, rename, rm, stat, writeFile } from "node:fs/promises";
 import { basename, dirname, join, relative, resolve, sep } from "node:path";
 
-export const assetPackSchemaVersion = "actutum.asset-pack-fixture/v2" as const;
+export const assetPackSchemaVersion = "velox.asset-pack-fixture/v1" as const;
 
 export type AssetPackManifest = {
   schemaVersion: typeof assetPackSchemaVersion;

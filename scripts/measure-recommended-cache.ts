@@ -3,7 +3,7 @@ import { cp, mkdir, readFile, readdir, rm } from "node:fs/promises";
 import { basename, dirname, join, resolve } from "node:path";
 import { fixtureIdentity, frameworks, loadLock, treeStats, type Framework } from "./contracts";
 import { currentBenchmarkEnvironment } from "./environment";
-import { resolveActutumOutput } from "./framework-output";
+import { resolveVeloxOutput } from "./framework-output";
 import { recommendedCachePhases, type RecommendedCacheDraft, type RecommendedCachePhase } from "./recommended-cache-contracts";
 import { createDeterministicZip } from "./zip";
 
@@ -19,8 +19,8 @@ if (!frameworks.includes(framework) || !recommendedCachePhases.includes(phaseNam
 
 const resultPath = resolve(resultArgument);
 const clockPath = resolve(clockArgument);
-const cacheRoot = resolve(process.env.ACTUTUM_BENCH_CACHE_ROOT || "");
-if (!process.env.ACTUTUM_BENCH_CACHE_ROOT) throw new Error("ACTUTUM_BENCH_CACHE_ROOT is required");
+const cacheRoot = resolve(process.env.VELOX_BENCH_CACHE_ROOT || "");
+if (!process.env.VELOX_BENCH_CACHE_ROOT) throw new Error("VELOX_BENCH_CACHE_ROOT is required");
 const lock = await loadLock(root);
 const fixture = await fixtureIdentity(root, lock, "hello");
 const startedAtMs = Number(await readFile(clockPath, "utf8"));
@@ -91,14 +91,14 @@ async function copyProject(source: string): Promise<void> {
   sourceBaseline = await treeStats(project);
 }
 
-async function measureActutum(): Promise<void> {
-  const acquired = resolve(process.env.ACTUTUM_RELEASE_ROOT || "");
-  const executables = await findFiles(acquired, (path) => basename(path).toLowerCase() === "actutum.exe");
-  if (executables.length !== 1) throw new Error("Actutum release must contain exactly one actutum.exe");
-  await copyProject(join(root, "apps", "actutum"));
-  const output = join(work, "actutum-output");
-  buildMs = await timed(() => run([executables[0], "build", "--config", join(project, "actutum.json"), "--out", output, "--json"], project));
-  const resolvedOutput = await resolveActutumOutput(output);
+async function measureVelox(): Promise<void> {
+  const acquired = resolve(process.env.VELOX_RELEASE_ROOT || "");
+  const executables = await findFiles(acquired, (path) => basename(path).toLowerCase() === "velox.exe");
+  if (executables.length !== 1) throw new Error("Velox release must contain exactly one velox.exe");
+  await copyProject(join(root, "apps", "velox"));
+  const output = join(work, "velox-output");
+  buildMs = await timed(() => run([executables[0], "build", "--config", join(project, "velox.json"), "--out", output, "--json"], project));
+  const resolvedOutput = await resolveVeloxOutput(output);
   portable = resolvedOutput.portable;
   archive = resolvedOutput.archive;
 }
@@ -137,7 +137,7 @@ async function measureTauri(): Promise<void> {
     await run(["cargo", `+${lock.toolchains.rust}`, "install", "tauri-cli", "--version", lock.frameworks.tauri.version.slice(1), "--locked", "--root", cliRoot], work, env);
   });
   buildMs = await timed(() => run([join(cliRoot, "bin", "cargo-tauri.exe"), "build", "--no-bundle"], join(project, "src-tauri"), env));
-  const executable = join(target, "release", "actutum-bench-tauri.exe");
+  const executable = join(target, "release", "velox-bench-tauri.exe");
   portable = join(work, "portable");
   await mkdir(portable, { recursive: true });
   await cp(executable, join(portable, basename(executable)));
@@ -149,20 +149,20 @@ try {
   await mkdir(work, { recursive: true });
   await mkdir(cacheRoot, { recursive: true });
   failurePhase = "framework-setup-and-build";
-  if (framework === "actutum") await measureActutum();
+  if (framework === "velox") await measureVelox();
   else if (framework === "wails") await measureWails();
   else if (framework === "neutralino") await measureNeutralino();
   else await measureTauri();
 
   failurePhase = "package";
-  if (framework !== "actutum") packageMs = await timed(() => createDeterministicZip(portable, archive));
+  if (framework !== "velox") packageMs = await timed(() => createDeterministicZip(portable, archive));
   const output = await treeStats(portable);
   const intermediate = await treeStats(work);
   const cacheStats = await treeStats(cacheRoot);
   const archiveData = await readFile(archive);
   const finishedAtMs = Date.now();
   result = {
-    schemaVersion: "actutum.recommended-cache-draft/v1",
+    schemaVersion: "velox.recommended-cache-draft/v1",
     suite: "recommended-cache",
     phase: phaseName,
     framework,
@@ -192,7 +192,7 @@ try {
 } catch (error) {
   const timedOut = error instanceof BenchmarkTimeout;
   result = {
-    schemaVersion: "actutum.recommended-cache-draft/v1",
+    schemaVersion: "velox.recommended-cache-draft/v1",
     suite: "recommended-cache",
     phase: phaseName,
     framework,

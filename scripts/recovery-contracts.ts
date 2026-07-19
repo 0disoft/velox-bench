@@ -1,10 +1,10 @@
-export const recoverySchemaVersion = "actutum.asset-transport-recovery/v2" as const;
-export const recoverySummarySchemaVersion = "actutum.asset-transport-recovery-summary/v2" as const;
+export const recoverySchemaVersion = "velox.asset-transport-recovery/v1" as const;
+export const recoverySummarySchemaVersion = "velox.asset-transport-recovery-summary/v1" as const;
 export const recoverySuite = "asset-transport-recovery-boundary" as const;
 export const recoveryDelays = [0, 1000, 2000, 4000, 6000, 7000] as const;
 export const recoveryScenarios = [
-  "actutum-same-profile",
-  "actutum-fresh-profile",
+  "velox-same-profile",
+  "velox-fresh-profile",
   "file-url-same-profile",
   "file-url-fresh-profile",
   "virtual-host-same-profile",
@@ -14,10 +14,10 @@ export const recoveryScenarios = [
 
 export type RecoveryDelay = typeof recoveryDelays[number];
 export type RecoveryScenario = typeof recoveryScenarios[number];
-export type RecoveryFramework = "actutum" | "fork-file-url" | "fork-virtual-host";
+export type RecoveryFramework = "velox" | "fork-file-url" | "fork-virtual-host";
 export type RecoveryStatistics = { minMs: number; p50Ms: number; p95Ms: number; maxMs: number };
 export type Timeline = {
-  schemaVersion: "actutum.host-startup-timeline/v1" | "actutum.host-shutdown-timeline/v1";
+  schemaVersion: "velox.host-startup-timeline/v1" | "velox.host-shutdown-timeline/v1";
   clock: "time-since-host-entry-monotonic" | "time-since-shutdown-request-monotonic";
   phases: Array<{ name: string; elapsedMs: number }>;
 };
@@ -122,8 +122,8 @@ export type RecoverySummary = {
 };
 
 const scenarioFramework: Record<RecoveryScenario, RecoveryFramework> = {
-  "actutum-same-profile": "actutum",
-  "actutum-fresh-profile": "actutum",
+  "velox-same-profile": "velox",
+  "velox-fresh-profile": "velox",
   "file-url-same-profile": "fork-file-url",
   "file-url-fresh-profile": "fork-file-url",
   "virtual-host-same-profile": "fork-virtual-host",
@@ -157,8 +157,8 @@ function validateLaunch(launch: DiagnosticLaunch | undefined): void {
       (launch.browserExitAfterHostExitMs !== null && !finite(launch.browserExitAfterHostExitMs))) {
     throw new Error("invalid diagnostic launch");
   }
-  validateTimeline(launch.startupTimeline, "actutum.host-startup-timeline/v1", "time-since-host-entry-monotonic");
-  validateTimeline(launch.shutdownTimeline, "actutum.host-shutdown-timeline/v1", "time-since-shutdown-request-monotonic");
+  validateTimeline(launch.startupTimeline, "velox.host-startup-timeline/v1", "time-since-host-entry-monotonic");
+  validateTimeline(launch.shutdownTimeline, "velox.host-shutdown-timeline/v1", "time-since-shutdown-request-monotonic");
   const required = ["environment-create-started", "environment-created", "controller-created", "navigation-dispatched", "dom-2raf"];
   let cursor = -1;
   for (const name of required) {

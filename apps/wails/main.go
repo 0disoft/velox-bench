@@ -29,20 +29,20 @@ func (b *Bench) Ready(marker string) error {
 	if marker != "dom-2raf" {
 		return fmt.Errorf("unexpected ready marker %q", marker)
 	}
-	runtime.WindowSetTitle(b.context, "Actutum Bench Ready")
+	runtime.WindowSetTitle(b.context, "Velox Bench Ready")
 	return nil
 }
 
 func main() {
 	bench := &Bench{}
 	err := wails.Run(&options.App{
-		Title:  "Actutum Bench",
+		Title:  "Velox Bench",
 		Width:  960,
 		Height: 640,
 		AssetServer: &assetserver.Options{
 			Assets: assets,
 		},
-		Windows:   &windows.Options{WebviewUserDataPath: os.Getenv("ACTUTUM_BENCH_PROFILE")},
+		Windows:   &windows.Options{WebviewUserDataPath: os.Getenv("VELOX_BENCH_PROFILE")},
 		OnStartup: bench.startup,
 		Bind:      []interface{}{bench},
 	})

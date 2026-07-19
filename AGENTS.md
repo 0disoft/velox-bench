@@ -1,7 +1,7 @@
 # AGENTS.md
 
 This repository owns public, reproducible cross-framework benchmark fixtures
-for Actutum. It does not own Actutum product code.
+for Velox. It does not own Velox product code.
 
 ## Rules
 

@@ -5,15 +5,15 @@ import { buildPairSummary } from "./pair-summary";
 
 function result(framework: Framework, sample: number, duration: number): Result {
   return {
-    schemaVersion: "actutum.bench-result/v3",
+    schemaVersion: "velox.bench-result/v2",
     suite: "zero-cache",
     framework,
     frameworkRevision: framework.charCodeAt(0).toString(16).padStart(40, "0"),
     sample,
     fixture: { name: "hello", sha256: "b".repeat(64), generatedFiles: 0, generatedBytes: 0 },
     outcome: "success",
-    startedAtUtc: framework === "actutum" ? "2026-07-17T00:00:00.000Z" : "2026-07-17T00:00:02.000Z",
-    finishedAtUtc: framework === "actutum" ? "2026-07-17T00:00:01.000Z" : "2026-07-17T00:00:03.000Z",
+    startedAtUtc: framework === "velox" ? "2026-07-17T00:00:00.000Z" : "2026-07-17T00:00:02.000Z",
+    finishedAtUtc: framework === "velox" ? "2026-07-17T00:00:01.000Z" : "2026-07-17T00:00:03.000Z",
     environment: { runner: "windows-2025", runnerImageVersion: "stable", os: "windows", architecture: "amd64", windowsVersion: "10.0", cpuModel: "EPYC 7763", logicalProcessors: 4, memoryBytes: 16 * 1024 ** 3, bunVersion: "1.3.14", repositoryCommit: "c", runId: "1", runAttempt: "1" },
     measurement: { endToEndMs: duration, frameworkSetupMs: 1, buildMs: 1, packageMs: 1, acquisitionWorkingSetBytes: 1, outputFiles: 1, outputBytes: 1, outputArchiveBytes: 1, outputArchiveSha256: "c".repeat(64), intermediateFiles: 0, intermediateBytes: 0, uploadedCacheBytes: 0, cacheEvidence: "workflow-source-audit" },
     failure: null,
@@ -21,16 +21,16 @@ function result(framework: Framework, sample: number, duration: number): Result 
 }
 
 function summary(samples: number, wailsDuration: number) {
-  return buildPairSummary((["actutum", "wails"] as Framework[]).flatMap((framework) =>
-    Array.from({ length: samples }, (_, sample) => result(framework, sample, framework === "actutum" ? 100 : wailsDuration)),
+  return buildPairSummary((["velox", "wails"] as Framework[]).flatMap((framework) =>
+    Array.from({ length: samples }, (_, sample) => result(framework, sample, framework === "velox" ? 100 : wailsDuration)),
   ), samples);
 }
 
 test("publishable pair evidence passes at or above three times speedup", () => {
   const decision = buildPairDecision(summary(10, 400));
-  expect(decision.scope).toBe("actutum-wails");
+  expect(decision.scope).toBe("velox-wails");
   expect(decision.status).toBe("passed");
-  expect(decision.metrics.wailsToActutumP50Ratio).toBe(4);
+  expect(decision.metrics.wailsToVeloxP50Ratio).toBe(4);
   expect(decision.questionsRequired).toBeFalse();
 });
 

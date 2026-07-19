@@ -1,15 +1,15 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "Actutum Bench",
+  "productName": "Velox Bench",
   "version": "0.1.0",
-  "identifier": "dev.actutum.bench.tauri",
+  "identifier": "dev.velox.bench.tauri",
   "build": {
     "frontendDist": "../frontend/dist"
   },
   "app": {
     "windows": [
       {
-        "title": "Actutum Bench",
+        "title": "Velox Bench",
         "width": 960,
         "height": 640,
         "resizable": true
