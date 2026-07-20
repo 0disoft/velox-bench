@@ -33,7 +33,7 @@ function assertExactKeys(value: unknown, keys: string[], label: string): asserts
   }
 }
 
-if (lock.schemaVersion !== "velox-bench-lock/v2" || lock.runner !== "windows-2025") {
+if (lock.schemaVersion !== "velox-bench-lock/v3" || lock.runner !== "windows-2025") {
   throw new Error("unsupported benchmark lock contract");
 }
 if (lock.assetPack.manifest !== "fixtures/asset-pack/fixture.json" || !/^[0-9a-f]{64}$/.test(lock.assetPack.expectedTreeSha256)) {
@@ -50,6 +50,14 @@ if (assetPackDescription.treeSha256 !== lock.assetPack.expectedTreeSha256) {
 }
 if (JSON.stringify(Object.keys(lock.frameworks).sort()) !== JSON.stringify(["neutralino", "tauri", "velox", "wails"])) {
   throw new Error("framework lock must contain exactly neutralino, tauri, velox, and wails");
+}
+if (JSON.stringify(Object.keys(lock.frameworks.velox).sort()) !== JSON.stringify(["commit", "releaseAsset", "releaseSha256", "releaseTag", "repository"]) ||
+    lock.frameworks.velox.repository !== "0disoft/velox" ||
+    !/^v\d+\.\d+\.\d+-alpha\.[1-9]\d*$/.test(lock.frameworks.velox.releaseTag) ||
+    lock.frameworks.velox.releaseAsset !== "velox-windows-x64.zip" ||
+    !/^[0-9a-f]{64}$/.test(lock.frameworks.velox.releaseSha256) ||
+    !commitPattern.test(lock.frameworks.velox.commit)) {
+  throw new Error("Velox framework input must pin one immutable public alpha asset, digest, and source commit");
 }
 if (Object.keys(lock.controls).length !== 2 || !lock.controls.webview2Binding || !commitPattern.test(lock.controls.webview2Binding.commit) ||
     !lock.controls.xsys || !/^v\d+\.\d+\.\d+$/.test(lock.controls.xsys.version)) {
@@ -136,8 +144,9 @@ for (const file of lock.fixture.files) {
 }
 
 const workflow = await readFile(join(root, ".github", "workflows", "zero-cache.yml"), "utf8");
-if (!workflow.includes(`ref: ${lock.frameworks.velox.commit}`)) {
-  throw new Error("zero-cache workflow Velox ref differs from frameworks.velox.commit");
+const zeroCacheMeasurement = await readFile(join(root, "scripts", "measure-zero-cache.ts"), "utf8");
+if (!zeroCacheMeasurement.includes('throw new Error("VELOX_RELEASE_ROOT is required for Velox")')) {
+  throw new Error("zero-cache Velox measurement does not fail closed without an explicit release root");
 }
 for (const name of ["checkout", "setupBun", "setupGo", "setupNode", "uploadArtifact", "downloadArtifact"] as const) {
   const commit = lock.actions[name];
@@ -171,7 +180,9 @@ for (const marker of [
   "bun scripts/environment-gate.ts capture",
   "bun scripts/environment-gate.ts verify",
   "Validate environment baseline schema",
-  "needs: [contracts, environment-baseline, velox-release]",
+  "needs: [contracts, environment-baseline]",
+  "bun scripts/acquire-velox-release.ts .bench/acquired/velox",
+  "VELOX_RELEASE_ROOT:",
   "bun scripts/decide.ts",
   "bun scripts/summarize-pair.ts",
   "bun scripts/decide-pair.ts",
@@ -182,7 +193,6 @@ for (const marker of [
   "schema/pair-decision-v1.schema.json",
   ".bench/summary/go-or-kill.json",
   "inputs.framework != 'all'",
-  "inputs.framework == 'velox'",
   "inputs.framework == 'velox-wails'",
   "'[\"velox\",\"wails\"]'",
   "pair-measure:",
@@ -214,11 +224,18 @@ for (const marker of [
 ]) {
   if (!workflow.includes(marker)) throw new Error(`zero-cache diagnostic matrix is missing ${marker}`);
 }
+for (const stale of ["Build pinned Velox producer artifact", "go run ./cmd/velox-release", "needs.velox-release.result"]) {
+  if (workflow.includes(stale)) throw new Error(`zero-cache workflow retains source-built Velox acquisition: ${stale}`);
+}
 for (const schema of ["asset-pack-v1.schema.json", "result-v1.schema.json", "result-v2.schema.json", "summary-v1.schema.json", "summary-v2.schema.json", "summary-v3.schema.json", "environment-v1.schema.json", "decision-v1.schema.json", "pair-summary-v1.schema.json", "pair-decision-v1.schema.json"]) {
   JSON.parse(await readFile(join(root, "schema", schema), "utf8"));
 }
 
 const recommendedCacheWorkflow = await readFile(join(root, ".github", "workflows", "recommended-cache.yml"), "utf8");
+const recommendedCacheMeasurement = await readFile(join(root, "scripts", "measure-recommended-cache.ts"), "utf8");
+if (!recommendedCacheMeasurement.includes('throw new Error("VELOX_RELEASE_ROOT is required for Velox")')) {
+  throw new Error("recommended-cache Velox measurement does not fail closed without an explicit release root");
+}
 for (const action of ["cache", "checkout", "setupBun", "setupGo", "setupNode", "uploadArtifact", "downloadArtifact"] as const) {
   if (!recommendedCacheWorkflow.includes(`@${lock.actions[action]}`)) {
     throw new Error(`recommended-cache workflow does not use pinned actions.${action}`);
@@ -243,8 +260,12 @@ for (const marker of [
   "schema/recommended-cache-summary-v1.schema.json",
   "permissions:",
   "actions: write",
+  "bun scripts/acquire-velox-release.ts .bench/recommended-cache/acquired/velox",
 ]) {
   if (!recommendedCacheWorkflow.includes(marker)) throw new Error(`recommended-cache workflow is missing ${marker}`);
+}
+for (const stale of ["Build pinned Velox producer artifact", "go run ./cmd/velox-release", "needs.velox-release.result"]) {
+  if (recommendedCacheWorkflow.includes(stale)) throw new Error(`recommended-cache workflow retains source-built Velox acquisition: ${stale}`);
 }
 if (/^\s{2}(pull_request|schedule):/m.test(recommendedCacheWorkflow)) {
   throw new Error("recommended-cache workflow must not consume cache quota on pull requests or a schedule");
@@ -254,10 +275,7 @@ for (const schema of ["recommended-cache-result-v1.schema.json", "recommended-ca
 }
 
 const startupWorkflow = await readFile(join(root, ".github", "workflows", "velox-startup.yml"), "utf8");
-if (!startupWorkflow.includes(`ref: ${lock.frameworks.velox.commit}`)) {
-  throw new Error("startup workflow Velox ref differs from frameworks.velox.commit");
-}
-for (const action of ["checkout", "setupBun", "setupGo", "uploadArtifact", "downloadArtifact"] as const) {
+for (const action of ["checkout", "setupBun", "uploadArtifact", "downloadArtifact"] as const) {
   if (!startupWorkflow.includes(`@${lock.actions[action]}`)) {
     throw new Error(`startup workflow does not use pinned actions.${action}`);
   }
@@ -276,13 +294,16 @@ for (const marker of [
   "summarize-startup.ts",
   "collect-startup-history.ts",
   "startup-history-",
-  "VELOX_STARTUP_EVIDENCE_LEVEL: hosted-pinned-source",
+  "VELOX_STARTUP_EVIDENCE_LEVEL: hosted-pinned-release",
+  "bun scripts/acquire-velox-release.ts .bench/acquired/velox",
   "no-cache: true",
-  "cache: false",
   "startup-raw-${{ matrix.sample }}-${{ github.run_attempt }}",
   "pattern: startup-raw-*-${{ github.run_attempt }}",
 ]) {
   if (!startupWorkflow.includes(marker)) throw new Error(`startup workflow is missing ${marker}`);
+}
+for (const stale of ["Build pinned Velox producer artifact", "go run ./cmd/velox-release", "VELOX_STARTUP_EVIDENCE_LEVEL: hosted-pinned-source"]) {
+  if (startupWorkflow.includes(stale)) throw new Error(`startup workflow retains source-built Velox acquisition: ${stale}`);
 }
 if (/^\s{2}(push|pull_request|schedule):/m.test(startupWorkflow)) {
   throw new Error("startup workflow must remain manual-only until its cost is measured");

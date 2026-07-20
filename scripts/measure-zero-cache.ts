@@ -108,7 +108,9 @@ async function copyProject(source: string): Promise<void> {
 }
 
 async function measureVelox(): Promise<void> {
-  const acquired = resolve(process.env.VELOX_RELEASE_ROOT || "");
+  const releaseRoot = process.env.VELOX_RELEASE_ROOT;
+  if (!releaseRoot) throw new Error("VELOX_RELEASE_ROOT is required for Velox");
+  const acquired = resolve(releaseRoot);
   const executables = await findFiles(acquired, (path) => basename(path).toLowerCase() === "velox.exe");
   if (executables.length !== 1) throw new Error("Velox release must contain exactly one velox.exe");
   await copyProject(join(root, "apps", "velox"));

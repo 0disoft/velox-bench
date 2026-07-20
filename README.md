@@ -12,6 +12,12 @@ implemented. The published pair result does not claim a four-framework winner.
 Asset-pack and recommended-cache evidence remain separate from the zero-cache
 publication.
 
+New hosted Velox measurements acquire the immutable public
+`v0.5.10-alpha.1` release asset directly and verify its pinned SHA-256 before
+use. The published result below predates that acquisition contract and remains
+historical source-built evidence; it is not silently relabeled as a
+release-vs-release result.
+
 ## Published Velox-Wails Result
 
 <!-- BEGIN GENERATED VELOX-WAILS RESULT -->
@@ -40,9 +46,12 @@ Workflow wall time and aggregate job runtime come from GitHub's wall-clock times
 
 <!-- END GENERATED VELOX-WAILS RESULT -->
 
-## Current Pins
+## Current Inputs
 
-- Velox: commit `ae7a819f0ef9b22cb4f959451d0189d699c6e546`
+- Velox release: `v0.5.10-alpha.1`, asset `velox-windows-x64.zip`, SHA-256
+  `5df53090e1e67ce54c8639f061ffc7b03b7c3aa38f95a725c29342cfaff73b68`
+- Velox release source and diagnostic controls: commit
+  `9f10c545b6bde23d2c3dad5bbb12bffdac513712`
 - Raw WebView2 control binding: commit `56598839c808a2340edee99204db479f410e9bf4`
 - Windows control system calls: `golang.org/x/sys v0.47.0`
 - Wails: `v2.13.0`
@@ -57,8 +66,9 @@ Workflow wall time and aggregate job runtime come from GitHub's wall-clock times
 bun run check
 ```
 
-The check compiles the TypeScript harness, runs contract and deterministic ZIP
-tests, validates immutable framework and Action pins, rejects cache actions,
+The check compiles the TypeScript harness, runs release-acquisition, contract,
+and deterministic ZIP tests, validates immutable framework and Action pins,
+rejects cache actions and source-built Velox producer jobs,
 proves that every adapter's HTML, CSS, and JavaScript fixture matches the
 canonical fixture byte for byte, and regenerates the publication contract and
 README block in memory to reject hand-edited numbers.
@@ -99,10 +109,17 @@ before framework toolchain setup starts. Weekly and `benchmark-v*` tag runs exec
 framework. Raw results remain available when an individual measurement reports
 failure.
 
+For Velox, the clock starts before the pinned public release download, digest
+verification, and extraction. The benchmark does not compile Velox or transfer
+a same-run producer artifact. Source checkouts remain limited to the separate
+WebView2 lifecycle and transport diagnostics that must compile synthetic
+controls.
+
 ## Recommended-Cache Suite
 
 The manual `Recommended-cache benchmark` workflow runs prime and warm phases on
-different Windows runners. Velox remains cache-free. Wails saves its Go module
+different Windows runners. Each Velox phase independently acquires the same
+pinned public release inside its end-to-end clock and remains cache-free. Wails saves its Go module
 and build caches, Neutralinojs saves the npm download cache, and Tauri saves its
 Cargo home and target tree. Explicit restore and save steps make restore time,
 save time, and the GitHub API `size_in_bytes` value part of the result contract
@@ -144,7 +161,8 @@ waits for the reported WebView2 browser process to exit and for the user-data
 folder lock to clear between launches, so warm startup is not confused with an
 immediate relaunch handoff. One- and three-sample runs are diagnostic. Ten
 complete samples from one runner and WebView2 environment are required before
-the summary is publishable. Raw v2 results also retain the benchmark-only host
+the summary is publishable. Hosted samples acquire and verify the pinned public
+release before the startup clock begins. Raw v2 results also retain the benchmark-only host
 timeline from host entry through WebView2 environment and controller creation,
 navigation dispatch, and the DOM-plus-two-animation-frame boundary.
 

@@ -56,7 +56,7 @@ export type StartupResult = {
   suite: typeof startupSuite;
   framework: "velox";
   frameworkRevision: string;
-  evidenceLevel: "hosted-pinned-source" | "local-unverified-release";
+  evidenceLevel: "hosted-pinned-release" | "hosted-pinned-source" | "local-unverified-release";
   sample: number;
   fixtureSha256: string;
   outcome: "success" | "failure" | "timeout";
@@ -102,7 +102,7 @@ export function validateStartupSummary(value: unknown): asserts value is Startup
     if (!Number.isInteger(summary[field]) || (summary[field] ?? -1) < 0) throw new Error(`invalid startup summary ${field}`);
   }
   if (typeof summary.publishable !== "boolean" || !Array.isArray(summary.evidenceLevels) || summary.evidenceLevels.length < 1 ||
-      summary.evidenceLevels.some((level) => !["hosted-pinned-source", "local-unverified-release"].includes(level)) ||
+      summary.evidenceLevels.some((level) => !["hosted-pinned-release", "hosted-pinned-source", "local-unverified-release"].includes(level)) ||
       !Array.isArray(summary.environmentGroups) || summary.environmentGroups.length < 1 ||
       summary.environmentGroups.some((group) => !group.key || !Number.isInteger(group.samples) || group.samples < 1)) {
     throw new Error("invalid startup summary metadata");
@@ -174,7 +174,7 @@ export function validateStartupResult(value: unknown): asserts value is StartupR
     throw new Error("unsupported startup result contract");
   }
   if (!/^[0-9a-f]{40}$/.test(result.frameworkRevision ?? "")) throw new Error("invalid startup framework revision");
-  if (!result.evidenceLevel || !["hosted-pinned-source", "local-unverified-release"].includes(result.evidenceLevel)) throw new Error("invalid startup evidence level");
+  if (!result.evidenceLevel || !["hosted-pinned-release", "hosted-pinned-source", "local-unverified-release"].includes(result.evidenceLevel)) throw new Error("invalid startup evidence level");
   if (!Number.isInteger(result.sample) || (result.sample ?? -1) < 0 || (result.sample ?? 10) > 9) throw new Error("invalid startup sample");
   if (!/^[0-9a-f]{64}$/.test(result.fixtureSha256 ?? "")) throw new Error("invalid startup fixture digest");
   if (!result.outcome || !["success", "failure", "timeout"].includes(result.outcome)) throw new Error("invalid startup outcome");
@@ -251,7 +251,7 @@ export function buildStartupSummary(results: StartupResult[], expected: number):
     failed,
     timedOut,
     publishable: expected === 10 && results.length === 10 && successful === 10 && environmentGroups.length === 1 &&
-      evidenceLevels.size === 1 && evidenceLevels.has("hosted-pinned-source"),
+      evidenceLevels.size === 1 && evidenceLevels.has("hosted-pinned-release"),
     evidenceLevels: [...evidenceLevels].sort(),
     environmentGroups,
     fresh: statistics(fresh),

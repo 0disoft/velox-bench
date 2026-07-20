@@ -135,59 +135,6 @@ jobs:
           retention-days: 30
           if-no-files-found: error
 
-  velox-release:
-    name: Build pinned Velox producer artifact
-    if: >-
-      github.event_name == 'schedule' ||
-      startsWith(github.ref, 'refs/tags/benchmark-v') ||
-      (github.event_name == 'workflow_dispatch' && (inputs.framework == 'all' || inputs.framework == 'velox-wails' || inputs.framework == 'velox'))
-    needs: [contracts, environment-baseline]
-    runs-on: windows-2025
-    timeout-minutes: 10
-    steps:
-      - name: Check out benchmark
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
-        with:
-          persist-credentials: false
-
-      - name: Check out pinned Velox
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
-        with:
-          repository: 0disoft/velox
-          ref: 74847b1d4c6a9cb63786e216adf0234d8d01606b
-          path: velox-source
-          persist-credentials: false
-
-      - name: Set up Go
-        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
-        with:
-          go-version: 1.26.4
-          check-latest: false
-          cache: false
-
-      - name: Build unsigned release
-        shell: pwsh
-        working-directory: velox-source
-        run: |
-          $ErrorActionPreference = 'Stop'
-          $env:GOCACHE = Join-Path $env:RUNNER_TEMP 'velox-producer-go-build'
-          $inputRoot = Join-Path $env:RUNNER_TEMP 'velox-release-input'
-          New-Item -ItemType Directory -Path $inputRoot -Force | Out-Null
-          go build -trimpath -ldflags='-s -w' -o (Join-Path $inputRoot 'velox.exe') ./cmd/velox
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          go build -trimpath -ldflags='-s -w' -o (Join-Path $inputRoot 'velox-host.exe') ./cmd/velox-host
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          go run ./cmd/velox-release --cli (Join-Path $inputRoot 'velox.exe') --host (Join-Path $inputRoot 'velox-host.exe') --source-root $env:GITHUB_WORKSPACE/velox-source --out dist/release --json
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-
-      - name: Upload Velox producer artifact
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        with:
-          name: velox-release-${{ github.run_id }}-${{ github.run_attempt }}
-          path: velox-source/dist/release/velox-windows-x64
-          retention-days: 3
-          if-no-files-found: error
-
   measure:
     name: ${{ matrix.framework }} sample ${{ matrix.sample }}
     if: >-
@@ -195,10 +142,8 @@ jobs:
       (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/tags/benchmark-v')) &&
       !(github.event_name == 'workflow_dispatch' && inputs.framework == 'velox-wails') &&
       needs.contracts.result == 'success' &&
-      needs.environment-baseline.result == 'success' &&
-      (needs.velox-release.result == 'success' ||
-      (needs.velox-release.result == 'skipped' && github.event_name == 'workflow_dispatch' && inputs.framework != 'all' && inputs.framework != 'velox-wails' && inputs.framework != 'velox'))
-    needs: [contracts, environment-baseline, velox-release]
+      needs.environment-baseline.result == 'success'
+    needs: [contracts, environment-baseline]
     strategy:
       fail-fast: false
       matrix:
@@ -246,12 +191,9 @@ jobs:
           check-latest: false
           package-manager-cache: false
 
-      - name: Download Velox producer artifact
+      - name: Acquire pinned public Velox release
         if: matrix.framework == 'velox'
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
-        with:
-          name: velox-release-${{ github.run_id }}-${{ github.run_attempt }}
-          path: .bench/acquired/velox
+        run: bun scripts/acquire-velox-release.ts .bench/acquired/velox
 
       - name: Measure acquisition, build, and packaging
         id: measure
@@ -259,6 +201,7 @@ jobs:
         env:
           VELOX_BENCH_FIXTURE: ${{ github.event_name == 'workflow_dispatch' && inputs.fixture || 'hello' }}
           VELOX_BENCH_ASSET_PACK_ROOT: ${{ github.workspace }}/.bench/generated-fixture
+          VELOX_RELEASE_ROOT: ${{ github.workspace }}/.bench/acquired/velox
         run: bun scripts/measure-zero-cache.ts ${{ matrix.framework }} ${{ matrix.sample }} .bench/raw/${{ matrix.framework }}-${{ matrix.sample }}.json .bench/clock/${{ matrix.framework }}-${{ matrix.sample }}.txt
 
       - name: Upload raw result
@@ -280,9 +223,8 @@ jobs:
       github.event_name == 'workflow_dispatch' &&
       inputs.framework == 'velox-wails' &&
       needs.contracts.result == 'success' &&
-      needs.environment-baseline.result == 'success' &&
-      needs.velox-release.result == 'success'
-    needs: [contracts, environment-baseline, velox-release]
+      needs.environment-baseline.result == 'success'
+    needs: [contracts, environment-baseline]
     strategy:
       fail-fast: false
       matrix:
@@ -321,17 +263,16 @@ jobs:
         if: matrix.first == 'velox'
         run: bun scripts/start-clock.ts .bench/clock/velox-${{ matrix.sample }}.txt
 
-      - name: Download first Velox producer artifact
+      - name: Acquire first pinned public Velox release
         if: matrix.first == 'velox'
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
-        with:
-          name: velox-release-${{ github.run_id }}-${{ github.run_attempt }}
-          path: .bench/acquired/velox
+        run: bun scripts/acquire-velox-release.ts .bench/acquired/velox
 
       - name: Measure first Velox build
         if: matrix.first == 'velox'
         id: velox-first
         continue-on-error: true
+        env:
+          VELOX_RELEASE_ROOT: ${{ github.workspace }}/.bench/acquired/velox
         run: bun scripts/measure-zero-cache.ts velox ${{ matrix.sample }} .bench/raw/velox-${{ matrix.sample }}.json .bench/clock/velox-${{ matrix.sample }}.txt
 
       - name: Start first Wails clock
@@ -356,17 +297,16 @@ jobs:
         if: matrix.first == 'wails'
         run: bun scripts/start-clock.ts .bench/clock/velox-${{ matrix.sample }}.txt
 
-      - name: Download second Velox producer artifact
+      - name: Acquire second pinned public Velox release
         if: matrix.first == 'wails'
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
-        with:
-          name: velox-release-${{ github.run_id }}-${{ github.run_attempt }}
-          path: .bench/acquired/velox
+        run: bun scripts/acquire-velox-release.ts .bench/acquired/velox
 
       - name: Measure second Velox build
         if: matrix.first == 'wails'
         id: velox-second
         continue-on-error: true
+        env:
+          VELOX_RELEASE_ROOT: ${{ github.workspace }}/.bench/acquired/velox
         run: bun scripts/measure-zero-cache.ts velox ${{ matrix.sample }} .bench/raw/velox-${{ matrix.sample }}.json .bench/clock/velox-${{ matrix.sample }}.txt
 
       - name: Start second Wails clock

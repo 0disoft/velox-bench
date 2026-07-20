@@ -1,5 +1,5 @@
 {
-  "schemaVersion": "velox-bench-lock/v2",
+  "schemaVersion": "velox-bench-lock/v3",
   "runner": "windows-2025",
   "toolchains": {
     "bun": "1.3.14",
@@ -45,7 +45,10 @@
   "frameworks": {
     "velox": {
       "repository": "0disoft/velox",
-      "commit": "74847b1d4c6a9cb63786e216adf0234d8d01606b"
+      "releaseTag": "v0.5.10-alpha.1",
+      "releaseAsset": "velox-windows-x64.zip",
+      "releaseSha256": "5df53090e1e67ce54c8639f061ffc7b03b7c3aa38f95a725c29342cfaff73b68",
+      "commit": "9f10c545b6bde23d2c3dad5bbb12bffdac513712"
     },
     "wails": {
       "repository": "wailsapp/wails",

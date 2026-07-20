@@ -52,7 +52,7 @@ jobs:
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           repository: 0disoft/velox
-          ref: 74847b1d4c6a9cb63786e216adf0234d8d01606b
+          ref: 9f10c545b6bde23d2c3dad5bbb12bffdac513712
           path: .bench/velox-source
           persist-credentials: false
       - name: Set up Go
@@ -160,7 +160,7 @@ jobs:
             --schema-version velox.asset-transport-relaunch/v1 `
             --suite asset-transport-immediate-relaunch `
             --framework $env:TRANSPORT `
-            --revision 74847b1d4c6a9cb63786e216adf0234d8d01606b `
+            --revision 9f10c545b6bde23d2c3dad5bbb12bffdac513712 `
             --executable (Join-Path $root 'app.exe') `
             --workdir $root `
             --profile $profile `

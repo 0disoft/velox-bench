@@ -1,9 +1,12 @@
 # Benchmark Disclosure
 
-- Velox currently has no immutable public alpha release. Its adapter is pinned
-  to a source commit. A producer job compiles that exact commit outside the
-  consumer timing boundary, matching Velox's prebuilt-host distribution model.
-  This is not yet a release-vs-release comparison.
+- Velox has an immutable public `v0.5.10-alpha.1` release. New hosted cold-build,
+  recommended-cache, and startup runs download `velox-windows-x64.zip` directly
+  and reject bytes that differ from the SHA-256 pinned in `bench.lock.json`.
+- The currently published Velox-Wails result predates that release-input
+  contract. It used a source-built producer artifact and remains historical
+  evidence rather than being relabeled as a release-vs-release comparison. A
+  new public comparison requires a complete hosted run under the current lock.
 - Wails and Tauri compile application-specific native hosts. Neutralinojs and
   Velox acquire prebuilt native hosts. That architectural difference is part
   of end-to-end cold-build cost, not something removed from the measurement.

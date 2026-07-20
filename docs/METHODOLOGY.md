@@ -43,6 +43,11 @@ dependency resolution, native compilation, asset copying, and deterministic
 ZIP packaging. It excludes repository checkout and Bun harness setup because
 those are shared measurement infrastructure.
 
+Velox acquisition downloads the public release asset named in
+`bench.lock.json`, verifies its independently pinned SHA-256, and extracts it
+inside this boundary. The zero-cache and recommended-cache suites do not build
+Velox from source or substitute a same-run producer artifact.
+
 When a framework build already emits both the required portable directory and
 an unsigned portable ZIP, the harness uses that ZIP as the final archive. It
 does not create a second archive and misclassify the framework's declared ZIP
@@ -66,8 +71,8 @@ or `asset-pack`, and request one, three, or ten samples. One- and three-sample
 runs are diagnostic only. The Velox-Wails paired publication scope rejects
 `asset-pack`.
 Targeted runs retain raw evidence without generating a misleading
-cross-framework summary. A non-Velox targeted run also skips the Velox producer
-job.
+cross-framework summary. A non-Velox targeted run performs no Velox release
+acquisition.
 
 ## Velox Startup Measurement
 
@@ -104,8 +109,10 @@ One and three samples validate the measurement path only. Publication requires
 ten successful isolated samples and one exact runner-image, Windows, and
 WebView2 environment group. CPU and memory remain raw diagnostic metadata but
 do not split hosted-runner series. Hosted jobs label evidence as
-`hosted-pinned-source` only after checking out the exact Velox revision. Local
-smoke results use `local-unverified-release` and are never publishable.
+`hosted-pinned-release` only after downloading and verifying the exact public
+release asset. Historical `hosted-pinned-source` results remain valid
+diagnostics but cannot satisfy the current publication gate. Local smoke
+results use `local-unverified-release` and are never publishable.
 Statistics use nearest-rank percentiles. With exactly ten samples, p95 is the
 maximum observed value, so it is a disclosed tail observation rather than a
 stable estimate of the population p95.
@@ -320,8 +327,9 @@ environment are required for `passed` or `failed`.
 The manual `velox-wails` scope is a lower-cost product gate. It schedules ten
 paired runner jobs. Every job measures both frameworks on the same machine, and
 the matrix alternates which framework runs first for five samples each. The
-Velox clock starts before release-artifact download; the Wails clock starts
-before `setup-go`, preserving the existing end-to-end boundaries. The scope
+Velox clock starts before public release download, digest verification, and
+extraction; the Wails clock starts before `setup-go`, preserving the existing
+end-to-end boundaries. The scope
 retains the same raw-result contract, environment fingerprint, zero-cache rule,
 ten-sample completeness check, and per-CPU count spread of at most one. Its `velox.bench-pair-summary/v1` and
 `velox.bench-pair-decision/v1` artifacts cannot be substituted for the

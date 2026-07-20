@@ -10,7 +10,7 @@
     "suite": { "const": "velox-startup" },
     "framework": { "const": "velox" },
     "frameworkRevision": { "type": "string", "pattern": "^[0-9a-f]{40}$" },
-    "evidenceLevel": { "enum": ["hosted-pinned-source", "local-unverified-release"] },
+    "evidenceLevel": { "enum": ["hosted-pinned-release", "hosted-pinned-source", "local-unverified-release"] },
     "sample": { "type": "integer", "minimum": 0, "maximum": 9 },
     "fixtureSha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
     "outcome": { "enum": ["success", "failure", "timeout"] },

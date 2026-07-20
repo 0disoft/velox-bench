@@ -17,13 +17,21 @@ export type FixtureIdentity = {
 };
 
 export type Lock = {
-  schemaVersion: "velox-bench-lock/v2";
+  schemaVersion: "velox-bench-lock/v3";
   runner: "windows-2025";
   toolchains: Record<"bun" | "go" | "node" | "rust", string>;
   actions: Record<string, string>;
   fixture: { name: string; files: string[] };
   assetPack: { manifest: string; expectedTreeSha256: string };
-  frameworks: Record<Framework, Record<string, string>>;
+  frameworks: Record<Framework, Record<string, string>> & {
+    velox: Record<string, string> & {
+      repository: string;
+      releaseTag: string;
+      releaseAsset: string;
+      releaseSha256: string;
+      commit: string;
+    };
+  };
 };
 
 export type Result = {

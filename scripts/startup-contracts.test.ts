@@ -18,7 +18,7 @@ function result(sample: number, overrides: Partial<StartupResult> = {}): Startup
     suite: startupSuite,
     framework: "velox",
     frameworkRevision: "a".repeat(40),
-    evidenceLevel: "hosted-pinned-source",
+    evidenceLevel: "hosted-pinned-release",
     sample,
     fixtureSha256: "b".repeat(64),
     outcome: "success",
@@ -110,6 +110,11 @@ test("hosted hardware variation stays in one environment group", () => {
 
 test("local release evidence is never publishable", () => {
   const results = Array.from({ length: 10 }, (_, sample) => result(sample, { evidenceLevel: "local-unverified-release" }));
+  expect(buildStartupSummary(results, 10).publishable).toBe(false);
+});
+
+test("source-built hosted evidence remains diagnostic after a public release exists", () => {
+  const results = Array.from({ length: 10 }, (_, sample) => result(sample, { evidenceLevel: "hosted-pinned-source" }));
   expect(buildStartupSummary(results, 10).publishable).toBe(false);
 });
 
