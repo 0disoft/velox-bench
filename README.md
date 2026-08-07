@@ -105,9 +105,10 @@ dedicated pair summary and decision without scheduling Neutralinojs or Tauri.
 All-framework runs retain their existing summary and go-or-kill artifact. A cheap baseline job records
 the runner image, Windows version, logical processor count, and nearest-GiB memory class before
 measurement. Every measurement job must match that fingerprint
-before framework toolchain setup starts. Weekly and `benchmark-v*` tag runs execute ten isolated samples per
-framework. Raw results remain available when an individual measurement reports
-failure.
+before framework toolchain setup starts. `benchmark-v*` tag runs execute ten
+isolated samples per framework. There is no scheduled benchmark run; maintainers
+start diagnostics explicitly or publish a benchmark tag. Raw results remain
+available when an individual measurement reports failure.
 
 For Velox, the clock starts before the pinned public release download, digest
 verification, and extraction. The benchmark does not compile Velox or transfer

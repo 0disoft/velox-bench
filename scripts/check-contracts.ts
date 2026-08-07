@@ -157,6 +157,9 @@ for (const name of ["checkout", "setupBun", "setupGo", "setupNode", "uploadArtif
 if (/actions\/cache@/.test(workflow) || /^\s*cache:\s*true\s*$/m.test(workflow)) {
   throw new Error("zero-cache workflow enables a GitHub Actions cache");
 }
+if (/^\s{2}schedule:/m.test(workflow)) {
+  throw new Error("zero-cache workflow must not consume Windows runner minutes on a schedule");
+}
 const setupBunCount = [...workflow.matchAll(/^\s*uses:\s*oven-sh\/setup-bun@/gm)].length;
 const disabledBunCacheCount = [...workflow.matchAll(/^\s*no-cache:\s*true\s*$/gm)].length;
 if (setupBunCount === 0 || disabledBunCacheCount !== setupBunCount) {
