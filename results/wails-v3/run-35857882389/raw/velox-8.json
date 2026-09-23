@@ -1,0 +1,46 @@
+{
+  "schemaVersion": "velox.bench-result/v2",
+  "suite": "zero-cache",
+  "framework": "velox",
+  "frameworkRevision": "02c9acb5035014d9e29a0eb5881a3cf5310f5d6d",
+  "sample": 8,
+  "fixture": {
+    "name": "hello",
+    "sha256": "e50cd76355a78801ce1208d21ff9355f793a3baae8fa8a0cf3a47b37d7662c35",
+    "generatedFiles": 0,
+    "generatedBytes": 0
+  },
+  "outcome": "success",
+  "startedAtUtc": "2026-09-23T12:01:34.991Z",
+  "finishedAtUtc": "2026-09-23T12:01:39.485Z",
+  "environment": {
+    "runner": "windows-2025",
+    "runnerImageVersion": "20260907.229.1",
+    "os": "windows",
+    "architecture": "amd64",
+    "windowsVersion": "10.0.26100",
+    "cpuModel": "AMD EPYC 9V45 96-Core Processor",
+    "logicalProcessors": 4,
+    "memoryBytes": 17174360064,
+    "bunVersion": "1.3.14",
+    "repositoryCommit": "37e631c79167640eb0689683abc20c9bbc88983d",
+    "runId": "35857882389",
+    "runAttempt": "1"
+  },
+  "measurement": {
+    "endToEndMs": 4494,
+    "frameworkSetupMs": 0,
+    "buildMs": 62.5815,
+    "packageMs": 0,
+    "acquisitionWorkingSetBytes": 0,
+    "outputFiles": 6,
+    "outputBytes": 3681484,
+    "outputArchiveBytes": 1787176,
+    "outputArchiveSha256": "5d967c01e7cd6b787698ae87823ccac4d85926d5f00cbce48cb1aea6491d82e9",
+    "intermediateFiles": 0,
+    "intermediateBytes": 0,
+    "uploadedCacheBytes": 0,
+    "cacheEvidence": "workflow-source-audit"
+  },
+  "failure": null
+}

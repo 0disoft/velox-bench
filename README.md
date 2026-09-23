@@ -62,6 +62,12 @@ One- and three-sample runs diagnose the path. Ten complete paired samples are
 required before comparing the measured distributions, and the result applies
 only to these pinned releases and fixture.
 
+The completed [hosted comparison run](https://github.com/0disoft/velox-bench/actions/runs/35857882389)
+has its [raw results and summary](results/wails-v3/run-35857882389) committed.
+`bun run check` recomputes that summary from the raw results and verifies the
+run identity, release revisions, and hosted fixture digest. The historical
+Wails v2 headline above is still a separate measurement.
+
 ## Current Inputs
 
 - Velox release: `v0.5.10-alpha.1`, asset `velox-windows-x64.zip`, SHA-256

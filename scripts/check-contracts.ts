@@ -1,8 +1,9 @@
 import { createHash } from "node:crypto";
-import { readFile } from "node:fs/promises";
+import { readFile, readdir } from "node:fs/promises";
 import { join } from "node:path";
 import { describeAssetPack, validateAssetPackManifest, type AssetPackManifest } from "./asset-pack";
-import { loadLock } from "./contracts";
+import { loadLock, validateResult, type Result } from "./contracts";
+import { buildPairSummary, validatePairSummary } from "./pair-summary";
 import { buildPairPublication, renderPairPublication, serializeCanonicalJson, updateReadmePublication } from "./publication";
 import { createTauriIcon } from "./tauri-icon";
 
@@ -158,6 +159,45 @@ for (const marker of [
   "wails-v3-raw-",
 ]) {
   if (!wailsV3Workflow.includes(marker)) throw new Error(`Wails v3 workflow is missing ${marker}`);
+}
+const wailsV3RunId = "35857882389";
+const wailsV3RunRoot = join(root, "results", "wails-v3", `run-${wailsV3RunId}`);
+const wailsV3Summary = JSON.parse(await readFile(join(wailsV3RunRoot, "summary.json"), "utf8")) as unknown;
+validatePairSummary(wailsV3Summary);
+const wailsV3RawRoot = join(wailsV3RunRoot, "raw");
+const rawFiles = await readdir(wailsV3RawRoot);
+if (rawFiles.length !== 20) throw new Error("Wails v3 hosted result must preserve exactly ten raw pairs");
+// Hosted Windows checkout materializes text fixtures with CRLF; local Git worktrees may retain LF.
+const hostedFixtureDigest = createHash("sha256");
+for (const file of lock.fixture.files) {
+  const canonical = await readFile(join(root, "fixtures", "hello", file), "utf8");
+  hostedFixtureDigest.update(file);
+  hostedFixtureDigest.update(canonical.replace(/\r?\n/g, "\r\n"));
+}
+const hostedFixtureSha256 = hostedFixtureDigest.digest("hex");
+const wailsV3Raw: Result[] = [];
+for (let sample = 0; sample < 10; sample += 1) {
+  for (const framework of ["velox", "wails"] as const) {
+    const name = `${framework}-${sample}.json`;
+    if (!rawFiles.includes(name)) throw new Error(`Wails v3 hosted result is missing ${name}`);
+    const result: unknown = JSON.parse(await readFile(join(wailsV3RawRoot, name), "utf8"));
+    validateResult(result);
+    if (result.fixture.sha256 !== hostedFixtureSha256) {
+      throw new Error(`Wails v3 fixture digest differs from hosted checkout bytes: ${result.fixture.sha256} vs ${hostedFixtureSha256}`);
+    }
+    if (result.framework !== framework || result.sample !== sample ||
+        result.frameworkRevision !== wailsV3Lock.frameworks[framework].commit ||
+        result.environment.repositoryCommit !== "37e631c79167640eb0689683abc20c9bbc88983d" ||
+        result.environment.runId !== wailsV3RunId || result.environment.runAttempt !== "1") {
+      throw new Error(`Wails v3 hosted result identity differs from pinned run: ${name}`);
+    }
+    wailsV3Raw.push(result);
+  }
+}
+const regeneratedWailsV3Summary = buildPairSummary(wailsV3Raw, 10);
+if (!regeneratedWailsV3Summary.publishable ||
+    serializeCanonicalJson(regeneratedWailsV3Summary) !== serializeCanonicalJson(wailsV3Summary)) {
+  throw new Error("Wails v3 hosted summary differs from raw result evidence");
 }
 const canonicalRoot = join(root, "fixtures", lock.fixture.name);
 const digest = createHash("sha256");

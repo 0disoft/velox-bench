@@ -1,0 +1,86 @@
+{
+  "schemaVersion": "velox.bench-pair-summary/v1",
+  "suite": "zero-cache",
+  "scope": "velox-wails",
+  "expectedPerFramework": 10,
+  "fixtureSha256": "e50cd76355a78801ce1208d21ff9355f793a3baae8fa8a0cf3a47b37d7662c35",
+  "frameworkRevisions": {
+    "velox": "02c9acb5035014d9e29a0eb5881a3cf5310f5d6d",
+    "wails": "2e3e15359106686c1f9e5c11b7a84025169cea5d"
+  },
+  "uploadedCacheBytes": 0,
+  "environmentCount": 1,
+  "environments": [
+    {
+      "runner": "windows-2025",
+      "runnerImageVersion": "20260907.229.1",
+      "os": "windows",
+      "architecture": "amd64",
+      "windowsVersion": "10.0.26100",
+      "logicalProcessors": 4,
+      "memoryClassBytes": 17179869184,
+      "bunVersion": "1.3.14",
+      "observed": 20
+    }
+  ],
+  "hardwareBalanced": true,
+  "hardwareVariants": [
+    {
+      "cpuModel": "AMD EPYC 7763 64-Core Processor",
+      "observed": 10,
+      "frameworks": {
+        "velox": 5,
+        "wails": 5
+      }
+    },
+    {
+      "cpuModel": "AMD EPYC 9V45 96-Core Processor",
+      "observed": 4,
+      "frameworks": {
+        "velox": 2,
+        "wails": 2
+      }
+    },
+    {
+      "cpuModel": "AMD EPYC 9V74 80-Core Processor",
+      "observed": 6,
+      "frameworks": {
+        "velox": 3,
+        "wails": 3
+      }
+    }
+  ],
+  "publishable": true,
+  "rows": [
+    {
+      "framework": "velox",
+      "expected": 10,
+      "observed": 10,
+      "missing": 0,
+      "successful": 10,
+      "failed": 0,
+      "timedOut": 0,
+      "endToEndMs": {
+        "min": 2372,
+        "p50": 4839,
+        "p95": 9147,
+        "max": 9147
+      }
+    },
+    {
+      "framework": "wails",
+      "expected": 10,
+      "observed": 10,
+      "missing": 0,
+      "successful": 10,
+      "failed": 0,
+      "timedOut": 0,
+      "endToEndMs": {
+        "min": 69540,
+        "p50": 86348,
+        "p95": 100667,
+        "max": 100667
+      }
+    }
+  ]
+}
