@@ -28,7 +28,9 @@ if (!frameworks.includes(framework) || !Number.isInteger(sample) || !resultArgum
 const resultPath = resolve(resultArgument);
 const clockPath = resolve(clockArgument);
 
-const lock = await loadLock(root);
+const variant = process.env.VELOX_BENCH_LOCK_VARIANT;
+if (variant && variant !== "wails-v3") throw new Error("unknown benchmark lock variant");
+const lock = await loadLock(root, variant);
 const fixtureName = (process.env.VELOX_BENCH_FIXTURE || "hello") as FixtureName;
 if (!fixtureNames.includes(fixtureName)) throw new Error("VELOX_BENCH_FIXTURE must be hello or asset-pack");
 const fixture = await fixtureIdentity(root, lock, fixtureName);
@@ -122,12 +124,19 @@ async function measureVelox(): Promise<void> {
 }
 
 async function measureWails(): Promise<void> {
-  await copyProject(join(root, "apps", "wails"));
+  const v3 = variant === "wails-v3";
+  await copyProject(join(root, "apps", v3 ? "wails-v3" : "wails"));
   const env = { GOBIN: join(tooling, "bin"), GOMODCACHE: join(cache, "go-mod"), GOCACHE: join(cache, "go-build") };
   await mkdir(env.GOBIN, { recursive: true });
-  setupMs = await timed(() => run(["go", "install", `github.com/wailsapp/wails/v2/cmd/wails@${lock.frameworks.wails.version}`], project, env));
-  buildMs = await timed(() => run([join(env.GOBIN, "wails.exe"), "build", "-clean", "-platform", "windows/amd64"], project, env));
-  portable = join(project, "build", "bin");
+  if (v3) {
+    setupMs = await timed(() => run(["go", "install", `github.com/wailsapp/wails/v3/cmd/wails3@${lock.frameworks.wails.version}`], project, env));
+    buildMs = await timed(() => run([join(env.GOBIN, "wails3.exe"), "build"], project, env));
+    portable = join(project, "bin");
+  } else {
+    setupMs = await timed(() => run(["go", "install", `github.com/wailsapp/wails/v2/cmd/wails@${lock.frameworks.wails.version}`], project, env));
+    buildMs = await timed(() => run([join(env.GOBIN, "wails.exe"), "build", "-clean", "-platform", "windows/amd64"], project, env));
+    portable = join(project, "build", "bin");
+  }
 }
 
 async function measureNeutralino(): Promise<void> {

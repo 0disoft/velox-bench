@@ -1,0 +1,17 @@
+{
+  "schemaVersion": "velox-bench-wails-v3-lock/v1",
+  "runner": "windows-2025",
+  "fixture": "hello",
+  "velox": {
+    "repository": "0disoft/velox",
+    "releaseTag": "v0.5.10-alpha.62",
+    "releaseAsset": "velox-windows-x64.zip",
+    "releaseSha256": "10137ca603c5ba7f765d58f9e93fc78683f328aebad77659fd63e01367265871",
+    "commit": "02c9acb5035014d9e29a0eb5881a3cf5310f5d6d"
+  },
+  "wails": {
+    "repository": "wailsapp/wails",
+    "version": "v3.0.0-beta.25",
+    "commit": "2e3e15359106686c1f9e5c11b7a84025169cea5d"
+  }
+}

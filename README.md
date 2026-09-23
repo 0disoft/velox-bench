@@ -46,6 +46,22 @@ Workflow wall time and aggregate job runtime come from GitHub's wall-clock times
 
 <!-- END GENERATED VELOX-WAILS RESULT -->
 
+## Wails v3 Comparison
+
+The manual-only `Wails v3 comparison` workflow measures the same `hello` fixture
+on paired `windows-2025` runners. Its separate
+[`bench.wails-v3.lock.json`](bench.wails-v3.lock.json) pins the Velox alpha.62
+public ZIP and Wails v3 beta.25 release revision. The existing `bench.lock.json`,
+Wails v2 adapter, and published v2 result above remain unchanged.
+
+Each sample starts the clock before Velox release acquisition or Wails Go setup,
+alternates execution order, uses fresh per-sample build caches, and records raw
+failures. The workflow uploads raw results and a revision-checked pair summary;
+it does not publish a replacement headline or make a product go-or-kill decision.
+One- and three-sample runs diagnose the path. Ten complete paired samples are
+required before comparing the measured distributions, and the result applies
+only to these pinned releases and fixture.
+
 ## Current Inputs
 
 - Velox release: `v0.5.10-alpha.1`, asset `velox-windows-x64.zip`, SHA-256

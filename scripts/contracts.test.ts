@@ -2,7 +2,7 @@ import { describe, expect, test } from "bun:test";
 import { mkdtemp, readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
-import { percentile, validateResult, type Result } from "./contracts";
+import { loadLock, percentile, validateResult, type Result } from "./contracts";
 import { createDeterministicZip } from "./zip";
 
 function result(): Result {
@@ -38,6 +38,16 @@ describe("benchmark result contract", () => {
     expect(percentile([1, 2, 3, 4, 5], 0.5)).toBe(3);
     expect(percentile([1, 2, 3, 4, 5], 0.95)).toBe(5);
   });
+});
+
+test("Wails v3 comparison pins do not replace the historical Wails v2 lock", async () => {
+  const root = join(import.meta.dir, "..");
+  const historical = await loadLock(root);
+  const comparison = await loadLock(root, "wails-v3");
+  expect(historical.frameworks.wails.version).toBe("v2.13.0");
+  expect(comparison.frameworks.wails.version).toBe("v3.0.0-beta.25");
+  expect(comparison.frameworks.velox.releaseTag).toBe("v0.5.10-alpha.62");
+  expect(historical.frameworks.velox.releaseTag).toBe("v0.5.10-alpha.1");
 });
 
 test("deterministic zip bytes do not depend on source mtime", async () => {

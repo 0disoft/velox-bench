@@ -34,7 +34,9 @@ if (mode === "capture") {
       throw new Error("environment mismatch result identity is invalid");
     }
     const root = resolve(import.meta.dir, "..");
-    const lock = await loadLock(root);
+    const variant = process.env.VELOX_BENCH_LOCK_VARIANT;
+    if (variant && variant !== "wails-v3") throw new Error("unknown benchmark lock variant");
+    const lock = await loadLock(root, variant);
     const now = new Date().toISOString();
     const fixture = await fixtureIdentity(root, lock, fixtureName);
     for (const framework of selectedFrameworks) {

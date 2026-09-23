@@ -68,8 +68,31 @@ export type Result = {
   failure: null | { phase: string; code: string };
 };
 
-export async function loadLock(root: string): Promise<Lock> {
-  return JSON.parse(await readFile(join(root, "bench.lock.json"), "utf8")) as Lock;
+export async function loadLock(root: string, variant?: "wails-v3"): Promise<Lock> {
+  const lock = JSON.parse(await readFile(join(root, "bench.lock.json"), "utf8")) as Lock;
+  if (!variant) return lock;
+
+  const pins = JSON.parse(await readFile(join(root, "bench.wails-v3.lock.json"), "utf8")) as {
+    schemaVersion?: string;
+    runner?: string;
+    fixture?: string;
+    velox?: Lock["frameworks"]["velox"];
+    wails?: Lock["frameworks"]["wails"];
+  };
+  if (pins.schemaVersion !== "velox-bench-wails-v3-lock/v1" || pins.runner !== lock.runner ||
+      pins.fixture !== lock.fixture.name || pins.velox?.repository !== "0disoft/velox" ||
+      !/^v\d+\.\d+\.\d+-alpha\.\d+$/.test(pins.velox.releaseTag) ||
+      pins.velox.releaseAsset !== "velox-windows-x64.zip" ||
+      !/^[0-9a-f]{64}$/.test(pins.velox.releaseSha256) ||
+      !/^[0-9a-f]{40}$/.test(pins.velox.commit) ||
+      pins.wails?.repository !== "wailsapp/wails" ||
+      !/^v3\.\d+\.\d+-beta\.\d+$/.test(pins.wails.version) ||
+      !/^[0-9a-f]{40}$/.test(pins.wails.commit)) {
+    throw new Error("invalid Wails v3 comparison lock");
+  }
+  lock.frameworks.velox = pins.velox;
+  lock.frameworks.wails = pins.wails;
+  return lock;
 }
 
 export async function fixtureDigest(root: string, lock: Lock): Promise<string> {

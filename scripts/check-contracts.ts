@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { describeAssetPack, validateAssetPackManifest, type AssetPackManifest } from "./asset-pack";
+import { loadLock } from "./contracts";
 import { buildPairPublication, renderPairPublication, serializeCanonicalJson, updateReadmePublication } from "./publication";
 import { createTauriIcon } from "./tauri-icon";
 
@@ -19,6 +20,7 @@ type Lock = {
 
 const root = join(import.meta.dir, "..");
 const lock = JSON.parse(await readFile(join(root, "bench.lock.json"), "utf8")) as Lock;
+const wailsV3Lock = await loadLock(root, "wails-v3");
 const commitPattern = /^[0-9a-f]{40}$/;
 const exactVersionPattern = /^\d+\.\d+\.\d+$/;
 
@@ -126,9 +128,37 @@ if (!committedTauriIcon.equals(createTauriIcon())) {
 const adapters = [
   join(root, "apps", "velox", "web"),
   join(root, "apps", "wails", "frontend", "dist"),
+  join(root, "apps", "wails-v3", "frontend", "dist"),
   join(root, "apps", "neutralino", "resources"),
   join(root, "apps", "tauri", "frontend", "dist"),
 ];
+const wailsV3Module = await readFile(join(root, "apps", "wails-v3", "go.mod"), "utf8");
+if (!wailsV3Module.includes(`github.com/wailsapp/wails/v3 ${wailsV3Lock.frameworks.wails.version}`)) {
+  throw new Error("Wails v3 adapter module differs from the comparison pin");
+}
+const wailsV3Taskfile = await readFile(join(root, "apps", "wails-v3", "Taskfile.yml"), "utf8");
+if (!wailsV3Taskfile.includes("go mod tidy") || !wailsV3Taskfile.includes("go build -tags production")) {
+  throw new Error("Wails v3 adapter must build a production executable after module resolution");
+}
+const wailsV3Workflow = await readFile(join(root, ".github", "workflows", "wails-v3-compare.yml"), "utf8");
+if (/^\s{2}(push|pull_request|schedule):/m.test(wailsV3Workflow) || /actions\/cache@/.test(wailsV3Workflow) ||
+    /^\s*cache:\s*true\s*$/m.test(wailsV3Workflow)) {
+  throw new Error("Wails v3 comparison must be manual and zero-cache");
+}
+for (const action of ["checkout", "setupBun", "setupGo", "uploadArtifact", "downloadArtifact"] as const) {
+  if (!wailsV3Workflow.includes(`@${lock.actions[action]}`)) throw new Error(`Wails v3 workflow does not use pinned actions.${action}`);
+}
+for (const marker of [
+  "VELOX_BENCH_LOCK_VARIANT: wails-v3",
+  "environment-gate.ts verify-pair",
+  "acquire-velox-release.ts",
+  "measure-zero-cache.ts velox",
+  "measure-zero-cache.ts wails",
+  "summarize-pair.ts",
+  "wails-v3-raw-",
+]) {
+  if (!wailsV3Workflow.includes(marker)) throw new Error(`Wails v3 workflow is missing ${marker}`);
+}
 const canonicalRoot = join(root, "fixtures", lock.fixture.name);
 const digest = createHash("sha256");
 for (const file of lock.fixture.files) {

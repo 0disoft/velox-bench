@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 import { mkdir, readFile, rename, rm, stat, writeFile } from "node:fs/promises";
 import { basename, dirname, join, resolve } from "node:path";
-import type { Lock } from "./contracts";
+import { loadLock, type Lock } from "./contracts";
 
 const archiveLimitBytes = 64 * 1024 * 1024;
 
@@ -16,6 +16,7 @@ export type VeloxReleasePin = {
 type AcquireOptions = {
   root: string;
   destination: string;
+  variant?: "wails-v3";
   fetchImpl?: typeof fetch;
   extract?: (archive: string, destination: string) => Promise<void>;
 };
@@ -83,7 +84,7 @@ async function extractWithPowerShell(archive: string, destination: string): Prom
 }
 
 export async function acquireVeloxRelease(options: AcquireOptions): Promise<{ destination: string; sha256: string; url: string }> {
-  const lock = JSON.parse(await readFile(join(options.root, "bench.lock.json"), "utf8")) as Lock;
+  const lock = await loadLock(options.root, options.variant);
   const pin = pinnedVeloxRelease(lock);
   const destination = resolve(options.destination);
   const parent = dirname(destination);
@@ -134,7 +135,9 @@ export async function acquireVeloxRelease(options: AcquireOptions): Promise<{ de
 if (import.meta.main) {
   const destination = process.argv[2];
   if (!destination) throw new Error("usage: acquire-velox-release.ts <destination>");
-  const result = await acquireVeloxRelease({ root: resolve(import.meta.dir, ".."), destination });
+  const variant = process.env.VELOX_BENCH_LOCK_VARIANT;
+  if (variant && variant !== "wails-v3") throw new Error("unknown benchmark lock variant");
+  const result = await acquireVeloxRelease({ root: resolve(import.meta.dir, ".."), destination, variant });
   console.log(JSON.stringify({
     release: basename(result.destination),
     destination: result.destination,
